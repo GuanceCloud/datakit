@@ -6,10 +6,12 @@
 package aggr
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -96,12 +98,15 @@ func TestSplitDataPacketBySize(t *testing.T) {
 	require.Greater(t, len(parts), 1)
 
 	totalPoints := 0
+	var reassembledPayload []byte
 	for _, part := range parts {
 		totalPoints += int(part.PointCount)
+		reassembledPayload = append(reassembledPayload, part.PointsPayload...)
 		assert.LessOrEqual(t, part.Size(), maxRawBodySize)
 		assert.Equal(t, int(part.PointCount), countPBPointsPayload(t, part.PointsPayload))
 	}
 	assert.Equal(t, int(pkg.PointCount), totalPoints)
+	assert.Equal(t, pkg.PointsPayload, reassembledPayload)
 }
 
 func TestSplitDataPacketBySizeSinglePointOversize(t *testing.T) {
@@ -120,6 +125,46 @@ func TestSplitDataPacketBySizeSinglePointOversize(t *testing.T) {
 	assert.Equal(t, int32(1), parts[1].PointCount)
 	assert.Equal(t, 1, countPBPointsPayload(t, parts[0].PointsPayload))
 	assert.Equal(t, 1, countPBPointsPayload(t, parts[1].PointsPayload))
+}
+
+func TestSplitDataPacketBySizeHonorsExactPacketSize(t *testing.T) {
+	pkg := buildTailSamplingDataPacket(3, 64)
+	maxRawBodySize := buildTailSamplingDataPacket(2, 64).Size() - 1
+	require.LessOrEqual(t, buildTailSamplingDataPacket(1, 64).Size(), maxRawBodySize)
+
+	parts := splitDataPacketBySize(pkg, maxRawBodySize)
+	require.Greater(t, len(parts), 1)
+	for _, part := range parts {
+		assert.LessOrEqual(t, part.Size(), maxRawBodySize)
+	}
+}
+
+func TestSplitDataPacketBySizeFallsBackForInvalidPayload(t *testing.T) {
+	pkg := buildTailSamplingDataPacket(2, 64)
+	pkg.PointsPayload = []byte{pbPointsArrayTag, 2, 0xff}
+	base := cloneDataPacketMeta(pkg)
+	base.PointsPayload = nil
+	base.PointCount = 0
+	base.MaxPointTimeUnixNano = 0
+
+	parts := splitDataPacketBySize(pkg, base.Size()+1)
+	require.Len(t, parts, 1)
+	assert.Same(t, pkg, parts[0])
+}
+
+func TestWalkDataPacketPartsBySizeStopsWhenContextAlreadyCanceled(t *testing.T) {
+	pkg := buildTailSamplingDataPacket(48, 16<<10)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	emitted := 0
+	parts, err := walkDataPacketPartsBySize(ctx, pkg, 32<<10, func(*aggregate.DataPacket) error {
+		emitted++
+		return nil
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Zero(t, parts)
+	assert.Zero(t, emitted)
 }
 
 func TestSplitBatchsBySize(t *testing.T) {
@@ -203,7 +248,7 @@ func TestSendTailSamplingPackageHeaders(t *testing.T) {
 	}
 	ag.initHTTP()
 
-	err := ag.sendTailSamplingPackage(11, buildTailSamplingDataPacket(4, 32))
+	err := ag.sendTailSamplingPackageContext(context.Background(), 11, buildTailSamplingDataPacket(4, 32))
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(bodySize), gotContentLength)
@@ -296,7 +341,7 @@ func TestSendAggrRequestsDoNotInheritDatawaySinkHeaders(t *testing.T) {
 	ag.initHTTP()
 
 	require.NoError(t, ag.sendMetricBatch(point.SMetric, 1, buildMetricBatchs(1, 32)))
-	require.NoError(t, ag.sendTailSamplingPackage(1, buildTailSamplingDataPacket(2, 32)))
+	require.NoError(t, ag.sendTailSamplingPackageContext(context.Background(), 1, buildTailSamplingDataPacket(2, 32)))
 	ag.sendTSConfigToDW()
 
 	assert.Equal(t, int32(1), paths[datakit.Aggregate])
@@ -305,9 +350,7 @@ func TestSendAggrRequestsDoNotInheritDatawaySinkHeaders(t *testing.T) {
 }
 
 func TestSendMetricBatchesRunConcurrently(t *testing.T) {
-	origCPUs := datakit.AvailableCPUs
-	t.Cleanup(func() { datakit.AvailableCPUs = origCPUs })
-	datakit.AvailableCPUs = 1
+	setAvailableCPUsForTest(t, 1)
 
 	var (
 		inflight    int32
@@ -350,9 +393,7 @@ func TestSendMetricBatchesRunConcurrently(t *testing.T) {
 }
 
 func TestSendTailSamplingPackagesRunConcurrently(t *testing.T) {
-	origCPUs := datakit.AvailableCPUs
-	t.Cleanup(func() { datakit.AvailableCPUs = origCPUs })
-	datakit.AvailableCPUs = 1
+	setAvailableCPUsForTest(t, 1)
 
 	var (
 		inflight    int32
@@ -389,6 +430,162 @@ func TestSendTailSamplingPackagesRunConcurrently(t *testing.T) {
 		2: buildTailSamplingDataPacket(2, 32),
 	}))
 	assert.Greater(t, atomic.LoadInt32(&maxInflight), int32(1))
+}
+
+func TestSendTailSamplingPackagesKeepsSplitMemoryBounded(t *testing.T) {
+	setAvailableCPUsForTest(t, 0)
+
+	var requests int32
+	ag := newTailSamplingTestAggregator(t, 32<<10, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&requests, 1)
+		_, err := io.Copy(io.Discard, r.Body)
+		if !assert.NoError(t, err) {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	pkg := buildTailSamplingDataPacket(48, 16<<10)
+
+	runtime.GC()
+	runtime.GC()
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
+
+	require.NoError(t, ag.SendTailSamplingPackages(map[uint64]*aggregate.DataPacket{1: pkg}))
+
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+	allocated := after.TotalAlloc - before.TotalAlloc
+	t.Logf("payload=%d requests=%d allocated=%d", len(pkg.PointsPayload), requests, allocated)
+
+	require.Greater(t, atomic.LoadInt32(&requests), int32(1), "fixture did not trigger splitting")
+	assert.Less(t, allocated, uint64(32<<20), "split/send allocated more than 32 MiB")
+}
+
+func TestSendTailSamplingPackagesContinuesAfterFailure(t *testing.T) {
+	setAvailableCPUsForTest(t, 0)
+
+	var (
+		requests       int32
+		receivedPoints int32
+		failedPoints   int32
+		decodeErrors   int32
+	)
+	ag := newTailSamplingTestAggregator(t, 32<<10, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			atomic.AddInt32(&decodeErrors, 1)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		packet := &aggregate.DataPacket{}
+		if err := packet.Unmarshal(body); err != nil {
+			atomic.AddInt32(&decodeErrors, 1)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		atomic.AddInt32(&receivedPoints, packet.PointCount)
+		if atomic.AddInt32(&requests, 1) == 1 {
+			atomic.AddInt32(&failedPoints, packet.PointCount)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	pkg := buildTailSamplingDataPacket(48, 16<<10)
+	lostBefore := counterValue(t, aggrLostPoints.WithLabelValues("tail_sampling", pkg.DataType, "server"))
+
+	err := ag.SendTailSamplingPackages(map[uint64]*aggregate.DataPacket{
+		1: pkg,
+	})
+	require.Error(t, err)
+	assert.Zero(t, atomic.LoadInt32(&decodeErrors))
+	assert.Greater(t, atomic.LoadInt32(&requests), int32(1))
+	assert.Equal(t, pkg.PointCount, atomic.LoadInt32(&receivedPoints))
+	assert.Equal(t, lostBefore+float64(atomic.LoadInt32(&failedPoints)),
+		counterValue(t, aggrLostPoints.WithLabelValues("tail_sampling", pkg.DataType, "server")))
+}
+
+func TestSendTailSamplingPackagesStopsOnContextCancellation(t *testing.T) {
+	setAvailableCPUsForTest(t, 0)
+
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	ag := newTailSamplingTestAggregator(t, 32<<10, http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	}))
+	t.Cleanup(func() { close(release) })
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	result := make(chan error, 1)
+	go func() {
+		result <- ag.SendTailSamplingPackagesContext(ctx, map[uint64]*aggregate.DataPacket{
+			1: buildTailSamplingDataPacket(48, 16<<10),
+		})
+	}()
+
+	select {
+	case <-started:
+		cancel()
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for the first request")
+	}
+	select {
+	case err := <-result:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		t.Fatal("send did not stop after context cancellation")
+	}
+}
+
+func TestSendTailSamplingPackagesContextCancellationOverridesSendFailure(t *testing.T) {
+	setAvailableCPUsForTest(t, 0)
+
+	var requests int32
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	ag := newTailSamplingTestAggregator(t, 32<<10, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&requests, 1) == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		started <- struct{}{}
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	}))
+	t.Cleanup(func() { close(release) })
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	result := make(chan error, 1)
+	go func() {
+		result <- ag.SendTailSamplingPackagesContext(ctx, map[uint64]*aggregate.DataPacket{
+			1: buildTailSamplingDataPacket(48, 16<<10),
+		})
+	}()
+
+	select {
+	case <-started:
+		cancel()
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for the second request")
+	}
+	select {
+	case err := <-result:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		t.Fatal("send did not stop after context cancellation")
+	}
 }
 
 func TestSendMetricBatchSelectsConfiguredEndpointByPickKey(t *testing.T) {
@@ -557,7 +754,7 @@ func TestSendTailSamplingPackageFallsBackToAllDatawayEndpoints(t *testing.T) {
 	ag := &Aggregator{DW: dw}
 	ag.initHTTP()
 
-	require.NoError(t, ag.sendTailSamplingPackage(1, buildTailSamplingDataPacket(4, 32)))
+	require.NoError(t, ag.sendTailSamplingPackageContext(context.Background(), 1, buildTailSamplingDataPacket(4, 32)))
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&firstReqs))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&secondReqs))
@@ -670,6 +867,46 @@ func buildMetricBatchs(batchCount int, payloadSize int) *aggregate.Batchs {
 		PickKey: 1,
 		Batchs:  arr,
 	}
+}
+
+func BenchmarkWalkDataPacketPartsBySize64MiB(b *testing.B) {
+	pkg := buildTailSamplingDataPacket(256, 256<<10)
+	const maxRawBodySize = 1 << 20
+
+	b.ReportAllocs()
+	b.SetBytes(int64(len(pkg.PointsPayload)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		parts, err := walkDataPacketPartsBySize(context.Background(), pkg, maxRawBodySize, func(*aggregate.DataPacket) error {
+			return nil
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		if parts < 2 {
+			b.Fatalf("fixture did not trigger splitting: parts=%d", parts)
+		}
+	}
+}
+
+func newTailSamplingTestAggregator(t *testing.T, maxRawBodySize int, handler http.Handler) *Aggregator {
+	t.Helper()
+
+	ts := httptest.NewServer(handler)
+	t.Cleanup(ts.Close)
+	ag := &Aggregator{
+		Endpoints:      []string{ts.URL + "?token=tkn_trace"},
+		MaxRawBodySize: maxRawBodySize,
+	}
+	ag.initHTTP()
+	return ag
+}
+
+func setAvailableCPUsForTest(t *testing.T, cpus int) {
+	t.Helper()
+	origCPUs := datakit.AvailableCPUs
+	t.Cleanup(func() { datakit.AvailableCPUs = origCPUs })
+	datakit.AvailableCPUs = cpus
 }
 
 func counterValue(t *testing.T, collector prometheus.Counter) float64 {

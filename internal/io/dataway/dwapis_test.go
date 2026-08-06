@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func TestNTP(t *T.T) {
@@ -181,4 +182,10 @@ func TestDWAPIs(t *T.T) {
 			ts.Close()
 		})
 	})
+}
+
+func TestReplayAssetAPIsRegisteredInDatawayList(t *T.T) {
+	assert.Contains(t, datawayAPIs, datakit.SessionReplayAssetUpload)
+	assert.Contains(t, datawayAPIs, datakit.SessionReplayAssetCheck)
+	assert.Contains(t, datawayAPIs, datakit.SessionReplayAssetGet)
 }

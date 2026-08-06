@@ -4,11 +4,13 @@ summary   : 'Automated profiling tool'
 tags      :
   - 'java'
   - 'async-profiler'
+  - 'py-spy'
+  - 'python'
   - 'profiling'
   - 'flameshot'
 ---
 
-Flameshot is a lightweight automated profiling tool running in Sidecar mode. It monitors the resource usage (CPU/Memory) of target processes and automatically triggers underlying Profilers (such as `async-profiler`) when preset thresholds are reached, enabling non-intrusive on-site snapshot collection.
+Flameshot is a lightweight automated profiling tool running in Sidecar mode. It monitors the resource usage (CPU/Memory) of target processes and automatically triggers underlying Profilers (such as `async-profiler` and `py-spy`) when preset thresholds are reached, enabling non-intrusive on-site snapshot collection.
 
 ---
 
@@ -20,8 +22,8 @@ Flameshot is deployed using the **Sidecar Container** pattern. It must run in th
 
 1. **Monitor**: Flameshot continuously polls the resource levels of target processes within the main container.
 1. **Trigger**: When thresholds are met (e.g., CPU > 80%) or an HTTP API request is received, a collection task is triggered.
-1. **Execute**: Based on the configured language type (currently supporting Java and Go), it invokes the corresponding profiler workflow for the target process.
-1. **Collect**: The generated Profile files (e.g., `.jfr` or `.pprof`) are subsequently uploaded to the data observability center.
+1. **Execute**: Based on the configured language type (currently supporting Java, Go, and Python), it invokes the corresponding profiler workflow for the target process.
+1. **Collect**: The generated Profile files (e.g., `.jfr`, `.pprof`, or py-spy raw collapsed text) are subsequently uploaded to the data observability center.
 1. **Timed**: After configuring `FLAMESHOT_AUTO_PROFILING`, it periodically collects profiling data for all matched processes. The sample duration defaults to 30 seconds and can be adjusted through `FLAMESHOT_AUTO_PROFILING_DURATION`.
 1. **OOM Summary**: When a container `oom_kill` increment is detected, Flameshot tries to automatically parse `-XX:+HeapDumpOnOutOfMemoryError` and `-XX:HeapDumpPath=...` from the target Java process arguments. If the dump file is generated inside the shared volume, Flameshot finds the corresponding `.hprof` and uploads a summary log.
 
@@ -43,7 +45,7 @@ These variables control the basic behavior of the Sidecar container.
 | Variable Name                | Required | Default Value | Description                                                                                                                                                                               |
 |:-----------------------------|:---------|:--------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `FLAMESHOT_DATAKIT_ADDR`     | **Yes**  | -             | DataKit's Profiling data receiving interface address.                                                                                                                                     |
-| `FLAMESHOT_PROFILING_PATH`   | **Yes**  | `/data`       | **Shared directory path**. Used to store tools and generated temporary files; must match the mount path in the main container.                                                            |
+| `FLAMESHOT_PROFILING_PATH`   | **Yes**  | `/data`       | **Shared directory path**. Used to store tools and generated temporary files; must match the mount path in the main container. Python relative `pyspy_output_path` values are written under this directory. |
 | `FLAMESHOT_MONITOR_INTERVAL` | No       | `1`           | Monitoring polling interval (seconds).                                                                                                                                                    |
 | `FLAMESHOT_LOG_LEVEL`        | No       | `info`        | Log level. Options: `debug`, `info`, `warn`, `error`.                                                                                                                                     |
 | `FLAMESHOT_PROFILING_ENABLED` | No | `true` | Enable JFR Profiling. Set to `false` to disable timed, threshold, cgroup high-watermark, and HTTP manual Profiling while keeping OOM detection, hprof upload, and proactive Heap Dump. |
@@ -53,12 +55,22 @@ These variables control the basic behavior of the Sidecar container.
 | `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | No | `2m` | Time window used to match an OOM event with the `.hprof` file modification time. |
 | `FLAMESHOT_HPROF_UPLOAD_ENABLED` | No | `false` | Upload matched or generated `.hprof` files to object storage. |
 | `FLAMESHOT_HPROF_UPLOAD_PROVIDER` | No | - | Object storage provider: `oss` or `s3`. |
+| `FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE` | No | `static` | hprof upload authentication type. `static` directly uses AK/SK with an optional STS SecurityToken. `assume_role` uses source AK/SK to call Alibaba Cloud STS AssumeRole and obtain refreshable temporary credentials. `assume_role` is supported for OSS only. :octicons-tag-24: Version-0.2.4 |
 | `FLAMESHOT_HPROF_UPLOAD_ENDPOINT` | No | - | OSS/S3 endpoint. |
-| `FLAMESHOT_HPROF_UPLOAD_REGION` | No | `us-east-1` for S3 | S3 region. |
+| `FLAMESHOT_HPROF_UPLOAD_REGION` | No | `us-east-1` for S3 | OSS/S3 region. In AssumeRole mode, this is also used to derive the STS region when no STS endpoint is configured. |
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | No | - | Target bucket. |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | No | - | Object storage access key ID. |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | No | - | Object storage access key secret. |
 | `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | No | - | SecurityToken for Alibaba Cloud OSS STS credentials. When set with temporary AK/SK, STS authentication is used. Restart the Pod with renewed credentials before they expire. :octicons-tag-24: Version-0.2.3 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN` | Required for `assume_role` | - | Target RAM Role ARN. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SESSION_NAME` | No | SDK default | AssumeRole session name. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_DURATION_SECONDS` | No | `3600` | Validity period of the STS credentials returned by AssumeRole, in seconds. The minimum value is 900. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_POLICY` | No | - | Optional inline policy used to further restrict the returned STS credentials. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_EXTERNAL_ID` | No | - | Optional ExternalId for cross-account or confused deputy prevention scenarios. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_STS_ENDPOINT` | No | SDK default | Custom STS endpoint, for example `sts.cn-hangzhou.aliyuncs.com`. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID` | Required for `assume_role` | - | Source identity AK used to call STS AssumeRole. Grant only the minimum required `sts:AssumeRole` permission. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET` | Required for `assume_role` | - | Source identity SK used to call STS AssumeRole. :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_SECURITY_TOKEN` | No | - | Source identity SecurityToken when the source identity itself uses temporary credentials. :octicons-tag-24: Version-0.2.4 |
 | `FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE` | No | `{service}/{pod_name}/{timestamp}/{filename}` | Object key template. Supports service / pod_name / pod_namespace / host / pid / timestamp / filename variables. |
 | `FLAMESHOT_HPROF_DOWNLOAD_URL_TEMPLATE` | No | - | Optional download URL template. When configured, events include `hprof_download_url` rendered from it. |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | No | `false` | Enable proactive Java Heap Dump when an emergency memory threshold is reached. |
@@ -72,6 +84,22 @@ These variables control the basic behavior of the Sidecar container.
 | `FLAMESHOT_HTTP_LOCAL_PORT`  | **Yes**  | `8089`        | The Sidecar's own HTTP service listening port.                                                                                                                                            |
 | `FLAMESHOT_SERVICE`          | No       | -             | Will replace the 'service' configuration in 'FLAMESHOT_PROCESSES'                                                                                                                         |
 | `FLAMESHOT_TAGS`             | No       | -             | Suggest configuring `host` `pod_name` `pod_namespace`, such as: "host: host_name,pod_name:pod_a"                                                                                          |
+
+### AssumeRole temporary authentication {#hprof-upload-assume-role}
+
+Use `assume_role` mode when the customer already has an Alibaba Cloud STS AssumeRole flow and wants Flameshot to obtain temporary credentials at runtime:
+
+```shell
+FLAMESHOT_HPROF_UPLOAD_PROVIDER=oss
+FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE=assume_role
+FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN=acs:ram::<account-id>:role/<role-name>
+FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID=<source-access-key-id>
+FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET=<source-access-key-secret>
+```
+
+In this mode, `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID`, `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET`, and `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` are no longer used as OSS upload credentials. Flameshot uses the source AK/SK to call Alibaba Cloud STS `AssumeRole`, obtains temporary AK/SK/SecurityToken, uploads to OSS, and lets the SDK refresh the credentials before expiration.
+
+Note that `AssumeRole` is not an anonymous API. The source AK/SK is still the source identity credential used to call STS. Grant it only the minimum required `sts:AssumeRole` permission, and grant the target RAM Role only the minimum write permission for the target OSS bucket/prefix. If the STS call fails, the configuration is incomplete, or the returned credentials are incomplete, the upload fails and does not fall back to the default credential chain, node role, or anonymous upload.
 
 If DataKit is deployed as a DaemonSet and exposes port `9529` through `hostNetwork`/`hostPort`, it is recommended that Flameshot connects directly to the DataKit on the **same node as the application Pod** instead of using a normal Service domain that may route requests to another node:
 
@@ -122,13 +150,18 @@ To maintain readability in Kubernetes YAML, it is **strongly recommended** to us
 **Common Field Descriptions:**
 
 - **`service`** (String): Service name reported to the observability center.
-- **`language`** (String): Target process language. Currently supports `java`, `go`, and `golang`.
+- **`language`** (String): Target process language. Currently supports `java`, `go`, `golang`, and `python`.
 - **`command`** (String): Regular expression to match the process command line.
 - **`duration`** (String): Duration of a single collection (e.g., `30s`, `1m`). **Note**: To avoid execution timeouts, it is recommended not to exceed 5 minutes.
 - **`emergency_duration`** (String): Shorter profiling duration used after an emergency memory hit. `10s` or `15s` is recommended.
 - **`pprof_url`** (String): Go pprof HTTP base URL, for example `http://127.0.0.1:6060`. Required when `language` is `go` or `golang`.
 - **`pprof_types`** (List): Go pprof types. Supported values are `cpu`, `goroutine`, `heap`, `mutex`, and `block`, matching the existing Go pull mode in the profile input.
 - **`pprof_timeout`** (String): Go pprof request timeout. It should be greater than the CPU profile `duration`.
+- **`pyspy_path`** (String): Python `py-spy` executable path. Defaults to `py-spy`.
+- **`pyspy_output_path`** (String): Python raw output path. When omitted, Flameshot generates a local temporary file; relative paths are written under `FLAMESHOT_PROFILING_PATH` or the default output directory.
+- **`pyspy_rate`** (Int): Python sample rate. Defaults to `100`.
+- **`pyspy_subprocesses`** (Bool): Whether to sample subprocesses. Defaults to `false`.
+- **`pyspy_idle`** (Bool): Whether to include idle threads. Defaults to `false`.
 - **`tags`** (List): List of custom tags; recommended to include meta-information like `env`, `version`.
 - **`cpu_usage_percent`** (Int): CPU trigger threshold (0-N). Values may exceed 100 in multi-core environments.
 - **`mem_usage_percent`** (Int): Average memory-percentage threshold (0-100), evaluated by the latest 5 points.
@@ -241,11 +274,48 @@ Flameshot invokes different underlying tools depending on the technology stack o
     - The pprof endpoint can expose sensitive runtime details. Listen only on a Pod-local address and do not expose it through a Service or public network.
     - If `netstat -anp | grep 6060` only shows something like `10.x.x.x:60602 ... ESTABLISHED`, it is not the pprof listening port. A working pprof server should show `:6060 ... LISTEN`.
 
-=== "Python (Coming Soon)"
+=== "Python"
 
     ### Python Profiling {#python-profiling}
-    
-    *Planned*: Integration with non-intrusive tools like `py-spy`.
+
+    For Python applications, Flameshot uses the official `py-spy` to attach to the target process and runs `py-spy record --format raw` to generate collapsed text for upload to DataKit. The uploaded event uses `family=python`, `format=collapse`, `profiler=pyspy`, and the attachment name is fixed to `prof`.
+
+    **Current data type limitations:**
+
+    - The current py-spy integration only produces and displays **CPU Samples**. This value is the number of times a Python stack was sampled, not an exact CPU utilization or CPU time measurement.
+    - A raw collapsed file contains only stacks and sample counts, so the integration currently cannot provide other Profiling data types such as CPU Time, Wall Time, Heap, Allocation, Lock, Exception, or I/O.
+    - `pyspy_rate` only changes the sampling frequency, and `pyspy_subprocesses` only expands the set of sampled processes. Neither option adds data types.
+    - `pyspy_idle=true` makes py-spy include idle threads, but the result is still displayed as CPU Samples and does not add a Wall Time data type.
+    - `cpu_usage_percent`, `mem_usage_percent`, and `mem_usage_mb` only control when collection is triggered. A memory threshold does not make py-spy produce a Heap or Allocation Profile.
+
+    **Key Configuration Fields (`FLAMESHOT_PROCESSES`):**
+
+    - **`language`**: Must be set to `python`.
+    - **`pyspy_path`**: `py-spy` executable path. Defaults to `py-spy`.
+    - **`pyspy_output_path`**: Raw output path. When omitted, Flameshot generates a local temporary file; relative paths are written under `FLAMESHOT_PROFILING_PATH` or the default output directory.
+    - **`pyspy_rate`**: Samples per second. Defaults to `100`.
+    - **`pyspy_subprocesses`**: Whether to sample subprocesses.
+    - **`pyspy_idle`**: Whether to include idle threads.
+
+    Configuration example:
+
+    ```json
+    {
+      "service": "python-api",
+      "language": "python",
+      "command": "^python\\b.*app\\.py$",
+      "duration": "30s",
+      "pyspy_rate": 100,
+      "cpu_usage_percent": 80,
+      "tags": ["env:prod", "version:v1"]
+    }
+    ```
+
+    **Notes:**
+
+    - Thresholds, timed collection, and HTTP manual triggers only control when a `py-spy` run starts; sampling duration after attach is controlled by `duration`.
+    - The Sidecar must contain `py-spy` and have permission to attach to the target Python process, typically `SYS_PTRACE`.
+    - The DataKit profile input forwards py-spy collapsed data and does not parse it through the Python pprof metric extractor.
 <!-- markdownlint-enable MD046 -->
 
 ---
@@ -485,6 +555,13 @@ Flameshot provides an HTTP interface allowing users or automated O&M scripts to 
         ```
 
 ## Changelog {#changelog}
+
+### 0.2.4 (2026-7-22) {#cl-0.2.4}
+
+#### New Features {#cl-0.2.4-new}
+
+- **Add config**
+    - hprof upload to Alibaba Cloud OSS now supports the `assume_role` authentication mode. Flameshot can actively call Alibaba Cloud STS AssumeRole to obtain and refresh temporary credentials before uploading to OSS. (#3152)
 
 ### 0.2.3 (2026-7-20) {#cl-0.2.3}
 

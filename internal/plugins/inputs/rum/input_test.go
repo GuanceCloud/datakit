@@ -23,8 +23,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 func TestLimitReaderClose(t *T.T) {
@@ -128,9 +128,11 @@ func TestEnvVariableHandler(t *testing.T) {
 	}))
 	defer server.Close()
 
-	config.Cfg.Dataway.URLs = []string{server.URL + "?token=xxxxx"}
-	err := config.Cfg.Dataway.Init()
+	dw := dataway.NewDefaultDataway()
+	dw.URLs = []string{server.URL + "?token=xxxxx"}
+	err := dw.Init()
 	assert.NoError(t, err)
+	useTestDataway(t, dw)
 
 	ipt := defaultInput()
 	router := gin.New()

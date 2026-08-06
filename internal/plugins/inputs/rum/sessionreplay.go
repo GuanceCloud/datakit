@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"golang.org/x/exp/maps"
@@ -32,6 +31,8 @@ import (
 
 // logMultiPartBodyRate indicates recording at most 1 body log for every minute.
 var logMultiPartBodyRate = rate.NewLimiter(rate.Every(time.Minute), 1)
+
+const legacyReplayAPIPathHeader = "X-Datakit-Replay-API-Path"
 
 type SessionReplayCfg struct {
 	CachePath         string                    `toml:"cache_path"`
@@ -62,6 +63,22 @@ func defaultSessionReplayCfg() *SessionReplayCfg {
 		FilterRules:       nil,
 	}
 	return cfg
+}
+
+func copyReplayRequestHeaders(headers http.Header) map[string]string {
+	values := make(map[string]string, len(headers))
+	for k, v := range headers {
+		if k == legacyReplayAPIPathHeader {
+			continue
+		}
+		if len(v) > 0 {
+			values[k] = v[0]
+		} else {
+			values[k] = ""
+		}
+	}
+
+	return values
 }
 
 func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
@@ -116,15 +133,7 @@ func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
 			return
 		}
 
-		headers := make(map[string]string, len(req.Header))
-
-		for k, v := range req.Header {
-			if len(v) > 0 {
-				headers[k] = v[0]
-			} else {
-				headers[k] = ""
-			}
-		}
+		headers := copyReplayRequestHeaders(req.Header)
 
 		filterKV := maps.Clone[ReplayFilterKV, string, string](headers)
 		formValues := make(map[string]*ValuesSlice, len(req.MultipartForm.Value))
@@ -215,6 +224,7 @@ func (ipt *Input) initReplayHTTPClient() error {
 	}
 
 	ipt.replayUploadAPI = ep.GetCategoryURL()[datakit.SessionReplayUpload]
+	ipt.replayAssetUploadAPI = ep.GetCategoryURL()[datakit.SessionReplayAssetUpload]
 	return nil
 }
 
@@ -287,12 +297,28 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 		return fmt.Errorf("unable to unmarshal protobuf msg [%v] from disk queue: %w", msg, err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, ipt.replayUploadAPI, bytes.NewReader(reqPB.Body))
+	apiPath := reqPB.GetAPIPath()
+	if apiPath == "" {
+		apiPath = reqPB.Header[legacyReplayAPIPathHeader]
+	}
+	if apiPath == "" {
+		apiPath = datakit.SessionReplayUpload
+	}
+
+	targetURL := ipt.replayUploadAPI
+	if apiPath == datakit.SessionReplayAssetUpload && ipt.replayAssetUploadAPI != "" {
+		targetURL = ipt.replayAssetUploadAPI
+	}
+
+	req, err := http.NewRequest(http.MethodPost, targetURL, bytes.NewReader(reqPB.Body))
 	if err != nil {
 		return fmt.Errorf("unbale to create http request: %w", err)
 	}
 
 	for k, v := range reqPB.Header {
+		if k == legacyReplayAPIPathHeader {
+			continue
+		}
 		req.Header.Set(k, v)
 	}
 
@@ -310,9 +336,6 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 			formValues[k] = v.Values
 		}
 	}
-
-	globalTags := config.Cfg.Dataway.GlobalTags()
-	customTagKeys := config.Cfg.Dataway.CustomTagKeys()
 
 	tags := map[string]string{
 		"category": "session_replay",
@@ -332,14 +355,14 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 	env = tags["env"]
 	version = tags["version"]
 	service = tags["service"]
-
-	headerValue := dataway.SinkHeaderValueFromTags(tags,
-		globalTags,
-		customTagKeys)
-	if headerValue == "" {
-		headerValue = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
+	if service == "" && apiPath == datakit.SessionReplayAssetUpload {
+		service = "replay_assets"
 	}
-	req.Header.Set(dataway.HeaderXGlobalTags, headerValue)
+
+	dw := config.Cfg.Dataway
+	if headerValue := dw.SinkHeaderValueFromTags(tags); headerValue != "" {
+		req.Header.Set(dw.SinkHeaderKey(), headerValue)
+	}
 
 	startTime := time.Now()
 	defer func() {

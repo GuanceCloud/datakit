@@ -143,6 +143,110 @@ func TestOSSHProfUploaderPutObjectUsesSecurityToken(t *testing.T) {
 	assert.Equal(t, "svc-a/app.hprof", result.ObjectKey)
 }
 
+func TestOSSHProfUploaderAssumeRoleUsesReturnedTemporaryCredentials(t *testing.T) {
+	filePath := filepath.Join(t.TempDir(), "app.hprof")
+	require.NoError(t, os.WriteFile(filePath, []byte("dump"), 0o644))
+
+	var gotSecurityToken string
+	var gotPath string
+	var gotBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotSecurityToken = r.Header.Get("X-Oss-Security-Token")
+		gotPath = r.URL.Path
+		body, _ := io.ReadAll(r.Body)
+		gotBody = string(body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	oldFactory := assumeRoleCredentialsProviderFactory
+	assumeRoleCredentialsProviderFactory = func(cfg *Config) (hprofUploadCredentialsProvider, error) {
+		assert.Equal(t, "acs:ram::1234567890123456:role/flameshot-uploader", cfg.HProfUploadAssumeRoleARN)
+		assert.Equal(t, "source-ak", cfg.HProfUploadAssumeRoleSourceAccessKeyID)
+		assert.Equal(t, "source-sk", cfg.HProfUploadAssumeRoleSourceAccessKeySecret)
+		return staticTestHProfUploadCredentialsProvider{
+			creds: hprofUploadCredentials{
+				AccessKeyID:     "assumed-ak",
+				AccessKeySecret: "assumed-sk",
+				SecurityToken:   "assumed-token",
+			},
+		}, nil
+	}
+	defer func() {
+		assumeRoleCredentialsProviderFactory = oldFactory
+	}()
+
+	cfg := &Config{
+		HProfUploadEnabled:                         true,
+		HProfUploadProvider:                        hprofUploadProviderOSS,
+		HProfUploadAuthType:                        hprofUploadAuthTypeAssumeRole,
+		HProfUploadEndpoint:                        server.URL,
+		HProfUploadBucket:                          "dump-bucket",
+		HProfUploadAssumeRoleARN:                   "acs:ram::1234567890123456:role/flameshot-uploader",
+		HProfUploadAssumeRoleSourceAccessKeyID:     "source-ak",
+		HProfUploadAssumeRoleSourceAccessKeySecret: "source-sk",
+		HProfUploadPathTemplate:                    "{service}/{filename}",
+	}
+	uploader, err := newHProfUploader(cfg)
+	require.NoError(t, err)
+
+	result, err := uploader.Upload(context.Background(), &hprofUploadRequest{
+		FilePath: filePath,
+		Context: hprofTemplateContext{
+			Service:   "svc-a",
+			Timestamp: "20260722T060000Z",
+			Filename:  "app.hprof",
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "/dump-bucket/svc-a/app.hprof", gotPath)
+	assert.Equal(t, "assumed-token", gotSecurityToken)
+	assert.Equal(t, "dump", gotBody)
+	assert.Equal(t, hprofUploadProviderOSS, result.Provider)
+	assert.Equal(t, "svc-a/app.hprof", result.ObjectKey)
+}
+
+func TestNewOSSHProfUploaderAssumeRoleRequiresRoleARN(t *testing.T) {
+	cfg := &Config{
+		HProfUploadEnabled:                         true,
+		HProfUploadProvider:                        hprofUploadProviderOSS,
+		HProfUploadAuthType:                        hprofUploadAuthTypeAssumeRole,
+		HProfUploadEndpoint:                        "oss-cn-hangzhou.aliyuncs.com",
+		HProfUploadBucket:                          "dump-bucket",
+		HProfUploadAssumeRoleSourceAccessKeyID:     "source-ak",
+		HProfUploadAssumeRoleSourceAccessKeySecret: "source-sk",
+	}
+
+	_, err := newHProfUploader(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN")
+}
+
+func TestNewS3HProfUploaderRejectsAssumeRole(t *testing.T) {
+	cfg := &Config{
+		HProfUploadEnabled:         true,
+		HProfUploadProvider:        hprofUploadProviderS3,
+		HProfUploadAuthType:        hprofUploadAuthTypeAssumeRole,
+		HProfUploadEndpoint:        "https://s3.example.com",
+		HProfUploadBucket:          "dump-bucket",
+		HProfUploadAccessKeyID:     "ak",
+		HProfUploadAccessKeySecret: "sk",
+	}
+
+	_, err := newHProfUploader(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported s3 hprof upload auth type")
+}
+
+type staticTestHProfUploadCredentialsProvider struct {
+	creds hprofUploadCredentials
+}
+
+func (p staticTestHProfUploadCredentialsProvider) Credentials(context.Context) (hprofUploadCredentials, error) {
+	return p.creds, nil
+}
+
 func TestBuildHProfTemplateContextFromTags(t *testing.T) {
 	ctx := buildHProfTemplateContext(
 		"svc-a",

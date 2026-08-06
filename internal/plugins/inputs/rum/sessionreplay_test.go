@@ -18,7 +18,6 @@ import (
 	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"google.golang.org/protobuf/proto"
@@ -37,9 +36,11 @@ func TestSessionReplayHandler(t *testing.T) {
 
 	defer os.RemoveAll(cacheDir)
 
-	config.Cfg.Dataway.URLs = []string{"https://testing-openway.dataflux.cn?token=xxxxxxxxxxxxxxx"}
-	err := config.Cfg.Dataway.Init()
+	dw := dataway.NewDefaultDataway()
+	dw.URLs = []string{"https://testing-openway.dataflux.cn?token=xxxxxxxxxxxxxxx"}
+	err := dw.Init()
 	assert.NoError(t, err)
+	useTestDataway(t, dw)
 
 	handle, err := ipt.sessionReplayHandler()
 	assert.NoError(t, err)
@@ -116,15 +117,12 @@ func TestSessionReplayHandler(t *testing.T) {
 }
 
 func TestUploadSessionReplayAddsGlobalTagsHeader(t *testing.T) {
-	origDW := config.Cfg.Dataway
-	t.Cleanup(func() { config.Cfg.Dataway = origDW })
-
 	dw := dataway.NewDefaultDataway(dataway.WithGlobalTags(map[string]string{
 		"env": "prod",
 	}))
 	dw.EnableSinker = true
 	require.NoError(t, dw.Init(dataway.WithURLs("http://127.0.0.1?token=tkn_replay")))
-	config.Cfg.Dataway = dw
+	useTestDataway(t, dw)
 
 	var gotHeader string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -192,4 +190,56 @@ func TestReplayDiskQueue(t *testing.T) {
 	assert.ErrorIs(t, err, diskcache.ErrNoData)
 
 	assert.NoError(t, ipt.replayDiskQueue.Close())
+}
+
+func TestUploadSessionReplayUsesReplayAssetAPI(t *testing.T) {
+	contentType, body := buildSessionReplayRequest()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, datakit.SessionReplayAssetUpload, r.URL.Path)
+		assert.Equal(t, contentType, r.Header.Get("Content-Type"))
+		assert.Empty(t, r.Header.Get(dataway.HeaderXGlobalTags))
+		assert.Contains(t, r.Header.Get(dataway.HeaderXGlobalTagsV2), "wgtid=linked+rum")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	dw := dataway.NewDefaultDataway()
+	dw.EnableSinker = true
+	dw.SinkerHeaderVersion = "v2"
+	dw.GlobalCustomerKeys = []string{"wgtid"}
+	dw.URLs = []string{ts.URL + "?token=xxxxx"}
+	assert.NoError(t, dw.Init())
+	useTestDataway(t, dw)
+
+	ipt := defaultInput()
+	assert.NoError(t, ipt.initReplayHTTPClient())
+
+	reqPB := &RequestPB{
+		Header: map[string]string{
+			"Content-Type": contentType,
+		},
+		Body:    body,
+		APIPath: datakit.SessionReplayAssetUpload,
+		FormValues: map[string]*ValuesSlice{
+			"app_id": {Values: []string{"web_abcdefghijklmn"}},
+			"wgtid":  {Values: []string{"linked rum"}},
+		},
+	}
+
+	pbData, err := proto.Marshal(reqPB)
+	assert.NoError(t, err)
+	assert.NoError(t, ipt.uploadSessionReplay(pbData))
+}
+
+func TestCopyReplayRequestHeadersDropsLegacyRouteMarker(t *testing.T) {
+	headers := copyReplayRequestHeaders(http.Header{
+		"Content-Type":            []string{"application/octet-stream"},
+		legacyReplayAPIPathHeader: []string{datakit.SessionReplayAssetUpload},
+		"X-Forwarded-For":         []string{"127.0.0.1"},
+	})
+
+	assert.Equal(t, "application/octet-stream", headers["Content-Type"])
+	assert.Equal(t, "127.0.0.1", headers["X-Forwarded-For"])
+	assert.NotContains(t, headers, legacyReplayAPIPathHeader)
 }

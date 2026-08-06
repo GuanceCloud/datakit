@@ -18,9 +18,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	aliyuncredentials "github.com/aliyun/credentials-go/credentials/providers"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 )
@@ -29,8 +31,15 @@ const (
 	hprofUploadProviderOSS = "oss"
 	hprofUploadProviderS3  = "s3"
 
+	hprofUploadAuthTypeStatic     = "static"
+	hprofUploadAuthTypeAssumeRole = "assume_role"
+
 	defaultHProfUploadPathTemplate = "{service}/{pod_name}/{timestamp}/{filename}"
 	defaultHProfUploadTimeout      = 5 * time.Minute
+
+	hprofUploadAssumeRoleARNEnv                   = "FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN"
+	hprofUploadAssumeRoleSourceAccessKeyIDEnv     = "FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID"
+	hprofUploadAssumeRoleSourceAccessKeySecretEnv = "FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET"
 )
 
 type hprofUploadRequest struct {
@@ -63,9 +72,20 @@ type hprofUploader interface {
 	Upload(ctx context.Context, req *hprofUploadRequest) (*hprofUploadResult, error)
 }
 
+type hprofUploadCredentials struct {
+	AccessKeyID     string
+	AccessKeySecret string
+	SecurityToken   string
+}
+
+type hprofUploadCredentialsProvider interface {
+	Credentials(context.Context) (hprofUploadCredentials, error)
+}
+
 type ossHProfUploader struct {
-	cfg     *Config
-	timeout time.Duration
+	cfg                 *Config
+	timeout             time.Duration
+	credentialsProvider hprofUploadCredentialsProvider
 }
 
 type s3HProfUploader struct {
@@ -73,6 +93,8 @@ type s3HProfUploader struct {
 	timeout time.Duration
 	client  *http.Client
 }
+
+var assumeRoleCredentialsProviderFactory = newAssumeRoleCredentialsProvider
 
 func (c *Config) profilingEnabled() bool {
 	if c == nil || c.ProfilingEnabled == nil {
@@ -113,15 +135,26 @@ func newHProfUploader(cfg *Config) (hprofUploader, error) {
 	if cfg.HProfUploadBucket == "" {
 		return nil, fmt.Errorf("hprof upload bucket is required")
 	}
-	if cfg.HProfUploadAccessKeyID == "" || cfg.HProfUploadAccessKeySecret == "" {
-		return nil, fmt.Errorf("hprof upload access key id/secret is required")
-	}
 
 	timeout := cfg.hprofUploadTimeout()
 	switch strings.ToLower(strings.TrimSpace(cfg.HProfUploadProvider)) {
 	case hprofUploadProviderOSS:
-		return &ossHProfUploader{cfg: cfg, timeout: timeout}, nil
+		provider, err := buildHProfUploadCredentialsProvider(cfg)
+		if err != nil {
+			return nil, err
+		}
+		return &ossHProfUploader{
+			cfg:                 cfg,
+			timeout:             timeout,
+			credentialsProvider: provider,
+		}, nil
 	case hprofUploadProviderS3:
+		if normalizedHProfUploadAuthType(cfg) != hprofUploadAuthTypeStatic {
+			return nil, fmt.Errorf("unsupported s3 hprof upload auth type %q", cfg.HProfUploadAuthType)
+		}
+		if err := requireHProfUploadStaticAccessKey(cfg); err != nil {
+			return nil, err
+		}
 		return &s3HProfUploader{
 			cfg:     cfg,
 			timeout: timeout,
@@ -132,12 +165,149 @@ func newHProfUploader(cfg *Config) (hprofUploader, error) {
 	}
 }
 
+func normalizedHProfUploadAuthType(cfg *Config) string {
+	if cfg == nil {
+		return hprofUploadAuthTypeStatic
+	}
+	authType := strings.ToLower(strings.TrimSpace(cfg.HProfUploadAuthType))
+	if authType == "" {
+		return hprofUploadAuthTypeStatic
+	}
+	return authType
+}
+
+func requireHProfUploadStaticAccessKey(cfg *Config) error {
+	if cfg == nil || cfg.HProfUploadAccessKeyID == "" || cfg.HProfUploadAccessKeySecret == "" {
+		return fmt.Errorf("hprof upload access key id/secret is required")
+	}
+	return nil
+}
+
+func buildHProfUploadCredentialsProvider(cfg *Config) (hprofUploadCredentialsProvider, error) {
+	switch normalizedHProfUploadAuthType(cfg) {
+	case hprofUploadAuthTypeStatic:
+		if err := requireHProfUploadStaticAccessKey(cfg); err != nil {
+			return nil, err
+		}
+		return staticHProfUploadCredentialsProvider{
+			creds: hprofUploadCredentials{
+				AccessKeyID:     cfg.HProfUploadAccessKeyID,
+				AccessKeySecret: cfg.HProfUploadAccessKeySecret,
+				SecurityToken:   cfg.HProfUploadSecurityToken,
+			},
+		}, nil
+	case hprofUploadAuthTypeAssumeRole:
+		return assumeRoleCredentialsProviderFactory(cfg)
+	default:
+		return nil, fmt.Errorf("unsupported oss hprof upload auth type %q", cfg.HProfUploadAuthType)
+	}
+}
+
+type staticHProfUploadCredentialsProvider struct {
+	creds hprofUploadCredentials
+}
+
+func (p staticHProfUploadCredentialsProvider) Credentials(ctx context.Context) (hprofUploadCredentials, error) {
+	if err := ctx.Err(); err != nil {
+		return hprofUploadCredentials{}, err
+	}
+	return p.creds, nil
+}
+
+type assumeRoleHProfUploadCredentialsProvider struct {
+	mu       sync.Mutex
+	provider *aliyuncredentials.RAMRoleARNCredentialsProvider
+}
+
+func newAssumeRoleCredentialsProvider(cfg *Config) (hprofUploadCredentialsProvider, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("hprof upload assume role config is required")
+	}
+	if cfg.HProfUploadAssumeRoleARN == "" {
+		return nil, fmt.Errorf("hprof upload assume role arn is required: %s", hprofUploadAssumeRoleARNEnv)
+	}
+	if cfg.HProfUploadAssumeRoleSourceAccessKeyID == "" {
+		return nil, fmt.Errorf("hprof upload assume role source access key id is required: %s", hprofUploadAssumeRoleSourceAccessKeyIDEnv)
+	}
+	if cfg.HProfUploadAssumeRoleSourceAccessKeySecret == "" {
+		return nil, fmt.Errorf("hprof upload assume role source access key secret is required: %s", hprofUploadAssumeRoleSourceAccessKeySecretEnv)
+	}
+	if cfg.HProfUploadAssumeRoleDurationSeconds > 0 && cfg.HProfUploadAssumeRoleDurationSeconds < 900 {
+		return nil, fmt.Errorf("hprof upload assume role duration seconds must be >= 900")
+	}
+
+	builder := aliyuncredentials.NewRAMRoleARNCredentialsProviderBuilder().
+		WithAccessKeyId(cfg.HProfUploadAssumeRoleSourceAccessKeyID).
+		WithAccessKeySecret(cfg.HProfUploadAssumeRoleSourceAccessKeySecret).
+		WithRoleArn(cfg.HProfUploadAssumeRoleARN)
+	if cfg.HProfUploadAssumeRoleSourceSecurityToken != "" {
+		builder = builder.WithSecurityToken(cfg.HProfUploadAssumeRoleSourceSecurityToken)
+	}
+	if cfg.HProfUploadAssumeRoleSessionName != "" {
+		builder = builder.WithRoleSessionName(cfg.HProfUploadAssumeRoleSessionName)
+	}
+	if cfg.HProfUploadAssumeRoleDurationSeconds > 0 {
+		builder = builder.WithDurationSeconds(cfg.HProfUploadAssumeRoleDurationSeconds)
+	}
+	if cfg.HProfUploadAssumeRolePolicy != "" {
+		builder = builder.WithPolicy(cfg.HProfUploadAssumeRolePolicy)
+	}
+	if cfg.HProfUploadAssumeRoleExternalID != "" {
+		builder = builder.WithExternalId(cfg.HProfUploadAssumeRoleExternalID)
+	}
+	if cfg.HProfUploadAssumeRoleSTSEndpoint != "" {
+		builder = builder.WithStsEndpoint(cfg.HProfUploadAssumeRoleSTSEndpoint)
+	} else if cfg.HProfUploadRegion != "" {
+		builder = builder.WithStsRegionId(cfg.HProfUploadRegion)
+	}
+
+	provider, err := builder.Build()
+	if err != nil {
+		return nil, fmt.Errorf("build hprof upload assume role credentials provider: %w", err)
+	}
+	return &assumeRoleHProfUploadCredentialsProvider{provider: provider}, nil
+}
+
+func (p *assumeRoleHProfUploadCredentialsProvider) Credentials(ctx context.Context) (hprofUploadCredentials, error) {
+	if p == nil || p.provider == nil {
+		return hprofUploadCredentials{}, fmt.Errorf("hprof upload assume role credentials provider is not initialized")
+	}
+	if err := ctx.Err(); err != nil {
+		return hprofUploadCredentials{}, err
+	}
+
+	p.mu.Lock()
+	cred, err := p.provider.GetCredentials()
+	p.mu.Unlock()
+	if err != nil {
+		return hprofUploadCredentials{}, err
+	}
+	if cred == nil || cred.AccessKeyId == "" || cred.AccessKeySecret == "" || cred.SecurityToken == "" {
+		return hprofUploadCredentials{}, fmt.Errorf("hprof upload assume role returned incomplete sts credentials")
+	}
+	return hprofUploadCredentials{
+		AccessKeyID:     cred.AccessKeyId,
+		AccessKeySecret: cred.AccessKeySecret,
+		SecurityToken:   cred.SecurityToken,
+	}, nil
+}
+
 func (u *ossHProfUploader) Upload(ctx context.Context, req *hprofUploadRequest) (*hprofUploadResult, error) {
 	if u == nil || u.cfg == nil || req == nil {
 		return nil, fmt.Errorf("oss uploader is not initialized")
 	}
+	if u.credentialsProvider == nil {
+		return nil, fmt.Errorf("oss uploader credentials provider is not initialized")
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	creds, err := u.credentialsProvider.Credentials(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if creds.AccessKeyID == "" || creds.AccessKeySecret == "" {
+		return nil, fmt.Errorf("hprof upload access key id/secret is required")
 	}
 
 	key := renderHProfObjectKey(u.cfg, req)
@@ -149,13 +319,13 @@ func (u *ossHProfUploader) Upload(ctx context.Context, req *hprofUploadRequest) 
 	clientOptions := []oss.ClientOption{
 		oss.Timeout(connectTimeout, readWriteTimeout),
 	}
-	if u.cfg.HProfUploadSecurityToken != "" {
-		clientOptions = append(clientOptions, oss.SecurityToken(u.cfg.HProfUploadSecurityToken))
+	if creds.SecurityToken != "" {
+		clientOptions = append(clientOptions, oss.SecurityToken(creds.SecurityToken))
 	}
 	client, err := oss.New(
 		normalizeEndpoint(u.cfg.HProfUploadEndpoint),
-		u.cfg.HProfUploadAccessKeyID,
-		u.cfg.HProfUploadAccessKeySecret,
+		creds.AccessKeyID,
+		creds.AccessKeySecret,
 		clientOptions...,
 	)
 	if err != nil {

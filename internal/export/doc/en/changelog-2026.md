@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.8.0(2026/08/06) {#cl-2.8.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.8.0-new}
+
+- RUM Session Replay now provides asset upload, existence-check, and retrieval APIs with bounded request body sizes (#3015)
+- Flameshot now supports Python profiling through `py-spy` (#3154)
+- Global host tags can now take values from Kubernetes Node labels (#3169)
+- Flameshot OSS hprof uploads add an `assume_role` authentication mode that obtains and refreshes temporary credentials through Alibaba Cloud STS AssumeRole (#3152)
+
+### Bug Fixes {#cl-2.8.0-fix}
+
+- Fixed existing container log tailers being removed when Kubernetes Pod metadata was temporarily absent from the cache (#3172)
+
+### Improvements {#cl-2.8.0-opt}
+
+- Reduced peak memory usage when splitting and sending oversized tail-sampling payloads (#3176)
+
+---
+
 ## 2.7.2(2026/08/04) {#cl-2.7.2}
 
 This release is a hotfix release, contents are as follows:

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
 	containerruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,16 +60,26 @@ func TestContainerLogUsesCachedPodMetadata(t *testing.T) {
 	if info.image != "pod-image" || config == "" {
 		t.Fatalf("cached Pod metadata was not applied: info=%#v config=%q", info, config)
 	}
-	if info.podLabels == nil {
+	if info.podLabels == nil || info.podMetadataUnavailable {
 		t.Fatal("known empty Pod labels must not look like a cache miss")
 	}
+
+	originalPodCacheMissVec := podCacheMissVec
+	podCacheMissVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "test_container_pod_cache_miss_total",
+			Help: "Test counter for container Pod metadata cache misses",
+		},
+		[]string{"usage", "reason"},
+	)
+	t.Cleanup(func() { podCacheMissVec = originalPodCacheMissVec })
 
 	collector.podMetadata = staticPodMetadataProvider{err: &podCacheMissError{
 		reason: podCacheMissNotSynced,
 		err:    errors.New("warming"),
 	}}
 	info, config = collector.queryContainerLogInfoAndConfig(item)
-	if info.image != "runtime-image" || config != "" || info.podLabels != nil {
+	if info.image != "runtime-image" || config != "" || info.podLabels != nil || !info.podMetadataUnavailable {
 		t.Fatalf("cache miss did not preserve runtime metadata: info=%#v config=%q", info, config)
 	}
 }

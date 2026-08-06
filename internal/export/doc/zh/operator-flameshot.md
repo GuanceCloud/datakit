@@ -64,12 +64,14 @@ Flameshot 配置示例：
                     "FLAMESHOT_OOM_HPROF_ENABLED": "true",
                     "FLAMESHOT_OOM_HPROF_MATCH_WINDOW": "3m",
                     "FLAMESHOT_HPROF_UPLOAD_ENABLED": "true",
-                    "FLAMESHOT_HPROF_UPLOAD_PROVIDER": "s3",
-                    "FLAMESHOT_HPROF_UPLOAD_ENDPOINT": "https://s3.example.com",
-                    "FLAMESHOT_HPROF_UPLOAD_REGION": "us-east-1",
+                    "FLAMESHOT_HPROF_UPLOAD_PROVIDER": "oss",
+                    "FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE": "static",
+                    "FLAMESHOT_HPROF_UPLOAD_ENDPOINT": "https://oss-cn-hangzhou.aliyuncs.com",
+                    "FLAMESHOT_HPROF_UPLOAD_REGION": "cn-hangzhou",
                     "FLAMESHOT_HPROF_UPLOAD_BUCKET": "heap-dumps",
                     "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID": "<access-key-id>",
                     "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET": "<access-key-secret>",
+                    "FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN": "<sts-security-token>",
                     "FLAMESHOT_HEAP_DUMP_ENABLED": "true",
                     "FLAMESHOT_POD_MEM_LIMIT": "2048",
                     "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
@@ -129,18 +131,30 @@ Flameshot 配置示例：
 | `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | OOM 事件与 `.hprof` 的匹配窗口，例如 `3m`                                          |
 | `FLAMESHOT_HPROF_UPLOAD_ENABLED` | 是否开启 hprof 对象存储上传，例如 `true`                                            |
 | `FLAMESHOT_HPROF_UPLOAD_PROVIDER` | 对象存储类型，支持 `oss` 和 `s3`                                                    |
+| `FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE` | hprof 上传认证类型。`static` 表示直接使用 AK/SK，可选 STS SecurityToken；`assume_role` 表示使用源 AK/SK 调用阿里云 STS AssumeRole 获取并刷新临时凭证。`assume_role` 仅支持 OSS，需使用 Flameshot 0.2.4 及以上版本。 |
 | `FLAMESHOT_HPROF_UPLOAD_ENDPOINT` | OSS/S3 endpoint                                                                      |
-| `FLAMESHOT_HPROF_UPLOAD_REGION` | S3 region，例如 `us-east-1`                                                        |
+| `FLAMESHOT_HPROF_UPLOAD_REGION` | OSS/S3 region，例如 `cn-hangzhou` 或 `us-east-1`                                   |
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | 目标 bucket                                                                          |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | 对象存储 AK                                                                    |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | 对象存储 SK                                                                |
 | `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | 可选的阿里云 OSS STS SecurityToken；与临时 AK/SK 同时配置时使用 STS 认证。需使用 Flameshot 0.2.3 及以上版本，凭证过期前需重建 Pod。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN` | `assume_role` 认证模式必填，目标 RAM Role ARN。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID` | `assume_role` 认证模式必填，调用 STS AssumeRole 的源身份 AK，建议只授予最小 `sts:AssumeRole` 权限。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET` | `assume_role` 认证模式必填，调用 STS AssumeRole 的源身份 SK。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_SECURITY_TOKEN` | 可选。如果源身份本身也是临时凭证，可配置源身份 SecurityToken。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SESSION_NAME` | 可选，AssumeRole 角色会话名。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_DURATION_SECONDS` | 可选，AssumeRole 返回 STS 凭证的有效期，单位秒，默认 `3600`，最小 `900`。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_POLICY` | 可选 inline policy，用于进一步限制返回 STS 凭证权限。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_EXTERNAL_ID` | 可选 ExternalId，用于跨账号或防 confused deputy 场景。 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_STS_ENDPOINT` | 可选 STS endpoint，例如 `sts.cn-hangzhou.aliyuncs.com`。 |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | 是否开启内存紧急阈值主动 Heap Dump，例如 `true`                                      |
 | `FLAMESHOT_HEAP_DUMP_JMAP_PATH` | `jmap` 可执行文件路径。官方 Sidecar 镜像默认不内置 JVM/JDK，开启主动 Heap Dump 时需显式提供可用 `jmap` |
 | `FLAMESHOT_POD_MEM_LIMIT`    | Pod 内存 limit，单位 Mi，例如 `2048`                                                      |
 | `FLAMESHOT_HTTP_LOCAL_IP`    | HTTP 服务本地 IP，通常通过 Downward API 注入，例如 `{fieldRef:status.podIP}`              |
 | `FLAMESHOT_HTTP_LOCAL_PORT`  | HTTP 服务端口，例如 `8089`                                                                |
 | `FLAMESHOT_PROCESSES`        | 进程监控配置（由 `processes` 字段自动注入），JSON 字符串格式                              |
+
+如需让 Flameshot 主动调用阿里云 STS `AssumeRole` 获取临时 OSS 上传凭证，不需要修改 Operator，只需通过现有 `envs` 注入 AssumeRole 配置。源 AK/SK 建议使用 `{secretKeyRef:...}` 引用 Kubernetes Secret；Flameshot 会在进程内缓存并刷新 AssumeRole 返回的临时凭证。STS 调用失败或配置缺失时上传失败，不会回退到默认凭证链、节点角色或匿名上传。
 
 ### Flameshot 自身直播采集 {#prom-anno}
 

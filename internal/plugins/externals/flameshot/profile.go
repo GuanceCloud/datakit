@@ -45,6 +45,11 @@ type triggerStats struct {
 	PProfURL     string
 	PProfTypes   []string
 	PProfTimeout string
+	PySpyPath    string
+	PySpyOutput  string
+	PySpyRate    int
+	PySpySubproc bool
+	PySpyIdle    bool
 	Attachments  []*profileAttachment
 	startTime    string
 	endTime      string
@@ -81,8 +86,14 @@ func newTriggerStats(e string, d string, tags []string) *triggerStats {
 
 // runProfiling 执行一次性能分析采集并生成报告文件.
 func runProfiling(ctx context.Context, stats *triggerStats) error {
+	if stats == nil {
+		return fmt.Errorf("trigger stats is nil")
+	}
 	if isGoLanguage(stats.Language) {
 		return runGoPProf(ctx, stats)
+	}
+	if isPythonLanguage(stats.Language) {
+		return runPythonPySpy(ctx, stats)
 	}
 	return runJavaAsyncProfiler(ctx, stats)
 }
@@ -305,6 +316,16 @@ func (stat *triggerStats) profileEvent() *Event {
 		event.TagProfiler = appendUniqueProfilerTags(tags, stat.Reason)
 		return event
 	}
+	if isPythonLanguage(stat.Language) {
+		event.Family = "python"
+		event.Format = "collapse"
+		event.Profiler = "pyspy"
+		event.Attachments = stat.attachmentFileNames()
+		tags := fmt.Sprintf("library_type:pyspy,profiler:pyspy,language:python,process_id:%d,process_name:%s,service:%s,host:%s,env:%s,version:%s",
+			stat.PID, stat.CommandName, service, host, env, version)
+		event.TagProfiler = appendUniqueProfilerTags(tags, stat.Reason)
+		return event
+	}
 
 	tags := fmt.Sprintf("library_version:%s,library_type:async_profiler,process_id:%d,process_name:%s,service:%s,host:%s,env:%s,version:%s",
 		asyncProfileVersion, stat.PID, stat.CommandName, service, host, env, version)
@@ -406,6 +427,10 @@ func appendUniqueProfilerTags(base string, tags []string) string {
 func isGoLanguage(language string) bool {
 	language = strings.ToLower(strings.TrimSpace(language))
 	return language == "go" || language == "golang"
+}
+
+func isPythonLanguage(language string) bool {
+	return strings.EqualFold(strings.TrimSpace(language), "python")
 }
 
 func (stat *triggerStats) attachmentFileNames() []string {

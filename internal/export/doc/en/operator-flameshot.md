@@ -64,12 +64,14 @@ Flameshot Configuration Example:
                     "FLAMESHOT_OOM_HPROF_ENABLED": "true",
                     "FLAMESHOT_OOM_HPROF_MATCH_WINDOW": "3m",
                     "FLAMESHOT_HPROF_UPLOAD_ENABLED": "true",
-                    "FLAMESHOT_HPROF_UPLOAD_PROVIDER": "s3",
-                    "FLAMESHOT_HPROF_UPLOAD_ENDPOINT": "https://s3.example.com",
-                    "FLAMESHOT_HPROF_UPLOAD_REGION": "us-east-1",
+                    "FLAMESHOT_HPROF_UPLOAD_PROVIDER": "oss",
+                    "FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE": "static",
+                    "FLAMESHOT_HPROF_UPLOAD_ENDPOINT": "https://oss-cn-hangzhou.aliyuncs.com",
+                    "FLAMESHOT_HPROF_UPLOAD_REGION": "cn-hangzhou",
                     "FLAMESHOT_HPROF_UPLOAD_BUCKET": "heap-dumps",
                     "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID": "<access-key-id>",
                     "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET": "<access-key-secret>",
+                    "FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN": "<sts-security-token>",
                     "FLAMESHOT_HEAP_DUMP_ENABLED": "true",
                     "FLAMESHOT_POD_MEM_LIMIT": "2048",
                     "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
@@ -129,18 +131,30 @@ Configuration Field Description:
 | `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | Matching window between OOM events and `.hprof`, e.g., `3m` |
 | `FLAMESHOT_HPROF_UPLOAD_ENABLED` | Whether to enable hprof object storage upload, e.g., `true` |
 | `FLAMESHOT_HPROF_UPLOAD_PROVIDER` | Object storage provider: `oss` or `s3` |
+| `FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE` | hprof upload authentication type. `static` directly uses AK/SK with an optional STS SecurityToken. `assume_role` uses source AK/SK to call Alibaba Cloud STS AssumeRole and obtain refreshable temporary credentials. `assume_role` is supported for OSS only. Requires Flameshot 0.2.4 or later. |
 | `FLAMESHOT_HPROF_UPLOAD_ENDPOINT` | OSS/S3 endpoint |
-| `FLAMESHOT_HPROF_UPLOAD_REGION` | S3 region, e.g., `us-east-1` |
+| `FLAMESHOT_HPROF_UPLOAD_REGION` | OSS/S3 region, e.g., `cn-hangzhou` or `us-east-1` |
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | Target bucket |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | Object storage access key ID |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | Object storage access key secret |
 | `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | Optional Alibaba Cloud OSS STS SecurityToken. When set with temporary AK/SK, STS authentication is used. Requires Flameshot 0.2.3 or later. Restart the Pod with renewed credentials before they expire. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN` | Required for `assume_role`, target RAM Role ARN. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID` | Required for `assume_role`, source identity AK used to call STS AssumeRole. Grant only the minimum required `sts:AssumeRole` permission. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET` | Required for `assume_role`, source identity SK used to call STS AssumeRole. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_SECURITY_TOKEN` | Optional. Configure this when the source identity itself uses temporary credentials. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SESSION_NAME` | Optional AssumeRole session name. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_DURATION_SECONDS` | Optional validity period of the STS credentials returned by AssumeRole, in seconds. Defaults to `3600`; minimum value is `900`. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_POLICY` | Optional inline policy used to further restrict the returned STS credentials. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_EXTERNAL_ID` | Optional ExternalId for cross-account or confused deputy prevention scenarios. |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_STS_ENDPOINT` | Optional STS endpoint, for example `sts.cn-hangzhou.aliyuncs.com`. |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | Whether to enable proactive Heap Dump on emergency memory threshold, e.g., `true` |
 | `FLAMESHOT_HEAP_DUMP_JMAP_PATH` | `jmap` executable path. Official Sidecar images do not include a JVM/JDK by default; provide an available `jmap` explicitly before enabling proactive Heap Dump. |
 | `FLAMESHOT_POD_MEM_LIMIT` | Pod memory limit in Mi, e.g., `2048` |
 | `FLAMESHOT_HTTP_LOCAL_IP` | HTTP service local IP, usually injected via Downward API, e.g., `{fieldRef:status.podIP}` |
 | `FLAMESHOT_HTTP_LOCAL_PORT` | HTTP service port, e.g., `8089` |
 | `FLAMESHOT_PROCESSES` | Process monitoring configuration (automatically injected by `processes` field), JSON string format |
+
+To let Flameshot actively call Alibaba Cloud STS `AssumeRole` for temporary OSS upload credentials, no Operator code change is required. Inject the AssumeRole configuration through the existing `envs` field. The source AK/SK should be referenced from a Kubernetes Secret with `{secretKeyRef:...}`. Flameshot caches and refreshes the temporary credentials returned by AssumeRole in memory. If the STS call fails or the configuration is incomplete, the upload fails and does not fall back to the default credential chain, node role, or anonymous upload.
 
 ### Flameshot Self-Metric Collection {#prom-anno}
 

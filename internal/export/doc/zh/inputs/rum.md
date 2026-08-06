@@ -377,6 +377,115 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
     RUM 配置文件默认位于 */usr/local/datakit/conf.d/rum/rum.conf*（Linux/macOS）和 *C:\\Program Files\\datakit\\conf.d\\rum*（Windows），具体根据你所使用的操作系统和 DataKit 安装位置确定。
 <!-- markdownlint-enable MD046 -->
 
+### RUM 会话重放图片资源接口 {#rum-session-replay-assets}
+
+当前版本的 RUM 采集器额外提供了 3 个用于 Session Replay 图片资源的接口：
+
+- `POST /v1/write/rum/replay_assets`
+- `POST /v1/check/rum/replay_assets`
+- `GET /v1/inner/rum/replay_assets`
+
+这些接口由 DataKit 的 RUM 采集器直接提供，客户端请求时不需要再额外携带 `token` 和 `to_headless` 参数。
+
+#### 上传图片资源 {#rum-session-replay-assets-upload}
+
+使用 `multipart/form-data` 请求 `POST /v1/write/rum/replay_assets`，其中：
+
+- `appid`：RUM 应用 ID
+- `tags`：可选的 RUM 关联标签 JSON 对象。SDK 开启 `enableLinkRumKeys` 后，应在此字段中传入关联标签，例如 `{"wgtid":"<linkedrumtagvalue>"}`
+- `files`：重复字段，可同时上传多个文件
+
+示例：
+
+```shell
+curl -X POST 'http://localhost:9529/v1/write/rum/replay_assets' \
+  -F 'appid=web_abcdefg123456789' \
+  -F 'tags={"wgtid":"linked-rum-tag"}' \
+  -F 'files=@1.png' \
+  -F 'files=@2.png'
+```
+
+`app_id` 仍可作为旧 SDK 的兼容字段，但新接入应使用 `appid`。
+
+返回示例：
+
+```json
+{
+  "content": {
+    "success": ["1.png", "2.png"],
+    "failures": []
+  }
+}
+```
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    - `upload` 接口返回的是 DataKit 当前请求中“是否成功接收并写入本地上传队列”
+    - 它不表示文件已经被后台 worker 成功转发到 DataWay
+    - 如果需要确认文件当前是否已经可被 Session Replay 侧读取，应调用后文的 `check` 接口
+    - DataKit 会保留原始 multipart 请求，并解析 `tags` 中的关联标签；可参与分流的标签键由 DataWay 的 Sinker 配置决定
+<!-- markdownlint-enable -->
+
+#### 检查图片资源是否已可用 {#rum-session-replay-assets-check}
+
+使用 `application/json` 请求 `POST /v1/check/rum/replay_assets`。
+
+请求体示例：
+
+```json
+{
+  "appid": "web_abcdefg123456789",
+  "files": ["1.png", "abc.txt"],
+  "tags": {
+    "wgtid": "linked-rum-tag"
+  }
+}
+```
+
+示例：
+
+```shell
+curl -X POST 'http://localhost:9529/v1/check/rum/replay_assets' \
+  -H 'Content-Type: application/json' \
+  -d '{"appid":"web_abcdefg123456789","files":["1.png","abc.txt"],"tags":{"wgtid":"linked-rum-tag"}}'
+```
+
+返回示例：
+
+```json
+{
+  "content": {
+    "1.png": true,
+    "abc.txt": false
+  }
+}
+```
+
+返回值中：
+
+- `true` 表示该文件当前已经可被 DataWay 读取
+- `false` 表示该文件当前仍不可用，可能尚未上传完成，也可能文件本身不存在
+
+当 SDK 开启 `enableLinkRumKeys` 时，upload 和 check 都应使用同一组 `tags`。DataKit 会将这些标签交给 DataWay 的 Sinker 路由逻辑；DataWay 使用 v1 或 v2 Sinker Header 由其自身配置决定。
+
+#### 获取图片资源内容 {#rum-session-replay-assets-get}
+
+使用 `GET /v1/inner/rum/replay_assets` 按文件名读取单个图片资源，请求参数：
+
+- `workspace_uuid`：工作空间 UUID
+- `app_id`：RUM 应用 ID
+- `file`：文件名
+
+示例：
+
+```shell
+curl -X GET 'http://localhost:9529/v1/inner/rum/replay_assets?workspace_uuid=wksp_xxx&app_id=web_abcdefg123456789&file=1.png' \
+  --output 1.png
+```
+
+该接口成功时直接返回文件二进制内容；失败时返回对应的 HTTP 状态码和错误响应。
+
 ### RUM 会话重放数据的过滤 {#rum-session-replay-filter}
 
 从 DataKit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) 版本开始支持利用配置过滤掉不需要的会话重放数据，新增的配置项名称为 `filter_rules`， 格式类似如下（可以参考 `rum.conf.sample` RUM 示例配置文件）：

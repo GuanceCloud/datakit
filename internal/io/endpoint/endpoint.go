@@ -8,6 +8,7 @@ package endpoint
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -331,6 +332,8 @@ func (ep *EndPoint) CloseIdleConnections() {
 }
 
 type AggrData struct {
+	Context context.Context
+
 	API,
 	Category,
 	ContentType,
@@ -343,6 +346,8 @@ type AggrData struct {
 }
 
 type writePayloadRequest struct {
+	context context.Context
+
 	api,
 	dynamicURL,
 	category,
@@ -448,6 +453,7 @@ func (ep *EndPoint) WriteAggrData(data *AggrData) (*http.Response, []byte, error
 	}
 
 	requrl, resp, body, err := ep.sendPayload(&writePayloadRequest{
+		context:            data.Context,
 		api:                data.API,
 		category:           data.Category,
 		contentType:        data.ContentType,
@@ -549,7 +555,11 @@ func (ep *EndPoint) sendPayload(p *writePayloadRequest) (requrl string, resp *ht
 	}()
 
 	l.Debugf("post %d bytes to %s...", len(p.body), requrl)
-	req, err := http.NewRequest(http.MethodPost, requrl, bytes.NewBuffer(p.body))
+	ctx := p.context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requrl, bytes.NewBuffer(p.body))
 	if err != nil {
 		l.Errorf("new request to %s: %s", requrl, err)
 		return requrl, nil, nil, err
@@ -723,6 +733,7 @@ func (ep *EndPoint) SendReq(req *http.Request) (resp *http.Response, err error) 
 
 		retry.Attempts(uint(maxRetry)),
 		retry.Delay(delay),
+		retry.Context(req.Context()),
 
 		retry.OnRetry(func(n uint, err error) {
 			l.Warnf("on %dth retry for %s, error: %s(%s)", n, req.URL, err, reflect.TypeOf(err))

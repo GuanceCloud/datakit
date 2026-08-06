@@ -8,8 +8,10 @@ package profile
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"mime/multipart"
 	"net/http"
@@ -27,6 +29,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/rum"
 )
 
@@ -41,6 +44,13 @@ func TestRetryError(t *testing.T) {
 	assert.True(t, errors.As(err2, &rePtr))
 	assert.True(t, errors.As(err3, &rePtr))
 	assert.False(t, errors.As(err4, &rePtr))
+}
+
+func TestIsPythonPProfMetadata(t *testing.T) {
+	assert.True(t, isPythonPProfMetadata(map[string]string{"format": "pprof"}))
+	assert.True(t, isPythonPProfMetadata(map[string]string{}))
+	assert.False(t, isPythonPProfMetadata(map[string]string{"format": "collapse", "profiler": "pyspy"}))
+	assert.False(t, isPythonPProfMetadata(map[string]string{"format": "rawflamegraph", "profiler": "pyspy"}))
 }
 
 func TestIOConfig(t *testing.T) {
@@ -161,6 +171,74 @@ func TestDoSendAddsGlobalTagsHeaderWhenSinkerEnabled(t *testing.T) {
 
 	require.NoError(t, ipt.sendRequestToDW(context.Background(), pbBytes))
 	assert.Equal(t, "env=testing", gotHeader)
+}
+
+func TestSendRequestToDWPreservesCollapsedMetadataWhenAddingTags(t *testing.T) {
+	var forwardedBody []byte
+	var forwardedContentType string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		forwardedContentType = r.Header.Get("Content-Type")
+		var err error
+		forwardedBody, err = io.ReadAll(r.Body)
+		assert.NoError(t, err)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ipt := DefaultInput()
+	ipt.GenerateMetrics = false
+	ipt.Tags = map[string]string{"project": "testing"}
+	ipt.IOConfig.SendRetryCount = 1
+	ipt.httpClient = ts.Client()
+	profileURL, err := url.Parse(ts.URL + datakit.ProfilingUpload)
+	require.NoError(t, err)
+	ipt.profileSendingAPI = profileURL
+
+	buf := &bytes.Buffer{}
+	mw := multipart.NewWriter(buf)
+	eventFile, err := mw.CreateFormFile(metrics.EventFile, metrics.EventJSONFile)
+	require.NoError(t, err)
+	_, err = eventFile.Write([]byte(`{
+		"attachments": ["prof"],
+		"tags_profiler": "service:front-backend,env:testing,language:python",
+		"start": "2026-08-03T07:45:37.479503441Z",
+		"end": "2026-08-03T07:46:09.107494696Z",
+		"family": "python",
+		"format": "collapse",
+		"profiler": "pyspy"
+	}`))
+	require.NoError(t, err)
+	profileFile, err := mw.CreateFormFile("prof", "prof")
+	require.NoError(t, err)
+	_, err = profileFile.Write([]byte("process 7:\"gunicorn: master\";run (app.py:1) 1\n"))
+	require.NoError(t, err)
+	require.NoError(t, mw.Close())
+
+	reqPB := &rum.RequestPB{
+		Header: map[string]string{"Content-Type": mw.FormDataContentType()},
+		Body:   buf.Bytes(),
+	}
+	pbBytes, err := proto.Marshal(reqPB)
+	require.NoError(t, err)
+	require.NoError(t, ipt.sendRequestToDW(context.Background(), pbBytes))
+
+	forwardedReq, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(forwardedBody))
+	require.NoError(t, err)
+	forwardedReq.Header.Set("Content-Type", forwardedContentType)
+	require.NoError(t, forwardedReq.ParseMultipartForm(1<<20))
+
+	eventFiles := forwardedReq.MultipartForm.File[metrics.EventFile]
+	require.Len(t, eventFiles, 1)
+	f, err := eventFiles[0].Open()
+	require.NoError(t, err)
+	defer f.Close()
+
+	var got metrics.Metadata
+	require.NoError(t, json.NewDecoder(f).Decode(&got))
+	assert.Equal(t, metrics.Collapsed, got.Format)
+	assert.Equal(t, metrics.Profiler("pyspy"), got.Profiler)
+	assert.Equal(t, []string{"prof"}, got.Attachments)
+	assert.Contains(t, got.TagsProfiler, "project:testing")
 }
 
 // go test -v -timeout 30s -run ^Test_originAddTagsSafe$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -84,6 +85,69 @@ func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.HTTPHeaders {
+		req.Header.Set(k, v)
+	}
+
+	return ep.SendReq(req)
+}
+
+func (dw *Dataway) CheckSessionReplayAssets(body []byte, headers map[string]string) (*http.Response, error) {
+	if len(dw.eps) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	ep := dw.eps[0]
+	requrl, ok := ep.CategoryURL[datakit.SessionReplayAssetCheck]
+	if !ok {
+		return nil, fmt.Errorf("no session replay asset check URL available")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, requrl, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	for k, v := range ep.HTTPHeaders {
+		req.Header.Set(k, v)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	return ep.SendReq(req)
+}
+
+func (dw *Dataway) GetSessionReplayAsset(query url.Values) (*http.Response, error) {
+	if len(dw.eps) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	ep := dw.eps[0]
+	requrl, ok := ep.CategoryURL[datakit.SessionReplayAssetGet]
+	if !ok {
+		return nil, fmt.Errorf("no session replay asset get URL available")
+	}
+
+	u, err := url.Parse(requrl)
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	for k, vals := range query {
+		for _, v := range vals {
+			q.Add(k, v)
+		}
+	}
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}

@@ -6,7 +6,7 @@ Flameshot 是 DataKit 的 Profiling Sidecar 工具，用于在业务进程出现
 
 - Java：通过 `async-profiler` 采集 `.jfr`，并支持 OOM 后 `.hprof` 摘要恢复、主动 Heap Dump 和 hprof 对象存储上传。
 - Go：通过业务进程暴露的 `net/http/pprof` HTTP 端口拉取 `.pprof` 并上传。
-- Python：后续支持，当前文档仅预留入口。
+- Python：通过官方 `py-spy` attach 目标进程，采集 raw collapsed profile 并上传。
 
 ## 文档索引
 
@@ -30,6 +30,7 @@ Flameshot 通常作为业务 Pod 内的 Sidecar 运行：
 - Pod 开启 `shareProcessNamespace: true`，让 Sidecar 能看到业务进程。
 - Java 场景共享可写目录，用于存放 `async-profiler`、JFR、Heap Dump 和 OOM 文件。
 - Go 场景要求 pprof HTTP 地址能从 Sidecar 内访问。
+- Python 场景要求 Sidecar 内存在 `py-spy`，并具备 attach 目标进程所需权限，通常需要 `SYS_PTRACE`。
 
 推荐共享路径：
 
@@ -41,7 +42,7 @@ Flameshot 通常作为业务 Pod 内的 Sidecar 运行：
 | 变量 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `FLAMESHOT_DATAKIT_ADDR` | 是 | - | DataKit Profiling 上传地址，例如 `http://datakit-service.datakit:9529/profiling/v1/input` |
-| `FLAMESHOT_PROFILING_PATH` | Java 必填 | `/data` | 共享可写目录。Java 用于 profiler 工具、JFR 和 OOM 文件；Go 采集不依赖本地落盘 |
+| `FLAMESHOT_PROFILING_PATH` | Java/Python 建议配置 | `/data` | 共享可写目录。Java 用于 profiler 工具、JFR 和 OOM 文件；Python 相对 `pyspy_output_path` 会写入该目录；Go 采集不依赖本地落盘 |
 | `FLAMESHOT_MONITOR_INTERVAL` | 否 | `1s` | 进程资源轮询间隔 |
 | `FLAMESHOT_LOG_LEVEL` | 否 | `info` | 日志级别，支持 `debug` |
 | `FLAMESHOT_LOG_PATH` | 否 | `/var/log/flameshot/log` | 日志路径配置 |
@@ -81,13 +82,18 @@ Flameshot 通常作为业务 Pod 内的 Sidecar 运行：
 | --- | --- |
 | `service` | 上传到 DataKit 的服务名 |
 | `command` | 目标进程命令行正则 |
-| `language` | 目标语言，当前支持 `java`、`go`、`golang` |
+| `language` | 目标语言，当前支持 `java`、`go`、`golang`、`python` |
 | `duration` | 普通采集时长 |
 | `emergency_duration` | 内存紧急触发时的短采集时长 |
 | `events` | Java async-profiler 事件，例如 `cpu`、`alloc`、`lock`、`nativemem`、`all`；Go 未配置 `pprof_types` 时也可用作 pprof 类型列表 |
 | `pprof_url` | Go pprof HTTP 基地址，例如 `http://127.0.0.1:6060` |
 | `pprof_types` | Go pprof 类型，支持 `cpu`、`goroutine`、`heap`、`mutex`、`block` |
 | `pprof_timeout` | Go pprof 请求超时时间，应大于 CPU profile 的 `duration` |
+| `pyspy_path` | Python `py-spy` 可执行文件路径，默认 `py-spy` |
+| `pyspy_output_path` | Python raw 输出路径；未配置时自动生成本地临时文件，相对路径会写入 `FLAMESHOT_PROFILING_PATH` 或默认输出目录 |
+| `pyspy_rate` | Python 采样频率，默认 `100` |
+| `pyspy_subprocesses` | Python 是否对子进程一起采样，默认 `false` |
+| `pyspy_idle` | Python 是否采集 idle 线程，默认 `false` |
 | `cpu_usage_percent` | CPU 使用率阈值 |
 | `mem_usage_percent` | 最近 5 个点平均内存百分比阈值 |
 | `mem_usage_mb` | 最近 5 个点平均 RSS 阈值，单位 MB |
@@ -117,6 +123,23 @@ Flameshot 通常作为业务 Pod 内的 Sidecar 运行：
 ]
 ```
 
+Python 示例：
+
+```json
+[
+  {
+    "service": "python-api",
+    "language": "python",
+    "command": "^python\\b.*app\\.py$",
+    "duration": "30s",
+    "pyspy_rate": 100,
+    "cpu_usage_percent": 80,
+    "mem_usage_percent": 80,
+    "tags": ["env:prod", "version:v1"]
+  }
+]
+```
+
 也可以使用带索引的环境变量：
 
 ```bash
@@ -126,6 +149,15 @@ FLAMESHOT_PROCESSES_0_COMMAND='^java\b.*app\.jar$'
 FLAMESHOT_PROCESSES_0_EVENTS=cpu,alloc
 FLAMESHOT_PROCESSES_0_DURATION=30s
 FLAMESHOT_PROCESSES_0_TAGS='["env:prod","version:v1"]'
+```
+
+Python 规则可用的索引环境变量还包括：
+
+```bash
+FLAMESHOT_PROCESSES_0_PYSPY_PATH=/usr/local/bin/py-spy
+FLAMESHOT_PROCESSES_0_PYSPY_RATE=100
+FLAMESHOT_PROCESSES_0_PYSPY_SUBPROCESSES=false
+FLAMESHOT_PROCESSES_0_PYSPY_IDLE=false
 ```
 
 ## 触发方式
@@ -148,6 +180,8 @@ curl "http://127.0.0.1:8089/v1/profile?command=^java\\b.*app\\.jar$&duration=30s
 ```
 
 Go 进程手动触发时，Flameshot 会优先使用进程规则里的 `pprof_types`。如果没有配置 `pprof_types`，可以通过 `events=cpu,goroutine` 传入 pprof 类型。
+
+Python 进程手动触发时，Flameshot 会执行 `py-spy record --format raw`，上传到 DataKit 的 event 使用 `format=collapse`、`profiler=pyspy`，附件名固定为 `prof`。
 
 ## Kubernetes 基础模板
 

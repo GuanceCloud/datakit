@@ -7,6 +7,7 @@ package endpoint
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	T "testing"
 	"time"
 
@@ -43,6 +45,50 @@ func TestEndpointRetry(t *T.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 500, resp.StatusCode)
 	t.Logf("resp: %+#v\nerr: %s", resp, err)
+}
+
+func TestEndpointRetryStopsOnContextCancellation(t *T.T) {
+	requestStarted := make(chan struct{})
+	var requests atomic.Int32
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if requests.Add(1) == 1 {
+			close(requestStarted)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer ts.Close()
+
+	ep, err := NewEndpoint(ts.URL+"?token=abc",
+		WithMaxRetryCount(10),
+		WithRetryDelay(2*time.Second),
+	)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ts.URL, nil)
+	require.NoError(t, err)
+
+	resultCh := make(chan error, 1)
+	go func() {
+		_, err := ep.SendReq(req)
+		resultCh <- err
+	}()
+
+	select {
+	case <-requestStarted:
+		cancel()
+	case <-time.After(time.Second):
+		t.Fatal("request did not start")
+	}
+
+	select {
+	case err := <-resultCh:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("retry did not stop after context cancellation")
+	}
+	assert.Equal(t, int32(1), requests.Load())
 }
 
 func TestEndpointMetrics(t *T.T) {

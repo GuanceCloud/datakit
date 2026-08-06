@@ -350,13 +350,23 @@ func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata ma
 		return fmt.Errorf("unable to create form file: %w", err)
 	}
 
-	md := metrics.Metadata{}
+	md := metrics.Metadata{
+		Format:   metrics.Format(metadata["format"]),
+		Profiler: metrics.Profiler(metadata["profiler"]),
+	}
 
 	for name, fileHeaders := range form.File {
+		if name == metrics.EventFile || name == metrics.EventJSONFile {
+			continue
+		}
+
 		extName := filepath.Ext(name)
 		if extName == "" {
 			// try to fetch binary extname from multipart.FileHeader.Filename
 			for _, fh := range fileHeaders {
+				if fh.Filename == metrics.EventFile || fh.Filename == metrics.EventJSONFile {
+					continue
+				}
 				extName = filepath.Ext(fh.Filename)
 				if extName != "" {
 					name = fh.Filename
@@ -366,11 +376,13 @@ func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata ma
 		}
 
 		md.Attachments = append(md.Attachments, name)
-		switch strings.ToLower(extName) {
-		case ".pprof":
-			md.Format = metrics.PPROF
-		case ".jfr":
-			md.Format = metrics.JFR
+		if md.Format == "" || md.Format == "unknown" {
+			switch strings.ToLower(extName) {
+			case ".pprof":
+				md.Format = metrics.PPROF
+			case ".jfr":
+				md.Format = metrics.JFR
+			}
 		}
 	}
 	if md.Format == "" {
@@ -469,8 +481,12 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 				log.Errorf("unable to export golang ddtrace profiling metrics: %v", err)
 			}
 		case metrics.Python:
-			if pts, err = metrics.ExtractPythonMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
-				log.Errorf("unable to export python ddtrace profiling metrics: %v", err)
+			if isPythonPProfMetadata(metadata) {
+				if pts, err = metrics.ExtractPythonMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+					log.Errorf("unable to export python ddtrace profiling metrics: %v", err)
+				}
+			} else {
+				log.Debugf("skip python profiling metrics for format=%q profiler=%q", metadata["format"], metadata["profiler"])
 			}
 		}
 
@@ -664,6 +680,11 @@ func (ipt *Input) parseProfileMetadata(
 	observeProfileParsed(attrs, profileSize)
 
 	return metadata, attrs, profileSize, nil
+}
+
+func isPythonPProfMetadata(metadata map[string]string) bool {
+	format := strings.ToLower(strings.TrimSpace(metadata["format"]))
+	return format == "" || format == string(metrics.PPROF)
 }
 
 // RegHTTPHandler simply proxy profiling request to dataway.

@@ -24,11 +24,12 @@ type containerLogInfo struct {
 	image         string
 	logPath       string
 
-	podUID                string
-	podNamespace, podName string
-	podIP                 string
-	podLabels             map[string]string
-	ownerKind, ownerName  string
+	podUID                 string
+	podNamespace, podName  string
+	podIP                  string
+	podLabels              map[string]string
+	podMetadataUnavailable bool
+	ownerKind, ownerName   string
 
 	mergedDir string
 	mounts    runtime.Mounts

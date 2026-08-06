@@ -304,6 +304,7 @@ func (c *Config) setupGlobalTags() {
 			c.GlobalHostTags[k] = v
 		}
 	}
+	c.setupKubernetesNodeLabelHostTags()
 
 	if _, ok := c.GlobalHostTags["host"]; !ok {
 		c.GlobalHostTags["host"] = c.hostname

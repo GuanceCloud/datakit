@@ -130,6 +130,16 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 		l.Infof("creating new log task for container %s", containerID)
 	}
 
+	// A failed Pod metadata lookup is temporary. Keep the last successful
+	// reconciliation for an existing Pod task instead of treating missing
+	// annotation/CRD metadata as an empty configuration.
+	// New tasks still use any available config, falling back to stdout until the
+	// informer cache catches up.
+	if !created && info.podMetadataUnavailable {
+		l.Debugf("pod metadata unavailable, preserving existing log task for container %s", containerID)
+		return
+	}
+
 	// Refresh metadata independently from log configuration reconciliation. The
 	// initial scan may run before the Pod informer cache is synced; a later scan
 	// must make the enriched Pod metadata available to CRD matching and tailer

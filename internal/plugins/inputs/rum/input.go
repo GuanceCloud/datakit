@@ -47,7 +47,7 @@ const (
 	inputName                = "rum"
 	ReplayBodyMaxSize        = MiB * 32 // 16Mib
 	defaultReplayCacheMaxMib = 20480    // 20 Gib
-	defaultRUMReplayAPI      = "/v1/write/rum/replay"
+	defaultRUMReplayAPI      = datakit.SessionReplayUpload
 	sampleConfig             = `
 [[inputs.rum]]
   ## profile Agent endpoints register by version respectively.
@@ -161,6 +161,7 @@ type Input struct {
 	rumDataDir             string
 	SessionReplayCfg       *SessionReplayCfg `toml:"session_replay"`
 	replayUploadAPI        string
+	replayAssetUploadAPI   string
 	replayHTTPClient       *http.Client
 	replayDiskQueue        *diskcache.DiskCache
 	semStop                *cliutils.Sem // start stop signal
@@ -258,14 +259,18 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 
+	// add handler for replay asset APIs
+	httpapi.RegHTTPRoute(http.MethodPost, datakit.SessionReplayAssetUpload, ipt.handleReplayAssetsUpload)
+	httpapi.RegHTTPRoute(http.MethodPost, datakit.SessionReplayAssetCheck, ipt.handleReplayAssetsCheck)
+	httpapi.RegHTTPHandler(http.MethodGet, datakit.SessionReplayAssetGet, ipt.handleReplayAssetsGet)
+
 	// add handler for sourcemap related api
 	httpapi.RegHTTPRoute(http.MethodGet, "/v1/sourcemap/check", ipt.handleSourcemapCheck)
 	httpapi.RegHTTPRoute(http.MethodPut, "/v1/sourcemap", ipt.handleSourcemapUpload)
 	httpapi.RegHTTPRoute(http.MethodDelete, "/v1/sourcemap", ipt.handleSourcemapDelete)
 
-	// enbale env variable api
+	// enable env variable API
 	httpapi.RegHTTPRoute(http.MethodGet, "/v1/env_variable", ipt.handleEnvVariable)
-
 	httpapi.RegDatakitPullHTTPRoute()
 }
 
@@ -495,6 +500,9 @@ func (ipt *Input) Terminate() {
 	for _, endpoint := range ipt.SessionReplayEndpoints {
 		httpapi.RemoveHTTPRoute(http.MethodPost, endpoint)
 	}
+	httpapi.RemoveHTTPRoute(http.MethodPost, datakit.SessionReplayAssetUpload)
+	httpapi.RemoveHTTPRoute(http.MethodPost, datakit.SessionReplayAssetCheck)
+	httpapi.RemoveHTTPRoute(http.MethodGet, datakit.SessionReplayAssetGet)
 	httpapi.RemoveHTTPRoute(http.MethodGet, "/v1/sourcemap/check")
 	httpapi.RemoveHTTPRoute(http.MethodPut, "/v1/sourcemap")
 	httpapi.RemoveHTTPRoute(http.MethodDelete, "/v1/sourcemap")
@@ -525,6 +533,14 @@ func init() { //nolint:gochecknoinits
 		switch path {
 		case defaultRUMReplayAPI:
 			if method == http.MethodPost {
+				return inputName, true
+			}
+		case datakit.SessionReplayAssetUpload, datakit.SessionReplayAssetCheck:
+			if method == http.MethodPost {
+				return inputName, true
+			}
+		case datakit.SessionReplayAssetGet:
+			if method == http.MethodGet {
 				return inputName, true
 			}
 		case "/v1/sourcemap/check":

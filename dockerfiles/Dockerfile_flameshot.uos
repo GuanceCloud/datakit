@@ -2,12 +2,17 @@ FROM registry.jiagouyun.com/middlewares/uniontechos-server-zy-root:v2.0 AS base
 WORKDIR /flameshot
 ARG DIST_DIR
 ARG TARGETARCH
+ARG PY_SPY_VERSION=0.4.2
 
 RUN mkdir -p /opt/async-profiler
 RUN mkdir -p /flameshot
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget curl ca-certificates && \
+RUN apt-get update && apt-get install -y --no-install-recommends wget curl ca-certificates python3-pip && \
     rm -rf /var/cache/apt /var/lib/apt/lists/*
+
+RUN python3 -m pip install --no-cache-dir --retries 5 --timeout 120 --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/ && \
+    python3 -m pip install --no-cache-dir --retries 5 --timeout 120 "py-spy==${PY_SPY_VERSION}" -i https://mirrors.aliyun.com/pypi/simple/ && \
+    py-spy --version
 
 RUN \
     if [ "$TARGETARCH" = "amd64" ]; then \

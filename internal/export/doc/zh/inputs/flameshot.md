@@ -4,11 +4,13 @@ summary   : '自动收集 profiling 工具'
 tags      :
   - 'java'
   - 'async-profiler'
+  - 'py-spy'
+  - 'python'
   - 'profiling'
   - 'flameshot'
 ---
 
-Flameshot 是一个基于 Sidecar 模式运行的轻量级自动性能剖析（Profiling）工具。它通过监控目标进程的资源使用情况（CPU/内存），在达到预设阈值时自动触发底层 Profiler（如 `async-profiler`），从而实现无侵入的现场快照采集。
+Flameshot 是一个基于 Sidecar 模式运行的轻量级自动性能剖析（Profiling）工具。它通过监控目标进程的资源使用情况（CPU/内存），在达到预设阈值时自动触发底层 Profiler（如 `async-profiler`、`py-spy`），从而实现无侵入的现场快照采集。
 
 ---
 
@@ -20,8 +22,8 @@ Flameshot 采用 **Sidecar 容器** 模式部署。它必须与业务主容器�
 
 1. **监控 (Monitor)**：Flameshot 持续轮询主容器内目标进程的资源水位。
 1. **触发 (Trigger)**：当满足阈值（如 CPU > 80%）或收到 HTTP API 请求时，触发采集任务。
-1. **执行 (Execute)**：根据配置的语言类型（目前支持 Java 和 Go），调用对应的 Profiler 工具采集目标进程。
-1. **收集 (Collect)**：生成的 Profile 文件（如 `.jfr` 或 `.pprof`）随后上传至数据观测中心。
+1. **执行 (Execute)**：根据配置的语言类型（目前支持 Java、Go 和 Python），调用对应的 Profiler 工具采集目标进程。
+1. **收集 (Collect)**：生成的 Profile 文件（如 `.jfr`、`.pprof` 或 py-spy raw collapsed 文本）随后上传至数据观测中心。
 1. **定时**: 配置 `FLAMESHOT_AUTO_PROFILING` 后，会定时对所有匹配到的进程采集一次 Profiling 数据，采集时长默认 30s，可通过 `FLAMESHOT_AUTO_PROFILING_DURATION` 调整。
 1. **OOM 摘要**: 当检测到容器 `oom_kill` 增量时，Flameshot 会尝试从目标 Java 进程启动参数中自动解析 `-XX:+HeapDumpOnOutOfMemoryError` 与 `-XX:HeapDumpPath=...`。如果 dump 文件位于共享卷内且生成成功，Flameshot 会找到对应 `.hprof`，并上传一条摘要日志。
 
@@ -43,7 +45,7 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 | 变量名称                         | 必填    | 默认值     | 说明                                                                        |
 |:-----------------------------|:------|:--------|:--------------------------------------------------------------------------|
 | `FLAMESHOT_DATAKIT_ADDR`     | **是** | -       | DataKit 的 Profiling 数据接收接口地址。                                             |
-| `FLAMESHOT_PROFILING_PATH`   | **是** | `/data` | **共享目录路径**。用于存放工具库和生成的临时文件，需与主容器挂载一致。                                     |
+| `FLAMESHOT_PROFILING_PATH`   | **是** | `/data` | **共享目录路径**。用于存放工具库和生成的临时文件，需与主容器挂载一致；Python 相对 `pyspy_output_path` 会写入该目录。 |
 | `FLAMESHOT_MONITOR_INTERVAL` | 否     | `1`     | 监控轮询间隔（秒）。                                                                |
 | `FLAMESHOT_LOG_LEVEL`        | 否     | `info`  | 日志级别，可选：`debug`, `info`, `warn`, `error`。                                 |
 | `FLAMESHOT_HTTP_LOCAL_IP`    | **是** | `-`     | Sidecar 自身 HTTP 服务监听地址。                                                   |
@@ -55,12 +57,22 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 | `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | 否 | `2m` | OOM 事件与 `.hprof` 文件修改时间的匹配窗口。 |
 | `FLAMESHOT_HPROF_UPLOAD_ENABLED` | 否 | `false` | 是否将匹配到或主动生成的 `.hprof` 上传到对象存储。 |
 | `FLAMESHOT_HPROF_UPLOAD_PROVIDER` | 否 | - | 对象存储类型，支持 `oss` 和 `s3`。 |
+| `FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE` | 否 | `static` | hprof 上传认证类型。`static` 表示直接使用 AK/SK，可选 STS SecurityToken；`assume_role` 表示使用源 AK/SK 调用阿里云 STS AssumeRole 获取并刷新临时凭证。`assume_role` 仅支持 OSS。 :octicons-tag-24: Version-0.2.4 |
 | `FLAMESHOT_HPROF_UPLOAD_ENDPOINT` | 否 | - | OSS/S3 endpoint。 |
-| `FLAMESHOT_HPROF_UPLOAD_REGION` | 否 | S3 默认为 `us-east-1` | S3 region。 |
+| `FLAMESHOT_HPROF_UPLOAD_REGION` | 否 | S3 默认为 `us-east-1` | OSS/S3 region。AssumeRole 模式未配置 STS endpoint 时，也会用于推导 STS region。 |
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | 否 | - | 目标 bucket。 |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | 否 | - | 对象存储 AK。 |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | 否 | - | 对象存储 SK。 |
 | `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | 否 | - | 阿里云 OSS STS 临时凭证的 SecurityToken；与临时 AK/SK 同时配置时使用 STS 认证。运行中的容器不会自动读取更新后的环境变量，需在凭证过期前重建 Pod。 :octicons-tag-24: Version-0.2.3 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN` | `assume_role` 必填 | - | 目标 RAM Role ARN。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SESSION_NAME` | 否 | SDK 默认值 | AssumeRole 角色会话名。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_DURATION_SECONDS` | 否 | `3600` | AssumeRole 返回 STS 凭证的有效期，单位秒，最小 900。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_POLICY` | 否 | - | 可选 inline policy，用于进一步限制返回 STS 凭证权限。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_EXTERNAL_ID` | 否 | - | 可选 ExternalId，用于跨账号或防 confused deputy 场景。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_STS_ENDPOINT` | 否 | SDK 默认值 | 自定义 STS endpoint，例如 `sts.cn-hangzhou.aliyuncs.com`。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID` | `assume_role` 必填 | - | 调用 STS AssumeRole 的源身份 AK。建议只授予最小 `sts:AssumeRole` 权限。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET` | `assume_role` 必填 | - | 调用 STS AssumeRole 的源身份 SK。 :octicons-tag-24: Version-0.2.4 |
+| `FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_SECURITY_TOKEN` | 否 | - | 如果源身份本身也是临时凭证，可配置源身份 SecurityToken。 :octicons-tag-24: Version-0.2.4 |
 | `FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE` | 否 | `{service}/{pod_name}/{timestamp}/{filename}` | 对象路径模板，支持 service / pod_name / pod_namespace / host / pid / timestamp / filename 等变量。 |
 | `FLAMESHOT_HPROF_DOWNLOAD_URL_TEMPLATE` | 否 | - | 可选下载链接模板；配置后事件中按该模板生成 `hprof_download_url`。 |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | 否 | `false` | 内存紧急阈值命中时是否主动执行 Java Heap Dump。 |
@@ -72,6 +84,22 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 | `FLAMESHOT_POD_CPU_LIMIT` | 否 | - | Pod CPU limit，单位 m。配置后会按 Pod CPU limit 计算 CPU 使用率。 |
 | `FLAMESHOT_SERVICE`          | 否     | -       | 可以不用在 `FLAMESHOT_PROCESSES` 中配置 `service`, 会全部替换。                         |
 | `FLAMESHOT_TAGS`             | 否     | -       | 建议配置 `host` `pod_name` `pod_namespace` 如： "host:host_name,pod_name:pod_a" |
+
+### hprof 上传 AssumeRole 临时认证 {#hprof-upload-assume-role}
+
+当客户已有阿里云 STS AssumeRole 流程，并希望 Flameshot 在运行时主动获取临时凭证时，可使用 `assume_role` 模式：
+
+```shell
+FLAMESHOT_HPROF_UPLOAD_PROVIDER=oss
+FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE=assume_role
+FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN=acs:ram::<account-id>:role/<role-name>
+FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID=<source-access-key-id>
+FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET=<source-access-key-secret>
+```
+
+该模式下，`FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID`、`FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` 和 `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` 不再作为 OSS 上传凭证使用。Flameshot 会使用 source AK/SK 调用阿里云 STS `AssumeRole`，获取临时 AK/SK/SecurityToken 后上传 OSS，并由 SDK 在凭证临近过期时刷新。
+
+注意：`AssumeRole` 不是匿名接口。source AK/SK 仍然是调用 STS 的源身份凭证，建议只授予最小 `sts:AssumeRole` 权限；目标 RAM Role 再授予目标 OSS bucket/prefix 的最小写权限。STS 调用失败、配置缺失或返回凭证不完整时，上传会失败，不会回退默认凭证链、节点角色或匿名上传。
 
 如果 DataKit 以 DaemonSet 方式部署，并通过 `hostNetwork`/`hostPort` 暴露 `9529`，推荐让 Flameshot 直连**当前业务 Pod 所在节点**的 DataKit，而不是通过普通 Service 域名随机转发：
 
@@ -122,13 +150,18 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 **通用字段说明：**
 
 - **`service`** (String): 上报到观测中心的服务名称。
-- **`language`** (String): 目标进程语言。目前支持 `java`、`go`、`golang`。
+- **`language`** (String): 目标进程语言。目前支持 `java`、`go`、`golang`、`python`。
 - **`command`** (String): 匹配进程命令行的正则表达式。
 - **`duration`** (String): 单次采集时长（例如 `30s`, `1m`）。**注意**：受限于执行超时，建议不超过 5 分钟。
 - **`emergency_duration`** (String): 内存紧急阈值命中后的快速采集时长，建议配置为 `10s` 或 `15s`。
 - **`pprof_url`** (String): Go pprof HTTP 地址，例如 `http://127.0.0.1:6060`。当 `language` 为 `go` 或 `golang` 时需要配置。
 - **`pprof_types`** (List): Go pprof 类型，支持 `cpu`、`goroutine`、`heap`、`mutex`、`block`，与 profile 采集器现有 Go pull 模式保持一致。
 - **`pprof_timeout`** (String): Go pprof 请求超时时间，建议大于 CPU profile 的 `duration`。
+- **`pyspy_path`** (String): Python `py-spy` 可执行文件路径，默认 `py-spy`。
+- **`pyspy_output_path`** (String): Python raw 输出路径；未配置时自动生成本地临时文件，相对路径会写入 `FLAMESHOT_PROFILING_PATH` 或默认输出目录。
+- **`pyspy_rate`** (Int): Python 采样频率，默认 `100`。
+- **`pyspy_subprocesses`** (Bool): Python 是否对子进程一起采样，默认 `false`。
+- **`pyspy_idle`** (Bool): Python 是否采集 idle 线程，默认 `false`。
 - **`tags`** (List): 自定义标签列表，建议包含 `env`, `version` 等元信息。
 - **`cpu_usage_percent`** (Int): CPU 触发阈值 (0-N)。多核环境下数值可能超过 100。
 - **`mem_usage_percent`** (Int): 内存使用率平均阈值 (0-100)，按最近 5 个点平均值触发。
@@ -241,11 +274,48 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
     - `mutex` 和 `block` 默认不会采集有效数据，业务代码需要显式开启 `runtime.SetMutexProfileFraction` 和 `runtime.SetBlockProfileRate`。
     - pprof 接口可能暴露敏感运行时信息，建议只监听 Pod 内本地地址，不要通过 Service 或公网暴露。
 
-=== "Python (Coming Soon)"
+=== "Python"
 
     ### Python Profiling {#python-profiling}
-    
-    *计划中*：将集成 `py-spy` 等无侵入式工具。
+
+    针对 Python 应用，Flameshot 使用官方 `py-spy` attach 目标进程，执行 `py-spy record --format raw` 生成 collapsed 文本并上传到 DataKit。上传 event 使用 `family=python`、`format=collapse`、`profiler=pyspy`，附件名固定为 `prof`。
+
+    **当前数据类型限制：**
+
+    - 当前 py-spy 接入只生成并展示 **CPU Samples**。该指标表示 Python 调用栈被采样的次数，不是精确的 CPU 使用率或 CPU 时间。
+    - raw collapsed 文件只包含调用栈和样本次数，因此当前不能提供 CPU Time、Wall Time、Heap、Allocation、Lock、Exception 或 I/O 等其它 Profiling 数据类型。
+    - `pyspy_rate` 只调整采样频率，`pyspy_subprocesses` 只扩大采集进程范围，二者都不会增加数据类型。
+    - `pyspy_idle=true` 会让 py-spy 包含 idle 线程，但当前仍统一展示为 CPU Samples，不会新增 Wall Time 数据类型。
+    - `cpu_usage_percent`、`mem_usage_percent` 和 `mem_usage_mb` 只控制何时触发一次采集。配置内存阈值不会使 py-spy 生成 Heap 或 Allocation Profile。
+
+    **关键配置字段 (`FLAMESHOT_PROCESSES`):**
+
+    - **`language`**: 必须设置为 `python`。
+    - **`pyspy_path`**: `py-spy` 可执行文件路径，默认 `py-spy`。
+    - **`pyspy_output_path`**: raw 输出路径；未配置时自动生成本地临时文件，相对路径写入 `FLAMESHOT_PROFILING_PATH` 或默认输出目录。
+    - **`pyspy_rate`**: 每秒采样次数，默认 `100`。
+    - **`pyspy_subprocesses`**: 是否对子进程一起采样。
+    - **`pyspy_idle`**: 是否包含 idle 线程。
+
+    配置示例：
+
+    ```json
+    {
+      "service": "python-api",
+      "language": "python",
+      "command": "^python\\b.*app\\.py$",
+      "duration": "30s",
+      "pyspy_rate": 100,
+      "cpu_usage_percent": 80,
+      "tags": ["env:prod", "version:v1"]
+    }
+    ```
+
+    **注意事项：**
+
+    - 阈值、定时采集和 HTTP 手动触发只控制何时启动一次 `py-spy` 采集；attach 后的采样时长由 `duration` 控制。
+    - Sidecar 内必须存在 `py-spy`，并具备 attach 目标 Python 进程所需权限，通常需要 `SYS_PTRACE`。
+    - DataKit profile 采集器会转发 py-spy collapsed 数据，不会按 Python pprof 指标提取逻辑解析该附件。
 <!-- markdownlint-enable MD046 -->
 
 ---
@@ -492,6 +562,13 @@ Flameshot 提供了 HTTP 接口，允许用户或自动化运维脚本**主动�
 ---
 
 ## 更新日志 (Changelog) {#changelog}
+
+### 0.2.4 (2026-7-22) {#cl-0.2.4}
+
+#### 新增功能 {#cl-0.2.4-new}
+
+- **增加配置**
+    - hprof 上传到阿里云 OSS 时支持 `assume_role` 认证模式，Flameshot 可主动调用阿里云 STS AssumeRole 获取并刷新临时凭证后上传 OSS。（#3152）
 
 ### 0.2.3 (2026-7-20) {#cl-0.2.3}
 

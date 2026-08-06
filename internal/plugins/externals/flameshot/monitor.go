@@ -416,6 +416,11 @@ func (m *monitor) applyProcessConfigToStats(stats *triggerStats, p *Process) {
 	stats.PProfURL = p.PProfURL
 	stats.PProfTypes = append([]string(nil), p.PProfTypes...)
 	stats.PProfTimeout = p.PProfTimeout
+	stats.PySpyPath = p.PySpyPath
+	stats.PySpyOutput = p.PySpyOutputPath
+	stats.PySpyRate = p.PySpyRate
+	stats.PySpySubproc = p.PySpySubprocesses
+	stats.PySpyIdle = p.PySpyIdle
 	if isGoLanguage(p.Language) && len(p.PProfTypes) == 0 && strings.TrimSpace(p.Events) == "" {
 		stats.PProfTypes = []string{defaultGoPProfType}
 	}

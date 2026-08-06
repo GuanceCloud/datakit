@@ -36,12 +36,22 @@ var (
   oom_hprof_match_window = "2m"
   hprof_upload_enabled = false
   hprof_upload_provider = ""
+  hprof_upload_auth_type = "static"
   hprof_upload_endpoint = ""
   hprof_upload_region = ""
   hprof_upload_bucket = ""
   hprof_upload_access_key_id = ""
   hprof_upload_access_key_secret = ""
   hprof_upload_security_token = ""
+  hprof_upload_assume_role_arn = ""
+  hprof_upload_assume_role_session_name = ""
+  hprof_upload_assume_role_duration_seconds = 3600
+  hprof_upload_assume_role_policy = ""
+  hprof_upload_assume_role_external_id = ""
+  hprof_upload_assume_role_sts_endpoint = ""
+  hprof_upload_assume_role_source_access_key_id = ""
+  hprof_upload_assume_role_source_access_key_secret = ""
+  hprof_upload_assume_role_source_security_token = ""
   hprof_upload_path_template = "{service}/{pod_name}/{timestamp}/{filename}"
   hprof_download_url_template = ""
   hprof_upload_timeout = "5m"
@@ -69,6 +79,12 @@ var (
 	    ## Go pprof types: cpu, goroutine, heap, mutex, block.
 	    # pprof_types = ["cpu", "goroutine", "heap", "mutex", "block"]
 	    # pprof_timeout = "45s"
+	    ## Python py-spy options, used when language is python.
+	    # pyspy_path = "py-spy"
+	    # pyspy_output_path = ""
+	    # pyspy_rate = 100
+	    # pyspy_subprocesses = false
+	    # pyspy_idle = false
 	    tags = ["env:env", "version:1.0.0"]
     ## cpu usage percent. 4C max is 400, 80% is 320
     cpu_usage_percent = 80
@@ -115,6 +131,11 @@ type Process struct {
 	PProfURL                  string   `toml:"pprof_url" json:"pprof_url"`                                     // Go pprof HTTP 地址
 	PProfTypes                []string `toml:"pprof_types" json:"pprof_types"`                                 // Go pprof 类型
 	PProfTimeout              string   `toml:"pprof_timeout" json:"pprof_timeout"`                             // Go pprof 请求超时
+	PySpyPath                 string   `toml:"pyspy_path" json:"pyspy_path"`                                   // Python py-spy 可执行文件路径
+	PySpyOutputPath           string   `toml:"pyspy_output_path" json:"pyspy_output_path"`                     // Python py-spy 本地输出路径
+	PySpyRate                 int      `toml:"pyspy_rate" json:"pyspy_rate"`                                   // Python py-spy 采样频率
+	PySpySubprocesses         bool     `toml:"pyspy_subprocesses" json:"pyspy_subprocesses"`                   // Python py-spy 是否采集子进程
+	PySpyIdle                 bool     `toml:"pyspy_idle" json:"pyspy_idle"`                                   // Python py-spy 是否采集 idle 线程
 	Tags                      []string `toml:"tags" json:"tags"`                                               // 自定义标签
 	CPUUsagePercent           int      `toml:"cpu_usage_percent" json:"cpu_usage_percent"`                     // cpu 使用率
 	MEMUsagePercent           int      `toml:"mem_usage_percent" json:"mem_usage_percent"`                     // 内存使用率平均值阈值
@@ -125,37 +146,47 @@ type Process struct {
 }
 
 type Config struct {
-	DataKitAddr                string      `toml:"datakit_addr"`                         // datakit 地址
-	ProfilingPath              string      `toml:"profiling_path"`                       // 虚拟环境下必须保证是共享目录
-	MonitorInterval            string      `toml:"monitor_interval"`                     // 监控间隔，单位 秒
-	Tags                       []string    `toml:"tags"`                                 // 全局自定义标签
-	AutoProfiling              string      `toml:"auto_profiling"`                       // 开关定时自动执行, 配置 0 则关闭
-	AutoProfileDuration        string      `toml:"auto_profiling_duration"`              // 定时自动采集时长
-	ProfilingEnabled           *bool       `toml:"profiling_enabled,omitempty"`          // 开启 JFR profiling，nil 表示默认开启
-	OOMHProfEnabled            bool        `toml:"oom_hprof_enabled"`                    // 开启 OOM hprof 摘要采集
-	OOMHProfMatchWindow        string      `toml:"oom_hprof_match_window"`               // OOM 事件与 hprof 的时间匹配窗口
-	HProfUploadEnabled         bool        `toml:"hprof_upload_enabled"`                 // 开启 hprof 对象存储上传
-	HProfUploadProvider        string      `toml:"hprof_upload_provider"`                // oss/s3
-	HProfUploadEndpoint        string      `toml:"hprof_upload_endpoint"`                // 对象存储 endpoint
-	HProfUploadRegion          string      `toml:"hprof_upload_region"`                  // S3 region
-	HProfUploadBucket          string      `toml:"hprof_upload_bucket"`                  // bucket
-	HProfUploadAccessKeyID     string      `toml:"hprof_upload_access_key_id"`           // AK
-	HProfUploadAccessKeySecret string      `toml:"hprof_upload_access_key_secret"`       // SK
-	HProfUploadSecurityToken   string      `toml:"hprof_upload_security_token"`          // STS security token
-	HProfUploadPathTemplate    string      `toml:"hprof_upload_path_template"`           // object key template
-	HProfDownloadURLTemplate   string      `toml:"hprof_download_url_template"`          // download URL template
-	HProfUploadTimeout         string      `toml:"hprof_upload_timeout"`                 // upload timeout
-	HProfUploadS3PathStyle     *bool       `toml:"hprof_upload_s3_path_style,omitempty"` // S3 path-style endpoint
-	HeapDumpEnabled            bool        `toml:"heap_dump_enabled"`                    // 开启主动 heap dump
-	HeapDumpPathTemplate       string      `toml:"heap_dump_path_template"`              // heap dump 文件路径模板
-	HeapDumpJMapPath           string      `toml:"heap_dump_jmap_path"`                  // jmap 路径
-	HeapDumpTimeout            string      `toml:"heap_dump_timeout"`                    // jmap 超时
-	HeapDumpCooldown           string      `toml:"heap_dump_cooldown"`                   // 每进程 heap dump 冷却时间
-	PodCPULimit                string      `toml:"pod_cpu_limit"`                        // pod resource limit
-	PodMEMLimit                string      `toml:"pod_mem_limit"`                        // pod resource limit
-	Processes                  []*Process  `toml:"processes"`                            // 监控的进程列表
-	HTTPConfig                 *HTTPConfig `toml:"http"`                                 // http 配置
-	Log                        *Logging    `toml:"logging"`                              // 日志配置
+	DataKitAddr                                string      `toml:"datakit_addr"`                                      // datakit 地址
+	ProfilingPath                              string      `toml:"profiling_path"`                                    // 虚拟环境下必须保证是共享目录
+	MonitorInterval                            string      `toml:"monitor_interval"`                                  // 监控间隔，单位 秒
+	Tags                                       []string    `toml:"tags"`                                              // 全局自定义标签
+	AutoProfiling                              string      `toml:"auto_profiling"`                                    // 开关定时自动执行, 配置 0 则关闭
+	AutoProfileDuration                        string      `toml:"auto_profiling_duration"`                           // 定时自动采集时长
+	ProfilingEnabled                           *bool       `toml:"profiling_enabled,omitempty"`                       // 开启 JFR profiling，nil 表示默认开启
+	OOMHProfEnabled                            bool        `toml:"oom_hprof_enabled"`                                 // 开启 OOM hprof 摘要采集
+	OOMHProfMatchWindow                        string      `toml:"oom_hprof_match_window"`                            // OOM 事件与 hprof 的时间匹配窗口
+	HProfUploadEnabled                         bool        `toml:"hprof_upload_enabled"`                              // 开启 hprof 对象存储上传
+	HProfUploadProvider                        string      `toml:"hprof_upload_provider"`                             // oss/s3
+	HProfUploadAuthType                        string      `toml:"hprof_upload_auth_type"`                            // static/assume_role
+	HProfUploadEndpoint                        string      `toml:"hprof_upload_endpoint"`                             // 对象存储 endpoint
+	HProfUploadRegion                          string      `toml:"hprof_upload_region"`                               // S3 region
+	HProfUploadBucket                          string      `toml:"hprof_upload_bucket"`                               // bucket
+	HProfUploadAccessKeyID                     string      `toml:"hprof_upload_access_key_id"`                        // AK
+	HProfUploadAccessKeySecret                 string      `toml:"hprof_upload_access_key_secret"`                    // SK
+	HProfUploadSecurityToken                   string      `toml:"hprof_upload_security_token"`                       // STS security token
+	HProfUploadAssumeRoleARN                   string      `toml:"hprof_upload_assume_role_arn"`                      // AssumeRole target role ARN
+	HProfUploadAssumeRoleSessionName           string      `toml:"hprof_upload_assume_role_session_name"`             // AssumeRole session name
+	HProfUploadAssumeRoleDurationSeconds       int         `toml:"hprof_upload_assume_role_duration_seconds"`         // AssumeRole duration seconds
+	HProfUploadAssumeRolePolicy                string      `toml:"hprof_upload_assume_role_policy"`                   // AssumeRole inline policy
+	HProfUploadAssumeRoleExternalID            string      `toml:"hprof_upload_assume_role_external_id"`              // AssumeRole external id
+	HProfUploadAssumeRoleSTSEndpoint           string      `toml:"hprof_upload_assume_role_sts_endpoint"`             // AssumeRole STS endpoint
+	HProfUploadAssumeRoleSourceAccessKeyID     string      `toml:"hprof_upload_assume_role_source_access_key_id"`     // AssumeRole source AK
+	HProfUploadAssumeRoleSourceAccessKeySecret string      `toml:"hprof_upload_assume_role_source_access_key_secret"` // AssumeRole source SK
+	HProfUploadAssumeRoleSourceSecurityToken   string      `toml:"hprof_upload_assume_role_source_security_token"`    // AssumeRole source STS token
+	HProfUploadPathTemplate                    string      `toml:"hprof_upload_path_template"`                        // object key template
+	HProfDownloadURLTemplate                   string      `toml:"hprof_download_url_template"`                       // download URL template
+	HProfUploadTimeout                         string      `toml:"hprof_upload_timeout"`                              // upload timeout
+	HProfUploadS3PathStyle                     *bool       `toml:"hprof_upload_s3_path_style,omitempty"`              // S3 path-style endpoint
+	HeapDumpEnabled                            bool        `toml:"heap_dump_enabled"`                                 // 开启主动 heap dump
+	HeapDumpPathTemplate                       string      `toml:"heap_dump_path_template"`                           // heap dump 文件路径模板
+	HeapDumpJMapPath                           string      `toml:"heap_dump_jmap_path"`                               // jmap 路径
+	HeapDumpTimeout                            string      `toml:"heap_dump_timeout"`                                 // jmap 超时
+	HeapDumpCooldown                           string      `toml:"heap_dump_cooldown"`                                // 每进程 heap dump 冷却时间
+	PodCPULimit                                string      `toml:"pod_cpu_limit"`                                     // pod resource limit
+	PodMEMLimit                                string      `toml:"pod_mem_limit"`                                     // pod resource limit
+	Processes                                  []*Process  `toml:"processes"`                                         // 监控的进程列表
+	HTTPConfig                                 *HTTPConfig `toml:"http"`                                              // http 配置
+	Log                                        *Logging    `toml:"logging"`                                           // 日志配置
 }
 
 func (c *Config) fromEnv() {
@@ -230,6 +261,9 @@ func (c *Config) fromEnv() {
 	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_PROVIDER"); x != "" {
 		c.HProfUploadProvider = x
 	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE"); x != "" {
+		c.HProfUploadAuthType = x
+	}
 	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ENDPOINT"); x != "" {
 		c.HProfUploadEndpoint = x
 	}
@@ -247,6 +281,37 @@ func (c *Config) fromEnv() {
 	}
 	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN"); x != "" {
 		c.HProfUploadSecurityToken = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN"); x != "" {
+		c.HProfUploadAssumeRoleARN = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SESSION_NAME"); x != "" {
+		c.HProfUploadAssumeRoleSessionName = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_DURATION_SECONDS"); x != "" {
+		if seconds, err := strconv.Atoi(x); err == nil {
+			c.HProfUploadAssumeRoleDurationSeconds = seconds
+		} else {
+			log.Warnf("parse %s=%s failed: %s", "FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_DURATION_SECONDS", x, err.Error())
+		}
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_POLICY"); x != "" {
+		c.HProfUploadAssumeRolePolicy = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_EXTERNAL_ID"); x != "" {
+		c.HProfUploadAssumeRoleExternalID = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_STS_ENDPOINT"); x != "" {
+		c.HProfUploadAssumeRoleSTSEndpoint = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID"); x != "" {
+		c.HProfUploadAssumeRoleSourceAccessKeyID = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET"); x != "" {
+		c.HProfUploadAssumeRoleSourceAccessKeySecret = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_SECURITY_TOKEN"); x != "" {
+		c.HProfUploadAssumeRoleSourceSecurityToken = x
 	}
 	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE"); x != "" {
 		c.HProfUploadPathTemplate = x
@@ -337,6 +402,21 @@ func (c *Config) loadProcessesFromEnv() {
 		}
 		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PPROF_TIMEOUT", i)); val != nil {
 			process.PProfTimeout = *val
+		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PYSPY_PATH", i)); val != nil {
+			process.PySpyPath = *val
+		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PYSPY_OUTPUT_PATH", i)); val != nil {
+			process.PySpyOutputPath = *val
+		}
+		if val := getEnvInt(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PYSPY_RATE", i)); val != nil {
+			process.PySpyRate = *val
+		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PYSPY_SUBPROCESSES", i)); val != nil {
+			process.PySpySubprocesses = parseBoolEnv(*val)
+		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PYSPY_IDLE", i)); val != nil {
+			process.PySpyIdle = parseBoolEnv(*val)
 		}
 		if val := getEnvInt(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_CPU_USAGE_PERCENT", i)); val != nil {
 			process.CPUUsagePercent = *val
@@ -479,14 +559,16 @@ func InitConfig(logPath string) *Config {
 
 func defaultFlameshotConfig() *Config {
 	return &Config{
-		ProfilingEnabled:        boolPtr(true),
-		HProfUploadPathTemplate: "{service}/{pod_name}/{timestamp}/{filename}",
-		HProfUploadTimeout:      "5m",
-		HProfUploadS3PathStyle:  boolPtr(true),
-		HeapDumpPathTemplate:    "{profiling_path}/dumps/{service}_{pod_name}_{pid}_{timestamp}.hprof",
-		HeapDumpJMapPath:        "jmap",
-		HeapDumpTimeout:         "120s",
-		HeapDumpCooldown:        "10m",
+		ProfilingEnabled:                     boolPtr(true),
+		HProfUploadAuthType:                  "static",
+		HProfUploadAssumeRoleDurationSeconds: 3600,
+		HProfUploadPathTemplate:              "{service}/{pod_name}/{timestamp}/{filename}",
+		HProfUploadTimeout:                   "5m",
+		HProfUploadS3PathStyle:               boolPtr(true),
+		HeapDumpPathTemplate:                 "{profiling_path}/dumps/{service}_{pod_name}_{pid}_{timestamp}.hprof",
+		HeapDumpJMapPath:                     "jmap",
+		HeapDumpTimeout:                      "120s",
+		HeapDumpCooldown:                     "10m",
 	}
 }
 
@@ -496,6 +578,12 @@ func (c *Config) applyDefaults() {
 	}
 	if c.ProfilingEnabled == nil {
 		c.ProfilingEnabled = boolPtr(true)
+	}
+	if c.HProfUploadAuthType == "" {
+		c.HProfUploadAuthType = "static"
+	}
+	if c.HProfUploadAssumeRoleDurationSeconds == 0 {
+		c.HProfUploadAssumeRoleDurationSeconds = 3600
 	}
 	if c.HProfUploadPathTemplate == "" {
 		c.HProfUploadPathTemplate = "{service}/{pod_name}/{timestamp}/{filename}"
@@ -517,6 +605,24 @@ func (c *Config) applyDefaults() {
 	}
 	if c.HeapDumpCooldown == "" {
 		c.HeapDumpCooldown = "10m"
+	}
+	for _, p := range c.Processes {
+		applyProcessDefaults(p)
+	}
+}
+
+func applyProcessDefaults(p *Process) {
+	if p == nil {
+		return
+	}
+	if !isPythonLanguage(p.Language) {
+		return
+	}
+	if p.PySpyPath == "" {
+		p.PySpyPath = defaultPySpyPath
+	}
+	if p.PySpyRate == 0 {
+		p.PySpyRate = defaultPySpyRate
 	}
 }
 

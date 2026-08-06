@@ -216,12 +216,22 @@ func TestConfig_FromEnv(t *testing.T) {
 	t.Setenv("FLAMESHOT_OOM_HPROF_MATCH_WINDOW", "3m")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ENABLED", "true")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_PROVIDER", "s3")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_AUTH_TYPE", "assume_role")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ENDPOINT", "https://s3.example.com")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_REGION", "us-east-1")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_BUCKET", "dump-bucket")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID", "ak")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET", "sk")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN", "sts-token")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_ARN", "acs:ram::1234567890123456:role/flameshot-uploader")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SESSION_NAME", "flameshot-session")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_DURATION_SECONDS", "1800")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_POLICY", `{"Version":"1","Statement":[]}`)
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_EXTERNAL_ID", "external-id")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_STS_ENDPOINT", "sts.cn-hangzhou.aliyuncs.com")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_ID", "source-ak")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_ACCESS_KEY_SECRET", "source-sk")
+	t.Setenv("FLAMESHOT_HPROF_UPLOAD_ASSUME_ROLE_SOURCE_SECURITY_TOKEN", "source-token")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE", "{service}/{filename}")
 	t.Setenv("FLAMESHOT_HPROF_DOWNLOAD_URL_TEMPLATE", "https://download.example.com/{object_key}")
 	t.Setenv("FLAMESHOT_HPROF_UPLOAD_TIMEOUT", "30s")
@@ -253,12 +263,22 @@ func TestConfig_FromEnv(t *testing.T) {
 	assert.Equal(t, c.OOMHProfMatchWindow, "3m")
 	assert.True(t, c.HProfUploadEnabled)
 	assert.Equal(t, "s3", c.HProfUploadProvider)
+	assert.Equal(t, "assume_role", c.HProfUploadAuthType)
 	assert.Equal(t, "https://s3.example.com", c.HProfUploadEndpoint)
 	assert.Equal(t, "us-east-1", c.HProfUploadRegion)
 	assert.Equal(t, "dump-bucket", c.HProfUploadBucket)
 	assert.Equal(t, "ak", c.HProfUploadAccessKeyID)
 	assert.Equal(t, "sk", c.HProfUploadAccessKeySecret)
 	assert.Equal(t, "sts-token", c.HProfUploadSecurityToken)
+	assert.Equal(t, "acs:ram::1234567890123456:role/flameshot-uploader", c.HProfUploadAssumeRoleARN)
+	assert.Equal(t, "flameshot-session", c.HProfUploadAssumeRoleSessionName)
+	assert.Equal(t, 1800, c.HProfUploadAssumeRoleDurationSeconds)
+	assert.Equal(t, `{"Version":"1","Statement":[]}`, c.HProfUploadAssumeRolePolicy)
+	assert.Equal(t, "external-id", c.HProfUploadAssumeRoleExternalID)
+	assert.Equal(t, "sts.cn-hangzhou.aliyuncs.com", c.HProfUploadAssumeRoleSTSEndpoint)
+	assert.Equal(t, "source-ak", c.HProfUploadAssumeRoleSourceAccessKeyID)
+	assert.Equal(t, "source-sk", c.HProfUploadAssumeRoleSourceAccessKeySecret)
+	assert.Equal(t, "source-token", c.HProfUploadAssumeRoleSourceSecurityToken)
 	assert.Equal(t, "{service}/{filename}", c.HProfUploadPathTemplate)
 	assert.Equal(t, "https://download.example.com/{object_key}", c.HProfDownloadURLTemplate)
 	assert.Equal(t, "30s", c.HProfUploadTimeout)
@@ -306,6 +326,44 @@ func TestConfigLoadGoPProfFromEnv(t *testing.T) {
 	assert.Equal(t, "http://127.0.0.1:7070", c.Processes[1].PProfURL)
 	assert.Equal(t, []string{"cpu", "goroutine", "heap", "mutex", "block"}, c.Processes[1].PProfTypes)
 	assert.Equal(t, "1m", c.Processes[1].PProfTimeout)
+}
+
+func TestConfigLoadPySpyFromEnv(t *testing.T) {
+	c := &Config{Processes: make([]*Process, 0)}
+
+	t.Setenv("FLAMESHOT_PROCESSES_0_SERVICE", "py-api")
+	t.Setenv("FLAMESHOT_PROCESSES_0_COMMAND", "^python\\b.*app\\.py$")
+	t.Setenv("FLAMESHOT_PROCESSES_0_LANGUAGE", "python")
+	t.Setenv("FLAMESHOT_PROCESSES_0_PYSPY_PATH", "/usr/local/bin/py-spy")
+	t.Setenv("FLAMESHOT_PROCESSES_0_PYSPY_OUTPUT_PATH", "/tmp/py-api.prof")
+	t.Setenv("FLAMESHOT_PROCESSES_0_PYSPY_RATE", "200")
+	t.Setenv("FLAMESHOT_PROCESSES_0_PYSPY_SUBPROCESSES", "true")
+	t.Setenv("FLAMESHOT_PROCESSES_0_PYSPY_IDLE", "true")
+
+	t.Setenv("FLAMESHOT_PROCESSES", `[{
+		"service":"py-worker",
+		"command":"^python\\b.*worker\\.py$",
+		"language":"python"
+	}]`)
+
+	c.loadProcessesFromEnv()
+	require.Len(t, c.Processes, 2)
+
+	assert.Equal(t, "py-api", c.Processes[0].Service)
+	assert.Equal(t, "python", c.Processes[0].Language)
+	assert.Equal(t, "/usr/local/bin/py-spy", c.Processes[0].PySpyPath)
+	assert.Equal(t, "/tmp/py-api.prof", c.Processes[0].PySpyOutputPath)
+	assert.Equal(t, 200, c.Processes[0].PySpyRate)
+	assert.True(t, c.Processes[0].PySpySubprocesses)
+	assert.True(t, c.Processes[0].PySpyIdle)
+
+	assert.Equal(t, "py-worker", c.Processes[1].Service)
+	assert.Equal(t, "python", c.Processes[1].Language)
+	assert.Equal(t, defaultPySpyPath, c.Processes[1].PySpyPath)
+	assert.Equal(t, defaultPySpyRate, c.Processes[1].PySpyRate)
+	assert.Empty(t, c.Processes[1].PySpyOutputPath)
+	assert.False(t, c.Processes[1].PySpySubprocesses)
+	assert.False(t, c.Processes[1].PySpyIdle)
 }
 
 func TestRegex(t *testing.T) {

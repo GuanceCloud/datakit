@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
@@ -33,7 +32,7 @@ func TestHandleSourcemapUpload(t *testing.T) {
 	dw.URLs = []string{"http://localhost:9529?token=" + Token}
 	assert.NoError(t, dw.Init())
 
-	config.Cfg.Dataway = dw
+	useTestDataway(t, dw)
 
 	dir, err := ioutil.TempDir("./", "tmp")
 	if err != nil {
@@ -281,7 +280,7 @@ func TestHandleSourcemapDelete(t *testing.T) {
 	dw.URLs = []string{"http://localhost:9529?token=" + Token}
 	assert.NoError(t, dw.Init())
 
-	config.Cfg.Dataway = dw
+	useTestDataway(t, dw)
 
 	ipt := defaultInput()
 	tmpDir := t.TempDir()

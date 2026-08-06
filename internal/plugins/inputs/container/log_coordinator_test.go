@@ -113,6 +113,7 @@ func TestAddTaskRefreshesDefaultConfigAfterPodMetadataBecomesAvailable(t *testin
 
 	initialInfo := testContainerLogInfo()
 	initialInfo.logPath = filepath.Join(t.TempDir(), "container.log")
+	initialInfo.podMetadataUnavailable = true
 	coordinator.addTask(initialInfo.containerID, initialInfo, "", false)
 	t.Cleanup(func() { coordinator.removeTask(initialInfo.containerID) })
 	task := coordinator.containerTasks[initialInfo.containerID]
@@ -121,12 +122,68 @@ func TestAddTaskRefreshesDefaultConfigAfterPodMetadataBecomesAvailable(t *testin
 
 	enrichedInfo := *initialInfo
 	enrichedInfo.podLabels = map[string]string{"app": "example"}
+	enrichedInfo.podMetadataUnavailable = false
 
 	coordinator.addTask(initialInfo.containerID, &enrichedInfo, "", false)
 
 	require.Same(t, &enrichedInfo, task.info)
 	require.NotEqual(t, initialHash, task.tailers[0].configHash)
 	require.Equal(t, task.configs[0].getStructHash(), task.tailers[0].configHash)
+}
+
+func TestAddTaskPreservesCustomTailerWhenPodMetadataUnavailable(t *testing.T) {
+	coordinator := newContainerLogCoordinator(testLoggingDefaults())
+	info := testContainerLogInfo()
+	info.logPath = filepath.Join(t.TempDir(), "container.log")
+	info.mergedDir = t.TempDir()
+	info.podLabels = map[string]string{"app": "example"}
+
+	const annotationConfig = `[{"type":"file","path":"/custom/app.log","source":"custom"}]`
+	coordinator.addTask(info.containerID, info, annotationConfig, false)
+	t.Cleanup(func() { coordinator.removeTask(info.containerID) })
+
+	task := coordinator.containerTasks[info.containerID]
+	require.NotNil(t, task)
+	require.Len(t, task.tailers, 1)
+	originalTailer := task.tailers[0].tailer
+	require.Equal(t, "/custom/app.log", task.tailers[0].path)
+
+	cacheMissInfo := *info
+	cacheMissInfo.podLabels = nil
+	cacheMissInfo.podMetadataUnavailable = true
+	coordinator.addTask(info.containerID, &cacheMissInfo, "", false)
+
+	require.Same(t, info, task.info)
+	require.Equal(t, annotationConfig, task.configStr)
+	require.Len(t, task.tailers, 1)
+	require.Same(t, originalTailer, task.tailers[0].tailer)
+}
+
+func TestAddTaskPreservesPodMetadataWithEnvConfigOnCacheMiss(t *testing.T) {
+	defaults := testLoggingDefaults()
+	defaults.setLabelAsTags = func(labels map[string]string) map[string]string { return labels }
+	coordinator := newContainerLogCoordinator(defaults)
+	info := testContainerLogInfo()
+	info.logPath = filepath.Join(t.TempDir(), "container.log")
+	info.podLabels = map[string]string{"app": "example"}
+
+	const envConfig = `[{"source":"custom"}]`
+	coordinator.addTask(info.containerID, info, envConfig, false)
+	t.Cleanup(func() { coordinator.removeTask(info.containerID) })
+
+	task := coordinator.containerTasks[info.containerID]
+	require.NotNil(t, task)
+	require.Len(t, task.tailers, 1)
+	originalTailer := task.tailers[0].tailer
+
+	cacheMissInfo := *info
+	cacheMissInfo.podLabels = nil
+	cacheMissInfo.podMetadataUnavailable = true
+	coordinator.addTask(info.containerID, &cacheMissInfo, envConfig, false)
+
+	require.Same(t, info, task.info)
+	require.Equal(t, envConfig, task.configStr)
+	require.Same(t, originalTailer, task.tailers[0].tailer)
 }
 
 func TestCRDSelectorDistinguishesUnknownAndEmptyLabels(t *testing.T) {

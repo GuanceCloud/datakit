@@ -11,6 +11,7 @@ require (
 	github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151
 	github.com/IBM/sarama v1.49.0
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/aliyun/credentials-go v1.4.12
 	github.com/antchfx/xmlquery v1.3.18 // indirect
 	github.com/apache/thrift v0.16.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
@@ -394,6 +395,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
+	github.com/alibabacloud-go/debug v1.0.1 // indirect
 	github.com/bufbuild/protocompile v0.4.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20250403032234-65de8f5d025b // indirect
 	github.com/chromedp/chromedp v0.13.7 // indirect
@@ -420,6 +422,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 )
 

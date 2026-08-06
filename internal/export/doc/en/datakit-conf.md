@@ -190,10 +190,11 @@ DataKit allows you to configure global tags for all collected data. Global tags 
 
 When adding global tags, there are several points to note:
 
-1. The values of these global tags can use several wildcards currently supported by DataKit (both the double underscore (`__`) prefix and `$` are acceptable):
+1. The values of these global tags can use the following placeholders (the existing `__datakit_*` placeholders also support the `$datakit_*` form):
 
     1. `__datakit_ip/$datakit_ip`: The tag value will be set to the first primary network card IP obtained by DataKit.
     1. `__datakit_hostname/$datakit_hostname`: The tag value will be set to the hostname of DataKit.
+    1. `__k8s_node_label:<label-key>`: In a containerized Kubernetes environment, use the specified label from the current Node as the tag value, for example, `node_pool = "__k8s_node_label:cloud.google.com/gke-nodepool"`. Outside Kubernetes, or when the label lookup fails, the tag is omitted and a warning is logged. The placeholder is resolved only at startup; restart DataKit after changing the Node label.
 
 1. Due to [DataKit Data Transmission Protocol restrictions](apis.md#lineproto-limitation), do not include any metrics (Field) fields in the global tags, as this will lead to data processing failure due to protocol violation. For specific details, refer to the field list of the specific collector. Of course, do not add too many tags, and there are also restrictions on the length of each tag's Key and Value.
 1. If the collected data already contains a tag with the same name, DataKit will not append the configured global tag.

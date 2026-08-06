@@ -104,6 +104,8 @@ func (c *containerCollector) queryContainerLogInfoAndConfig(item *runtime.Contai
 			if img := podutil.ContainerImageFromPod(info.containerName, pod); img != "" {
 				info.image = img
 			}
+		} else {
+			info.podMetadataUnavailable = true
 		}
 	}
 	// ex: DATAKIT_LOGS_CONFIG

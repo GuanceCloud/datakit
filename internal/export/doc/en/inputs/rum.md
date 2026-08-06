@@ -373,6 +373,115 @@ As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5
     RUM configuration file is located at */usr/local/datakit/conf.d/rum/rum.conf*(Linux/macOS) and *C:\\Program Files\\datakit\\conf.d\\rum*（Windows） by default, which depend on the operating system you use and the installation location of DataKit.
 <!-- markdownlint-enable MD046 -->
 
+### RUM Session Replay Asset APIs {#rum-session-replay-assets}
+
+The current RUM collector also exposes 3 APIs for Session Replay asset files:
+
+- `POST /v1/write/rum/replay_assets`
+- `POST /v1/check/rum/replay_assets`
+- `GET /v1/inner/rum/replay_assets`
+
+These APIs are served directly by DataKit's RUM collector. Clients do not need to provide the `token` or `to_headless` query arguments.
+
+#### Upload asset files {#rum-session-replay-assets-upload}
+
+Send a `multipart/form-data` request to `POST /v1/write/rum/replay_assets` with:
+
+- `appid`: RUM application ID
+- `tags`: optional JSON object containing linked RUM tags. When the SDK enables `enableLinkRumKeys`, send the linked tag here, for example `{"wgtid":"<linkedrumtagvalue>"}`
+- `files`: repeated multipart field, allowing multiple files in one request
+
+Example:
+
+```shell
+curl -X POST 'http://localhost:9529/v1/write/rum/replay_assets' \
+  -F 'appid=web_abcdefg123456789' \
+  -F 'tags={"wgtid":"linked-rum-tag"}' \
+  -F 'files=@1.png' \
+  -F 'files=@2.png'
+```
+
+`app_id` remains accepted for older SDKs, but new integrations should use `appid`.
+
+Response example:
+
+```json
+{
+  "content": {
+    "success": ["1.png", "2.png"],
+    "failures": []
+  }
+}
+```
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    - The `upload` response only indicates whether DataKit accepted the request and queued it locally
+    - It does not mean the files have already been forwarded to DataWay by the background worker
+    - To check whether files are currently available for reading, call the `check` API below
+    - DataKit preserves the original multipart request and parses linked tags from `tags`; the DataWay Sinker configuration determines which tag keys participate in routing
+<!-- markdownlint-enable -->
+
+#### Check whether asset files are available {#rum-session-replay-assets-check}
+
+Send an `application/json` request to `POST /v1/check/rum/replay_assets`.
+
+Request body example:
+
+```json
+{
+  "appid": "web_abcdefg123456789",
+  "files": ["1.png", "abc.txt"],
+  "tags": {
+    "wgtid": "linked-rum-tag"
+  }
+}
+```
+
+Example:
+
+```shell
+curl -X POST 'http://localhost:9529/v1/check/rum/replay_assets' \
+  -H 'Content-Type: application/json' \
+  -d '{"appid":"web_abcdefg123456789","files":["1.png","abc.txt"],"tags":{"wgtid":"linked-rum-tag"}}'
+```
+
+Response example:
+
+```json
+{
+  "content": {
+    "1.png": true,
+    "abc.txt": false
+  }
+}
+```
+
+In the response:
+
+- `true` means the file is currently available from DataWay
+- `false` means the file is not available yet, either because the upload is still pending or because the file does not exist
+
+When the SDK enables `enableLinkRumKeys`, upload and check should carry the same `tags`. DataKit sends these tags to the DataWay Sinker routing logic; whether DataWay uses a v1 or v2 Sinker Header is determined by its configuration.
+
+#### Read an asset file {#rum-session-replay-assets-get}
+
+Use `GET /v1/inner/rum/replay_assets` to fetch one asset file by name. Query parameters:
+
+- `workspace_uuid`: workspace UUID
+- `app_id`: RUM application ID
+- `file`: file name
+
+Example:
+
+```shell
+curl -X GET 'http://localhost:9529/v1/inner/rum/replay_assets?workspace_uuid=wksp_xxx&app_id=web_abcdefg123456789&file=1.png' \
+  --output 1.png
+```
+
+On success, this API returns the raw binary file body. On failure, it returns the corresponding HTTP status code and error response.
+
 ### RUM Session Replay Filter {#rum-session-replay-filter}
 
 Starting from the DataKit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) version, it is supported to use configuration to filter out unnecessary session replay data. New The configuration item name is `filter_rules`, and the format is similar to the following (please refer to `rum.conf.sample` RUM sample configuration file):

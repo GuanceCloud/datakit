@@ -6,11 +6,14 @@
 package aggr
 
 import (
+	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/aggregate"
@@ -23,6 +26,7 @@ import (
 const (
 	maxAsyncSendWorkers = 8
 	maxPooledBodySize   = 8 * dataway.DefaultMaxRawBodySize
+	pbPointsArrayTag    = byte(1<<3 | 2)
 
 	aggregatePayloadContentType = "application/x-protobuf"
 	identityContentEncoding     = "identity"
@@ -74,50 +78,137 @@ func (h sinkHeaders) apply(headers map[string]string) {
 }
 
 func (ag *Aggregator) SendTailSamplingPackages(packages map[uint64]*aggregate.DataPacket) error {
+	return ag.SendTailSamplingPackagesContext(context.Background(), packages)
+}
+
+// SendTailSamplingPackagesContext sends selected tail-sampling packets until completion or cancellation.
+func (ag *Aggregator) SendTailSamplingPackagesContext(ctx context.Context,
+	packages map[uint64]*aggregate.DataPacket,
+) error {
 	if len(packages) == 0 {
 		log.Debugf("skip sending tail sampling packages: no packages")
 		return nil
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	sendCtx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
 
 	maxRawBodySize := ag.maxRawBodySize()
 	configVersion := ag.tailSamplingConfigVersion()
-	tasks := make([]tailSamplingSendTask, 0, len(packages))
+	workerCount := ag.sendWorkerCount(maxAsyncSendWorkers)
+	var totalPoints int64
+	for _, pkg := range packages {
+		if pkg != nil && pkg.PointCount > 0 && len(pkg.PointsPayload) > 0 {
+			totalPoints += int64(pkg.PointCount)
+		}
+	}
+	// Keep the queue proportional to the worker count so a slow or failed
+	// downstream cannot retain every generated split in memory.
+	taskCh := make(chan tailSamplingSendTask, workerCount)
+
+	var (
+		wg           sync.WaitGroup
+		firstErrOnce sync.Once
+		firstErr     error
+		generated    int
+		dataType     string
+		attempted    atomic.Int64
+	)
+
+	recordError := func(err error) {
+		firstErrOnce.Do(func() {
+			firstErr = err
+		})
+	}
+	stopProduction := func(err error) {
+		if ctx.Err() != nil {
+			err = context.Cause(ctx)
+		}
+		recordError(err)
+		cancel(err)
+	}
+
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-sendCtx.Done():
+					return
+				case task, ok := <-taskCh:
+					if !ok {
+						return
+					}
+					err := ag.sendTailSamplingPackageContext(sendCtx, task.pickKey, task.packet)
+					attempted.Add(int64(task.packet.PointCount))
+					if err != nil {
+						recordError(err)
+					}
+				}
+			}
+		}()
+	}
+
 	for pickKey, pkg := range packages {
 		if pkg == nil || pkg.PointCount <= 0 || len(pkg.PointsPayload) == 0 {
 			continue
+		}
+		if dataType == "" {
+			dataType = pkg.DataType
 		}
 		if pkg.ConfigVersion == 0 && configVersion != 0 {
 			pkg.ConfigVersion = configVersion
 		}
 
-		splitPkgs := splitDataPacketBySize(pkg, maxRawBodySize)
-		if len(splitPkgs) > 1 {
+		splitCount, err := walkDataPacketPartsBySize(sendCtx, pkg, maxRawBodySize, func(splitPkg *aggregate.DataPacket) error {
+			select {
+			case <-sendCtx.Done():
+				return context.Cause(sendCtx)
+			case taskCh <- tailSamplingSendTask{pickKey: pickKey, packet: splitPkg}:
+				generated++
+				return nil
+			}
+		})
+		if splitCount > 1 {
 			log.Debugf("split tail sampling package: pick_key=%d points=%d split=%d max_raw_body_size=%d",
-				pickKey, pkg.PointCount, len(splitPkgs), maxRawBodySize)
+				pickKey, pkg.PointCount, splitCount, maxRawBodySize)
 		}
-		for _, splitPkg := range splitPkgs {
-			tasks = append(tasks, tailSamplingSendTask{pickKey: pickKey, packet: splitPkg})
+		if err != nil {
+			stopProduction(err)
+			break
 		}
 	}
+	close(taskCh)
+	wg.Wait()
+	if ctx.Err() != nil {
+		firstErr = context.Cause(ctx)
+	} else if firstErr == nil && sendCtx.Err() != nil {
+		firstErr = context.Cause(sendCtx)
+	}
 
-	if len(tasks) == 0 {
+	if generated == 0 && firstErr == nil {
 		log.Debugf("skip sending tail sampling packages: no valid packages")
 		return nil
 	}
 
-	recordGeneratedBatches("tail_sampling", tasks[0].packet.DataType, len(tasks))
-
-	if err := ag.runAsyncSend(len(tasks), func(i int) error {
-		task := tasks[i]
-		return ag.sendTailSamplingPackage(task.pickKey, task.packet)
-	}); err != nil {
-		return err
+	if generated > 0 {
+		recordGeneratedBatches("tail_sampling", dataType, generated)
+	}
+	if firstErr != nil {
+		if unsentPoints := totalPoints - attempted.Load(); unsentPoints > 0 {
+			recordLostPoints("tail_sampling", dataType, sendFailureReason(firstErr, "server"), int(unsentPoints))
+		}
 	}
 
-	return nil
+	return firstErr
 }
 
-func (ag *Aggregator) sendTailSamplingPackage(pickKey uint64, pkg *aggregate.DataPacket) error {
+func (ag *Aggregator) sendTailSamplingPackageContext(ctx context.Context,
+	pickKey uint64, pkg *aggregate.DataPacket,
+) error {
 	startTime := time.Now()
 	pointsCount := int(pkg.PointCount)
 	category := pkg.DataType
@@ -149,6 +240,7 @@ func (ag *Aggregator) sendTailSamplingPackage(pickKey uint64, pkg *aggregate.Dat
 		attempted = true
 
 		resp, _, err := ep.WriteAggrData(&endpoint.AggrData{
+			Context:         ctx,
 			API:             datakit.TailSampling,
 			Category:        category,
 			ContentType:     aggregatePayloadContentType,
@@ -422,7 +514,8 @@ func sendFailureReason(err error, statusReason string) string {
 		return statusReason
 	}
 
-	if errors.Is(err, endpoint.ErrRequestTerminated) {
+	if errors.Is(err, endpoint.ErrRequestTerminated) ||
+		errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return "transport"
 	}
 
@@ -446,11 +539,47 @@ func (ag *Aggregator) maxRawBodySize() int {
 }
 
 func splitDataPacketBySize(pkg *aggregate.DataPacket, maxRawBodySize int) []*aggregate.DataPacket {
-	if pkg == nil {
+	var parts []*aggregate.DataPacket
+	_, err := walkDataPacketPartsBySize(context.Background(), pkg, maxRawBodySize, func(part *aggregate.DataPacket) error {
+		parts = append(parts, part)
 		return nil
-	}
-	if maxRawBodySize <= 0 || pkg.Size() <= maxRawBodySize || pkg.PointCount <= 1 {
+	})
+	if err != nil {
+		log.Warnf("split tail sampling packet failed: group_id=%s err=%v", pkg.RawGroupId, err)
 		return []*aggregate.DataPacket{pkg}
+	}
+
+	return parts
+}
+
+func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, maxRawBodySize int,
+	emit func(*aggregate.DataPacket) error,
+) (int, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return 0, context.Cause(ctx)
+	}
+	if pkg == nil {
+		return 0, nil
+	}
+	if emit == nil {
+		return 0, fmt.Errorf("tail sampling packet emitter is nil")
+	}
+
+	emitOriginal := func() (int, error) {
+		if err := ctx.Err(); err != nil {
+			return 0, context.Cause(ctx)
+		}
+		if err := emit(pkg); err != nil {
+			return 0, err
+		}
+		return 1, nil
+	}
+
+	if maxRawBodySize <= 0 || pkg.Size() <= maxRawBodySize || pkg.PointCount <= 1 {
+		return emitOriginal()
 	}
 
 	base := cloneDataPacketMeta(pkg)
@@ -461,77 +590,155 @@ func splitDataPacketBySize(pkg *aggregate.DataPacket, maxRawBodySize int) []*agg
 	if baseSize >= maxRawBodySize {
 		log.Warnf("tail sampling packet meta exceeds max body size: meta=%d limit=%d group_id=%s",
 			baseSize, maxRawBodySize, pkg.RawGroupId)
-		return []*aggregate.DataPacket{pkg}
+		return emitOriginal()
 	}
 
-	parts := make([]*aggregate.DataPacket, 0, pkg.PointCount)
-	part := cloneDataPacketMeta(pkg)
-	part.PointsPayload = make([]byte, 0, len(pkg.PointsPayload))
-	part.PointCount = 0
-	part.MaxPointTimeUnixNano = 0
-	partSize := baseSize
-	var splitErr error
+	// Validate before emitting because emit may send immediately. Discovering a
+	// malformed point after an earlier split was sent would make fallback send
+	// duplicate points.
+	pointTimes, walkErr, decodeErr := validatePBPointsPayload(ctx, pkg.PointsPayload)
+	if err := ctx.Err(); err != nil {
+		return 0, context.Cause(ctx)
+	}
+	if walkErr != nil {
+		log.Warnf("split tail sampling packet failed to walk payload: group_id=%s err=%v", pkg.RawGroupId, walkErr)
+		return emitOriginal()
+	}
+	if decodeErr != nil {
+		log.Warnf("split tail sampling packet failed to decode point payload: group_id=%s err=%v", pkg.RawGroupId, decodeErr)
+		return emitOriginal()
+	}
 
-	walkErr := point.WalkPBPointsPayload(pkg.PointsPayload, func(raw []byte) bool {
+	partPayloadCapacity := minInt(len(pkg.PointsPayload), maxRawBodySize-baseSize)
+	newPart := func() *aggregate.DataPacket {
+		part := cloneDataPacketMeta(pkg)
+		part.PointsPayload = make([]byte, 0, partPayloadCapacity)
+		part.PointCount = 0
+		part.MaxPointTimeUnixNano = 0
+		return part
+	}
+
+	part := newPart()
+	emitted := 0
+	pointIndex := 0
+	var emitErr error
+
+	walkErr = point.WalkPBPointsPayload(pkg.PointsPayload, func(raw []byte) bool {
+		if err := ctx.Err(); err != nil {
+			emitErr = context.Cause(ctx)
+			return false
+		}
+		if len(raw) == 0 {
+			return true
+		}
+		if pointIndex >= len(pointTimes) {
+			emitErr = fmt.Errorf("tail sampling point count changed while splitting")
+			return false
+		}
+
+		pointSize := protoListElemSize(len(raw))
+		pointTime := pointTimes[pointIndex]
+		pointIndex++
+		maxPointTime := part.MaxPointTimeUnixNano
+		if pointTime > maxPointTime {
+			maxPointTime = pointTime
+		}
+		candidateSize := dataPacketPartSize(baseSize, len(part.PointsPayload)+pointSize,
+			int(part.PointCount)+1, maxPointTime)
+		if part.PointCount > 0 && candidateSize > maxRawBodySize {
+			if err := emit(part); err != nil {
+				emitErr = err
+				return false
+			}
+			emitted++
+			part = newPart()
+			maxPointTime = pointTime
+			candidateSize = dataPacketPartSize(baseSize, pointSize, 1, maxPointTime)
+		}
+
+		// The frame was validated above, so preserve its bytes instead of building
+		// and marshaling another PBPoint object.
+		part.PointsPayload = appendPBPointFrame(part.PointsPayload, raw)
+		part.PointCount++
+		part.MaxPointTimeUnixNano = maxPointTime
+
+		if part.PointCount == 1 && candidateSize > maxRawBodySize {
+			log.Warnf("single tail sampling point exceeds max body size: size=%d limit=%d group_id=%s",
+				candidateSize, maxRawBodySize, pkg.RawGroupId)
+			if err := emit(part); err != nil {
+				emitErr = err
+				return false
+			}
+			emitted++
+			part = newPart()
+		}
+		return true
+	})
+	if emitErr != nil {
+		return emitted, emitErr
+	}
+	if walkErr != nil {
+		return emitted, fmt.Errorf("walk validated tail sampling payload: %w", walkErr)
+	}
+
+	if part.PointCount > 0 {
+		if err := emit(part); err != nil {
+			return emitted, err
+		}
+		emitted++
+	}
+	if emitted == 0 {
+		return emitOriginal()
+	}
+
+	return emitted, nil
+}
+
+func validatePBPointsPayload(ctx context.Context, payload []byte) ([]int64, error, error) {
+	var (
+		pointTimes []int64
+		decodeErr  error
+	)
+
+	walkErr := point.WalkPBPointsPayload(payload, func(raw []byte) bool {
+		if err := ctx.Err(); err != nil {
+			decodeErr = context.Cause(ctx)
+			return false
+		}
 		if len(raw) == 0 {
 			return true
 		}
 
-		pointSize := protoListElemSize(len(raw))
-		if part.PointCount > 0 && partSize+pointSize > maxRawBodySize {
-			parts = append(parts, part)
-
-			part = cloneDataPacketMeta(pkg)
-			part.PointsPayload = make([]byte, 0, len(pkg.PointsPayload))
-			part.PointCount = 0
-			part.MaxPointTimeUnixNano = 0
-			partSize = baseSize
-		}
-
 		pb := &point.PBPoint{}
 		if err := pb.Unmarshal(raw); err != nil {
-			splitErr = err
+			decodeErr = err
 			return false
 		}
-
-		part.PointsPayload = point.AppendPBPointToPBPointsPayload(part.PointsPayload, pb)
-		part.PointCount++
-		if pb.Time > part.MaxPointTimeUnixNano {
-			part.MaxPointTimeUnixNano = pb.Time
-		}
-		partSize += pointSize
-
-		if part.PointCount == 1 && partSize > maxRawBodySize {
-			parts = append(parts, part)
-
-			log.Warnf("single tail sampling point exceeds max body size: size=%d limit=%d group_id=%s",
-				partSize, maxRawBodySize, pkg.RawGroupId)
-
-			part = cloneDataPacketMeta(pkg)
-			part.PointsPayload = make([]byte, 0, len(pkg.PointsPayload))
-			part.PointCount = 0
-			part.MaxPointTimeUnixNano = 0
-			partSize = baseSize
-		}
+		pointTimes = append(pointTimes, pb.Time)
 		return true
 	})
-	if walkErr != nil {
-		log.Warnf("split tail sampling packet failed to walk payload: group_id=%s err=%v", pkg.RawGroupId, walkErr)
-		return []*aggregate.DataPacket{pkg}
-	}
-	if splitErr != nil {
-		log.Warnf("split tail sampling packet failed to decode point payload: group_id=%s err=%v", pkg.RawGroupId, splitErr)
-		return []*aggregate.DataPacket{pkg}
-	}
 
-	if part.PointCount > 0 {
-		parts = append(parts, part)
-	}
-	if len(parts) == 0 {
-		return []*aggregate.DataPacket{pkg}
-	}
+	return pointTimes, walkErr, decodeErr
+}
 
-	return parts
+func appendPBPointFrame(dst, raw []byte) []byte {
+	dst = append(dst, pbPointsArrayTag)
+	dst = binary.AppendUvarint(dst, uint64(len(raw)))
+	return append(dst, raw...)
+}
+
+func dataPacketPartSize(baseSize, pointsPayloadSize, pointCount int, maxPointTimeUnixNano int64) int {
+	size := baseSize
+	if pointsPayloadSize > 0 {
+		size += 1 + uvarintSize(uint64(pointsPayloadSize)) + pointsPayloadSize
+	}
+	if pointCount > 0 {
+		size += 1 + uvarintSize(uint64(pointCount))
+	}
+	if maxPointTimeUnixNano != 0 {
+		size += 1 + uvarintSize(uint64(maxPointTimeUnixNano))
+	}
+	return size
 }
 
 func splitBatchsBySize(batch *aggregate.Batchs, maxRawBodySize int) []*aggregate.Batchs {

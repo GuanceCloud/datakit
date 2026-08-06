@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"io"
 	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -61,6 +63,54 @@ func TestAddJSONConfigDeduplicatesProfilerTags(t *testing.T) {
 	assert.Contains(t, tags, "trigger:cpu")
 	assert.Contains(t, tags, "cpu_avg:70.23")
 	assert.Contains(t, tags, "pid:14")
+}
+
+func TestUploadPythonPySpyToDataKitMultipart(t *testing.T) {
+	var gotEvent Event
+	var gotFiles []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, r.ParseMultipartForm(10<<20))
+		for _, files := range r.MultipartForm.File {
+			for _, file := range files {
+				gotFiles = append(gotFiles, file.Filename)
+			}
+		}
+
+		eventFiles := r.MultipartForm.File["event"]
+		require.Len(t, eventFiles, 1)
+		eventReader, err := eventFiles[0].Open()
+		require.NoError(t, err)
+		defer eventReader.Close() //nolint:errcheck
+		body, err := io.ReadAll(eventReader)
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(body, &gotEvent))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	stats := &triggerStats{
+		Language:    "python",
+		PID:         123,
+		CommandName: "python",
+		Service:     "py-svc",
+		Reason:      []string{"service:py-svc", "host:test-host", "env:test", "version:v1"},
+		startTime:   "2026-07-27T06:00:00Z",
+		endTime:     "2026-07-27T06:00:10Z",
+		Attachments: []*profileAttachment{
+			{FieldName: "prof", FileName: "prof", Data: []byte("process 123:\"python app.py\";thread (1);main (/app/app.py:1) 1\n")},
+		},
+	}
+
+	require.NoError(t, uploadFileToDataKit(stats, srv.URL))
+	assert.Contains(t, gotFiles, "prof")
+	assert.Contains(t, gotFiles, "event.json")
+	assert.Equal(t, "python", gotEvent.Family)
+	assert.Equal(t, "collapse", gotEvent.Format)
+	assert.Equal(t, "pyspy", gotEvent.Profiler)
+	assert.ElementsMatch(t, []string{"prof"}, gotEvent.Attachments)
+	assert.Contains(t, gotEvent.TagProfiler, "language:python")
+	assert.Contains(t, gotEvent.TagProfiler, "profiler:pyspy")
+	assert.Contains(t, gotEvent.TagProfiler, "service:py-svc")
 }
 
 func countProfilerTagKey(tags []string, key string) int {

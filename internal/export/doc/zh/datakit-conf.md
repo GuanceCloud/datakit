@@ -191,10 +191,11 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 加全局标签时，有几个地方要注意：
 
-1. 这些全局标签的值可以用 DataKit 目前已经支持的几个通配（双下划线（`__`）前缀和 `$` 都是可以的）：
+1. 这些全局标签的值可以使用以下占位符（现有的 `__datakit_*` 占位符也支持 `$datakit_*` 形式）：
 
     1. `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
     1. `__datakit_hostname/$datakit_hostname`：标签值会设置成 DataKit 的主机名
+    1. `__k8s_node_label:<label-key>`：仅在容器化 Kubernetes 环境中，将当前 Node 的指定 Label 用作标签值，例如 `node_pool = "__k8s_node_label:cloud.google.com/gke-nodepool"`。非 Kubernetes 环境、Label 缺失或查询失败时，该标签会被删除并记录告警。占位符只在启动时解析，Node Label 变化后需重启 DataKit。
 
 1. 由于 [DataKit 数据传输协议限制](apis.md#lineproto-limitation)，不要在全局标签（Tag）中出现任何指标（Field）字段，否则会因为违反协议导致数据处理失败。具体参见具体采集器的字段列表。当然，也不要加太多标签，而且每个标签的 Key 以及 Value 长度都有限制。
 1. 如果被采集上来的数据中，本来就带有同名的标签，那么 DataKit 不会再追加这里配置的全局标签

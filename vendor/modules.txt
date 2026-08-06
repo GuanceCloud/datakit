@@ -205,9 +205,18 @@ github.com/VictoriaMetrics/easyproto
 ## explicit
 github.com/alexbrainman/odbc
 github.com/alexbrainman/odbc/api
+# github.com/alibabacloud-go/debug v1.0.1
+## explicit; go 1.18
+github.com/alibabacloud-go/debug/debug
 # github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
+# github.com/aliyun/credentials-go v1.4.12
+## explicit; go 1.14
+github.com/aliyun/credentials-go
+github.com/aliyun/credentials-go/credentials/internal/http
+github.com/aliyun/credentials-go/credentials/internal/utils
+github.com/aliyun/credentials-go/credentials/providers
 # github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 ## explicit
 github.com/andrewkroh/sys/windows/svc/eventlog
@@ -2354,6 +2363,9 @@ gopkg.in/CodapeWild/dd-trace-go.v1/internal/version
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
+# gopkg.in/ini.v1 v1.67.0
+## explicit
+gopkg.in/ini.v1
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 ## explicit
 gopkg.in/natefinch/lumberjack.v2
