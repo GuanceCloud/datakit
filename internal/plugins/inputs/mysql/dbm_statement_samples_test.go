@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 func TestHasSampledSinceCompletion(t *testing.T) {
@@ -116,18 +117,18 @@ func TestGeneratePlanCacheKey(t *testing.T) {
 func TestMySQLPlanQuerySignatureMatchesMetricPath(t *testing.T) {
 	o := obfuscate.NewObfuscator(obfuscate.Config{})
 	digestText := "SELECT * FROM orders WHERE id = 42"
-	planDigest := digestText
-	if obfResult, err := o.ObfuscateSQLString(digestText); err == nil {
-		planDigest = obfResult.Query
-	}
-	metricDigest := digestText
-	if obfResult, err := o.ObfuscateSQLString(digestText); err == nil {
-		metricDigest = obfResult.Query
-	}
+	legacy, err := o.ObfuscateSQLString(digestText)
+	require.NoError(t, err)
 
-	require.NotEmpty(t, planDigest)
-	assert.Equal(t, metricDigest, planDigest)
-	assert.Equal(t, generateQuerySignature("app", metricDigest), generateQuerySignature("app", planDigest))
+	normalized, err := util.NewSQLStatementNormalizer(util.SQLDatabaseMySQL).Normalize(digestText)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, normalized.Text)
+	assert.Equal(t, legacy.Query, normalized.Text)
+	assert.Equal(t,
+		generateQuerySignature("app", legacy.Query),
+		generateQuerySignature("app", normalized.Text),
+	)
 }
 
 func TestCalculateTimerEndMs(t *testing.T) {

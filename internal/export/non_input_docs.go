@@ -236,7 +236,7 @@ func envDataway() []*inputs.ENVInfo {
 			ENVName: "ENV_DATAWAY_MAX_RAW_BODY_SIZE",
 			Type:    doc.Int,
 			Default: `1MB`,
-			Desc:    "Set upload package size(before gzip)",
+			Desc:    "Set upload package size before compression",
 			DescZh:  "数据上传时单包（未压缩）大小",
 		},
 
@@ -245,6 +245,14 @@ func envDataway() []*inputs.ENVInfo {
 			Type:    doc.String,
 			Desc:    "Set the encoding of the point data at upload time (optional list: 'v1' is the line protocol, 'v2' is Protobuf)",
 			DescZh:  "设置上传时的 point 数据编码（可选列表：`v1` 即行协议，`v2` 即 Protobuf）",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_COMPRESSION",
+			Type:    doc.String,
+			Default: `gzip`,
+			Desc:    "Set Point upload compression to `gzip` or `zstd`.",
+			DescZh:  "设置 Point 数据上传压缩方式，可选 `gzip` 或 `zstd`。",
 		},
 
 		{

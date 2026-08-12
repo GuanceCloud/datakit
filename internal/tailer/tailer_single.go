@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/ansi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/jsonfields"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
@@ -578,7 +579,7 @@ const (
 
 func (t *Single) feedToIO(pending [][]byte) {
 	var (
-		points  = []*point.Point{}
+		points  = make([]*point.Point, 0, len(pending))
 		opts    = append(point.DefaultLoggingOptions(), point.WithPrecheck(false))
 		timeNow = ntp.Now().Add(-time.Duration(len(pending)) * LogTimeStep)
 	)
@@ -586,8 +587,15 @@ func (t *Single) feedToIO(pending [][]byte) {
 	for i, cnt := range pending {
 		t.readLines++
 
+		conversion := jsonfields.Conversion{}
+		if t.config.jsonAsFields {
+			conversion = jsonfields.Convert(cnt)
+		}
+
 		kvs := make(point.KVs, 0, len(t.extraTags)+4)
-		kvs = kvs.Add(constants.FieldMessage, string(cnt))
+		if !conversion.Converted {
+			kvs = kvs.Add(constants.FieldMessage, string(cnt))
+		}
 
 		if t.shouldAddField("filepath") {
 			kvs = kvs.Add("filepath", t.filepath)
@@ -611,10 +619,13 @@ func (t *Single) feedToIO(pending [][]byte) {
 			kvs = kvs.Add("log_read_offset", t.offset)
 			kvs = kvs.Add("log_file_inode", t.inode)
 		}
+		if conversion.Converted {
+			kvs = conversion.Apply(kvs)
+		}
 
 		// only the message field is present, with no match in the whitelist
 		// discard this data
-		if len(kvs) == 1 {
+		if !conversion.Converted && len(kvs) == 1 {
 			discardCounter.WithLabelValues(t.config.source).Inc()
 			continue
 		}

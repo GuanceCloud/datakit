@@ -363,7 +363,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20260729084759-8d0dc7c33bb1
+	github.com/GuanceCloud/cliutils v1.1.22-0.20260812030357-4ed75798c367
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
@@ -381,7 +381,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.4.1
+	github.com/GuanceCloud/pipeline-go v1.4.3
 	github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/pinpoint-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/skywalking-gen-go v0.0.0-20260601093339-95d5c63392d4

@@ -53,6 +53,13 @@ var (
 	ErrStrictPoint          = newErr(errors.New("point got warning"), http.StatusBadRequest)
 	ErrReadTimeout          = newErr(errors.New("read timeout"), http.StatusRequestTimeout)
 
+	ErrDialtestingInvalidTask           = newErr(errors.New("InvalidTask"), http.StatusBadRequest)
+	ErrDialtestingInternalNetworkDenied = newErr(errors.New("InternalNetworkDenied"), http.StatusBadRequest)
+	ErrDialtestingQueueFull             = newErr(errors.New("ServerUnavailable"), http.StatusTooManyRequests)
+	ErrDialtestingUnavailable           = newErr(errors.New("ServerUnavailable"), http.StatusServiceUnavailable)
+	ErrDialtestingRunNotFound           = newErr(errors.New("RunNotFound"), http.StatusNotFound)
+	ErrDialtestingExecutionFailed       = newErr(errors.New("ExecutionFailed"), http.StatusInternalServerError)
+
 	ErrInvalidElectionStatus = newErr(errors.New("invalid election status"), http.StatusBadRequest)
 )
 

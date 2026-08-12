@@ -1,8 +1,8 @@
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "2.8.0"
+  CI_VERSION: "2.9.0"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
-  DCA_CI_VERSION: "0.1.7"
+  DCA_CI_VERSION: "0.1.8"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
   DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
@@ -346,12 +346,15 @@ build-dca-production-image-guance:
   script:
     - nvm use v22.19.0
     - make clean
-    - export OSS_HOST="$OSS_HOST"
-    - export OSS_BUCKET="$OSS_BUCKET"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY"
-    - export OSS_PATH="dca"
+    - export OSS_HOST="$OSS_HOST_PROD"
+    - export OSS_BUCKET="$OSS_BUCKET_PROD"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
+    - export OSS_PATH="datakit/dca"
     - make build_dca DCA_VERSION="$DCA_CI_VERSION" BRAND="guance"
+    - export DCA_MANIFEST_BASE_URL="https://${OSS_BUCKET}.${OSS_HOST}/${OSS_PATH}"
+    - curl --fail --silent --show-error --retry 3 "${DCA_MANIFEST_BASE_URL}/dca.yaml" | grep -F "pubrepo.guance.com/tools/dca:${DCA_CI_VERSION}"
+    - curl --fail --silent --show-error --retry 3 "${DCA_MANIFEST_BASE_URL}/dca-${DCA_CI_VERSION}.yaml" | grep -F "pubrepo.guance.com/tools/dca:${DCA_CI_VERSION}"
     - make build_dca_image DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca" \
       DOCKERFILE_SUFFIX="guance" \
       DCA_VERSION="$DCA_CI_VERSION"
@@ -377,8 +380,11 @@ build-dca-production-image-tw:
     - export OSS_BUCKET="$OSS_BUCKET_TW"
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
-    - export OSS_PATH="dca"
+    - export OSS_PATH="datakit/dca"
     - make build_dca DCA_VERSION="$DCA_CI_VERSION" BRAND="truewatch"
+    - export DCA_MANIFEST_BASE_URL="https://${OSS_BUCKET}.${OSS_HOST}/${OSS_PATH}"
+    - curl --fail --silent --show-error --retry 3 "${DCA_MANIFEST_BASE_URL}/dca.yaml" | grep -F "pubrepo.truewatch.com/truewatch/dca:${DCA_CI_VERSION}"
+    - curl --fail --silent --show-error --retry 3 "${DCA_MANIFEST_BASE_URL}/dca-${DCA_CI_VERSION}.yaml" | grep -F "pubrepo.truewatch.com/truewatch/dca:${DCA_CI_VERSION}"
     - make build_dca_image DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch/dca" \
       DOCKERFILE_SUFFIX="tw" \
       DCA_VERSION="$DCA_CI_VERSION"

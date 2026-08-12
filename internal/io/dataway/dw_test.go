@@ -21,6 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/klauspost/compress/zstd"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,8 +32,9 @@ import (
 )
 
 type capturedPayload struct {
-	header string
-	body   []byte
+	header          string
+	contentEncoding string
+	body            []byte
 }
 
 const payloadObfuscationHeaderName = "X-Payload-Obfuscation"
@@ -49,8 +51,9 @@ func newPayloadTestServer(t *T.T, statuses ...int) (*httptest.Server, chan captu
 			t.Errorf("read request body: %s", err)
 		}
 		requests <- capturedPayload{
-			header: r.Header.Get(payloadObfuscationHeaderName),
-			body:   body,
+			header:          r.Header.Get(payloadObfuscationHeaderName),
+			contentEncoding: r.Header.Get("Content-Encoding"),
+			body:            body,
 		}
 
 		idx := min(int(attempt.Add(1)-1), len(statuses)-1)
@@ -77,6 +80,7 @@ func newGzipTestBody(t *T.T, raw string, cat point.Category) (*compact.Body, []b
 	b.CacheData.Category = int32(cat)
 	b.CacheData.Pts = 1
 	b.CacheData.RawLen = int32(len(raw))
+	b.SetContentEncoding(compact.CompressionGzip)
 
 	return b, bytes.Clone(payload)
 }
@@ -86,10 +90,11 @@ func TestDWInit(t *T.T) {
 		const datawayURL = "https://fake-dataway.example?token=tkn_xxxxxxxxxx"
 
 		tests := []struct {
-			name string
-			mode string
-			gzip bool
-			want string
+			name        string
+			mode        string
+			compression string
+			gzip        bool
+			want        string
 		}{
 			{
 				name: "disabled-by-default",
@@ -111,12 +116,19 @@ func TestDWInit(t *T.T) {
 				mode: uhttp.PayloadObfuscationGzipCaesarV1,
 				gzip: false,
 			},
+			{
+				name:        "zstd-disables-gzip-obfuscation",
+				mode:        uhttp.PayloadObfuscationGzipCaesarV1,
+				compression: "zstd",
+				gzip:        true,
+			},
 		}
 
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *T.T) {
 				dw := NewDefaultDataway()
 				dw.PayloadObfuscation = tc.mode
+				dw.Compression = tc.compression
 				dw.GZip = tc.gzip
 
 				require.NoError(t, dw.Init(WithURLs(datawayURL)))
@@ -186,6 +198,31 @@ func TestDWInit(t *T.T) {
 	})
 }
 
+func TestDWCompressionConfig(t *T.T) {
+	tests := []struct {
+		name        string
+		compression string
+		gzip        bool
+		want        compact.Compression
+	}{
+		{name: "default", gzip: true, want: compact.CompressionGzip},
+		{name: "legacy identity", want: compact.CompressionIdentity},
+		{name: "zstd overrides legacy", compression: " ZSTD ", gzip: true, want: compact.CompressionZstd},
+		{name: "invalid falls back to gzip", compression: "snappy", want: compact.CompressionGzip},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *T.T) {
+			dw := NewDefaultDataway()
+			dw.Compression = tc.compression
+			dw.GZip = tc.gzip
+
+			require.NoError(t, dw.Init())
+			assert.Equal(t, tc.want, dw.compression)
+		})
+	}
+}
+
 func TestDatawayDialMetrics(t *T.T) {
 	metricsReset()
 	reg := prometheus.NewRegistry()
@@ -239,7 +276,6 @@ func TestWritePayloadObfuscationNoWAL(t *T.T) {
 
 	require.NoError(t, dw.Write(
 		compact.WithNoWAL(true),
-		compact.WithGzipDuringBuildBody(true),
 		compact.WithCategory(point.Logging),
 		compact.WithPoints(point.RandPoints(10)),
 	))
@@ -252,12 +288,38 @@ func TestWritePayloadObfuscationNoWAL(t *T.T) {
 	assert.NoError(t, err)
 }
 
+func TestWriteZstdNoWAL(t *T.T) {
+	ts, requests := newPayloadTestServer(t, http.StatusOK)
+
+	dw := NewDefaultDataway()
+	dw.Compression = "zstd"
+	require.NoError(t, dw.Init(WithURLs(ts.URL+"?token=tkn_xxxxxxxxxx")))
+	require.NoError(t, dw.Write(
+		compact.WithNoWAL(true),
+		compact.WithCategory(point.Logging),
+		compact.WithPoints(point.RandPoints(3)),
+	))
+
+	got := <-requests
+	assert.Equal(t, "zstd", got.contentEncoding)
+	decoder, err := zstd.NewReader(nil)
+	require.NoError(t, err)
+	defer decoder.Close()
+	raw, err := decoder.DecodeAll(got.body, nil)
+	require.NoError(t, err)
+	pointDecoder := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
+	defer point.PutDecoder(pointDecoder)
+	points, err := pointDecoder.Decode(raw)
+	require.NoError(t, err)
+	assert.Len(t, points, 3)
+}
+
 func TestPayloadObfuscationDynamicURLScope(t *T.T) {
 	ts, requests := newPayloadTestServer(t, http.StatusOK)
 	b, original := newGzipTestBody(t, "bug report", point.DynamicDWCategory)
 
 	w := compact.GetWriter(
-		compact.WithGzip(compact.GzipSet),
+		compact.WithCompression(compact.CompressionGzip),
 		compact.WithHTTPEncoding(point.Protobuf),
 		compact.WithCategory(point.DynamicDWCategory),
 		compact.WithDynamicURL(ts.URL+datakit.BugReportUpload),
@@ -322,7 +384,7 @@ func TestPayloadObfuscationRetryAndFailCache(t *T.T) {
 		backing := &b.CacheData.Payload[0]
 
 		w := compact.GetWriter(
-			compact.WithGzip(compact.GzipSet),
+			compact.WithCompression(compact.CompressionGzip),
 			compact.WithHTTPEncoding(point.Protobuf),
 			compact.WithCategory(point.Logging),
 		)
@@ -949,6 +1011,7 @@ func TestFailCache(t *T.T) {
 	t.Run(`test-failcache-data`, func(t *T.T) {
 		// server to accept not-sinked points(2 pts)
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "zstd", r.Header.Get("Content-Encoding"))
 			t.Logf("%s category: %s", time.Now(), r.URL.Path)
 			for k, v := range r.Header {
 				t.Logf("%s: %s", k, v)
@@ -972,6 +1035,7 @@ func TestFailCache(t *T.T) {
 		cat := point.Logging
 
 		dw := NewDefaultDataway()
+		dw.Compression = "zstd"
 		dw.WAL.Path = t.TempDir()
 		dw.MaxRetryCount = 1
 
@@ -1012,6 +1076,8 @@ func TestFailCache(t *T.T) {
 		t.Logf("diskcache:\n%s", dc.Pretty())
 
 		f := dw.newFlusher(cat)
+		dw.Compression = "gzip"
+		require.NoError(t, dw.initCompression())
 
 		assert.Error(t, f.cleanFailCache()) // clean cache retry will fail: @ts still return 5XX
 
@@ -1024,13 +1090,16 @@ func TestFailCache(t *T.T) {
 			}
 
 			// check cached data
-			assert.Equal(t, compact.GzipFlag(1), compact.IsGzip(b.Buf()))
+			assert.Equal(t, compact.CompressionZstd, b.ContentEncoding())
 			assert.Equal(t, cat, b.Cat())
 			assert.Equal(t, point.Protobuf, b.Enc())
 
 			// unmarshal payload
-			x, err := uhttp.Unzip(b.Buf())
-			assert.NoError(t, err)
+			decoder, err := zstd.NewReader(nil)
+			require.NoError(t, err)
+			defer decoder.Close()
+			x, err := decoder.DecodeAll(b.Buf(), nil)
+			require.NoError(t, err)
 
 			dec := point.GetDecoder(point.WithDecEncoding(dw.contentEncoding))
 			defer point.PutDecoder(dec)
@@ -1050,7 +1119,11 @@ func TestFailCache(t *T.T) {
 		t.Logf("diskcache: %s", dc.Pretty())
 
 		mfs, err := reg.Gather()
-		assert.NoError(t, err)
+		require.NoError(t, err)
+		assert.NotNil(t, metrics.GetMetricOnLabels(mfs,
+			"datakit_io_dataway_wal_flush", cat.Alias(), "F", "M"))
+		assert.NotNil(t, metrics.GetMetricOnLabels(mfs,
+			"datakit_io_dataway_wal_flush_bytes", cat.Alias(), "zstd", "M"))
 		t.Logf("metrics:\n%s", metrics.MetricFamily2Text(mfs))
 	})
 

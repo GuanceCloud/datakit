@@ -6,6 +6,7 @@
 package postgresql
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -80,10 +81,13 @@ func TestBuildDbmMetricPoints(t *testing.T) {
 
 	current := []dbmMetricRow{
 		{
-			db:             "app",
-			rolname:        "alice",
-			queryID:        "42",
-			querySignature: "query-1",
+			db:                  "app",
+			rolname:             "alice",
+			queryID:             "42",
+			querySignature:      "query-1",
+			normalizedQueryHash: "normalized-query-1",
+			queryText:           "SELECT * FROM orders WHERE id = ?",
+			queryTextTruncated:  false,
 			metrics: map[string]float64{
 				"calls":           13,
 				"rows":            29,
@@ -108,6 +112,9 @@ func TestBuildDbmMetricPoints(t *testing.T) {
 			assert.Equal(t, "alice", tags.GetTag("rolname"))
 			assert.Equal(t, "42", tags.GetTag("queryid"))
 			assert.Equal(t, "query-1", tags.GetTag("query_signature"))
+			assert.Equal(t, "normalized-query-1", tags.GetTag("normalized_query_hash"))
+			assert.Equal(t, "SELECT * FROM orders WHERE id = ?", tags.GetTag("query_text"))
+			assert.Equal(t, "false", tags.GetTag("query_truncated"))
 
 			if deltaCalls := fields.Get("delta_calls"); deltaCalls != nil {
 				assert.Equal(t, float64(3), deltaCalls.Raw())
@@ -433,11 +440,12 @@ func TestCollectPostgreSQLDbmQueriesDeduplicates(t *testing.T) {
 
 	rows := []dbmMetricRow{
 		{
-			db:             "app",
-			rolname:        "alice",
-			queryID:        "42",
-			querySignature: "query-1",
-			message:        "SELECT $1",
+			db:                  "app",
+			rolname:             "alice",
+			queryID:             "42",
+			querySignature:      "query-1",
+			normalizedQueryHash: "normalized-query-1",
+			message:             "SELECT $1",
 		},
 		{
 			db:             "app",
@@ -466,6 +474,7 @@ func TestCollectPostgreSQLDbmQueriesDeduplicates(t *testing.T) {
 		assert.Equal(t, "alice", tags.GetTag("rolname"))
 		assert.Equal(t, "42", tags.GetTag("queryid"))
 		assert.Equal(t, "query-1", tags.GetTag("query_signature"))
+		assert.Equal(t, "normalized-query-1", tags.GetTag("normalized_query_hash"))
 
 		if message := fields.Get("message"); message != nil {
 			assert.Equal(t, "SELECT $1", message.Raw())
@@ -479,6 +488,58 @@ func TestDbmPlanObjectMeasurementName(t *testing.T) {
 	assert.Equal(t, dbmPlanObjectName, info.Name)
 	assert.Equal(t, point.Object, info.Cat)
 	assert.Contains(t, info.Fields, "statement")
+	assert.Contains(t, info.Tags, "normalized_query_hash")
+}
+
+func TestPGActivityQueryTruncation(t *testing.T) {
+	tests := []struct {
+		name      string
+		query     string
+		querySize int
+		state     string
+	}{
+		{
+			name:      "short query",
+			query:     "SELECT 1",
+			querySize: 1024,
+			state:     pgQueryTruncationNotTruncated,
+		},
+		{
+			name:      "query near byte limit",
+			query:     strings.Repeat("x", 1017),
+			querySize: 1024,
+			state:     pgQueryTruncationTruncated,
+		},
+		{
+			name:      "unknown query size",
+			query:     strings.Repeat("x", 1024),
+			querySize: 0,
+			state:     pgQueryTruncationUnknown,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.state, getPGActivityQueryTruncationState(tt.query, tt.querySize))
+		})
+	}
+}
+
+func TestCollectSamplePlansSkipsTruncatedQuery(t *testing.T) {
+	ipt := defaultInput()
+	rows := []map[string]any{
+		{
+			"query":           "SELECT * FROM orders",
+			"statement":       "SELECT * FROM orders",
+			"datname":         "app",
+			"backend_type":    postgreSQLBackendTypeClient,
+			"query_signature": "query-1",
+			"query_truncated": pgQueryTruncationTruncated,
+		},
+	}
+
+	pts := ipt.collectSamplePlans(rows, time.Unix(1700000000, 0), time.Second)
+	assert.Empty(t, pts)
 }
 
 func TestCanExplainStatement(t *testing.T) {
@@ -611,26 +672,28 @@ func TestCollectSampleActivity(t *testing.T) {
 
 	rows := []map[string]any{
 		{
-			"query_signature":  "query-1",
-			"client_hostname":  "client-host",
-			"client_port":      "12345",
-			"client_addr":      "10.0.0.8",
-			"application_name": "psql",
-			"usename":          "alice",
-			"datname":          "app",
-			"state":            "active",
-			"pid":              "88",
-			"wait_event_type":  "Lock",
-			"wait_event":       "transactionid",
-			"wait_group":       "Lock",
-			"backend_type":     "client backend",
-			"statement":        "SELECT * FROM orders WHERE id = $1",
-			"blocking_pids":    "99,100",
-			"now":              int64(1000),
-			"backend_start":    int64(100),
-			"query_start":      int64(200),
-			"xact_start":       int64(150),
-			"state_change":     int64(250),
+			"query_signature":       "query-1",
+			"normalized_query_hash": "normalized-query-1",
+			"query_truncated":       pgQueryTruncationNotTruncated,
+			"client_hostname":       "client-host",
+			"client_port":           "12345",
+			"client_addr":           "10.0.0.8",
+			"application_name":      "psql",
+			"usename":               "alice",
+			"datname":               "app",
+			"state":                 "active",
+			"pid":                   "88",
+			"wait_event_type":       "Lock",
+			"wait_event":            "transactionid",
+			"wait_group":            "Lock",
+			"backend_type":          "client backend",
+			"statement":             "SELECT * FROM orders WHERE id = $1",
+			"blocking_pids":         "99,100",
+			"now":                   int64(1000),
+			"backend_start":         int64(100),
+			"query_start":           int64(200),
+			"xact_start":            int64(150),
+			"state_change":          int64(250),
 		},
 		{
 			"query_signature":  "query-2",
@@ -692,9 +755,12 @@ func TestCollectSampleActivity(t *testing.T) {
 		assert.Equal(t, "postgresql", tags.GetTag("service"))
 		assert.Equal(t, "info", tags.GetTag("status"))
 		assert.Equal(t, "query-1", tags.GetTag("query_signature"))
+		assert.Equal(t, "normalized-query-1", tags.GetTag("normalized_query_hash"))
+		assert.Equal(t, pgQueryTruncationNotTruncated, tags.GetTag("query_truncated"))
 		assert.Equal(t, "transactionid", tags.GetTag("wait_event"))
 		assert.Equal(t, "Lock", tags.GetTag("wait_group"))
 		assert.Equal(t, "SELECT * FROM orders WHERE id = $1", tags.GetTag("message"))
+		assert.Contains(t, dbmActivityMeasurementInfo.Tags, "query_truncated")
 
 		if backendStart := fields.Get("backend_start"); backendStart != nil {
 			assert.Equal(t, int64(100), backendStart.Raw())

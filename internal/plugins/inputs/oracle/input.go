@@ -17,6 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	go_version "github.com/hashicorp/go-version"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/jmoiron/sqlx"
 	go_ora "github.com/sijms/go-ora/v2"
@@ -42,6 +43,7 @@ const (
 	loggingFeedName      = inputName + "-L"
 	catalogName          = "db"
 	measurementOracle    = "oracle"
+	fullSQLTextCacheSize = 200
 )
 
 var (
@@ -154,6 +156,7 @@ type Input struct {
 	statementMetricsMonotonicCountsPrevious map[StatementMetricsKeyDB]StatementMetricsMonotonicCountDB
 	dbmQueryObjectCache                     *expirable.LRU[string, struct{}]
 	dbmPlanObjectCache                      *expirable.LRU[string, struct{}]
+	fullSQLTextCache                        *lru.Cache[string, string]
 	sqlSubstringLength                      int
 
 	UpState int
@@ -172,6 +175,7 @@ type dbmMetricConfig struct {
 	CollectionInterval datakit.Duration `toml:"collection_interval"`
 	DBRowsLimit        int              `toml:"db_rows_limit"`
 	MaxQueries         int              `toml:"max_queries"`
+	QueryTextMaxBytes  int              `toml:"query_text_max_bytes"`
 	LookbackWindow     int              `toml:"lookback_window"`
 	PlanEnabled        bool             `toml:"plan_enabled"`        // Enable plan collection
 	PlanCacheTTL       datakit.Duration `toml:"plan_cache_ttl"`      // Plan object cache TTL
@@ -780,6 +784,12 @@ func (ipt *Input) runDbmCollectors() {
 	if ipt.Dbm == nil || !ipt.Dbm.Enabled {
 		return
 	}
+	fullSQLTextCache, err := lru.New[string, string](fullSQLTextCacheSize)
+	if err != nil {
+		l.Errorf("failed to create full SQL text cache: %s", err)
+		return
+	}
+	ipt.fullSQLTextCache = fullSQLTextCache
 
 	ipt.dbmGroup = goroutine.NewGroup(goroutine.Option{Name: "oracle_dbm"})
 
@@ -1045,6 +1055,7 @@ func defaultInput() *Input {
 				CollectionInterval: dbmMetricInterval,
 				DBRowsLimit:        10000,
 				MaxQueries:         500,
+				QueryTextMaxBytes:  defaultQueryTextMaxBytes,
 				LookbackWindow:     300,
 				PlanEnabled:        true,
 				PlanCacheTTL:       dbmPlanCacheTTL,

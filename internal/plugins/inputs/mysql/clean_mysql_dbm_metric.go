@@ -12,7 +12,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 // generateQuerySignature generates a unique signature for a SQL statement.
@@ -24,10 +24,6 @@ func generateQuerySignature(schemaName, digest string) string {
 	_, _ = h.WriteString(digest)
 
 	return fmt.Sprintf("%016x", h.Sum64())
-}
-
-func newMySQLSQLObfuscator() *obfuscate.Obfuscator {
-	return obfuscate.NewObfuscator(obfuscate.Config{})
 }
 
 func getCleanSummaryRows(r rows) []dbmRow {
@@ -57,7 +53,7 @@ func getCleanSummaryRows(r rows) []dbmRow {
 
 	dbmRows := []dbmRow{}
 
-	o := newMySQLSQLObfuscator()
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseMySQL)
 
 	for r.Next() {
 		if err := r.Scan(
@@ -102,32 +98,33 @@ func getCleanSummaryRows(r rows) []dbmRow {
 			continue
 		}
 
-		obfResult, err := o.ObfuscateSQLString(digestTextStr)
+		normalized, err := normalizer.Normalize(digestTextStr)
 		if err != nil {
-			l.Warnf("obfuscate digest text failed: %s,digestTextStr: %s", err.Error(), digestTextStr)
+			l.Warnf("obfuscate digest text failed for digest %s: %s", digestStr, err.Error())
 			continue
 		}
-		digestTextStr = obfResult.Query
+		digestTextStr = normalized.Text
 
 		// Generate query signature from schema and obfuscated digest text (xxhash)
 		querySignature := generateQuerySignature(schemaNameStr, digestTextStr)
 
 		dbmRowItem := dbmRow{
-			digest:             digestStr,
-			digestText:         digestTextStr,
-			schemaName:         schemaNameStr,
-			querySignature:     querySignature,
-			countStar:          countStar,
-			sumTimerWait:       sumTimerWait,
-			sumLockTime:        sumLockTime,
-			sumErrors:          sumErrors,
-			sumRowsAffected:    sumRowsAffected,
-			sumRowsSent:        sumRowsSent,
-			sumRowsExamined:    sumRowsExamined,
-			sumSelectScan:      sumSelectScan,
-			sumSelectFullJoin:  sumSelectFullJoin,
-			sumNoIndexUsed:     sumNoIndexUsed,
-			sumNoGoodIndexUsed: sumNoGoodIndexUsed,
+			digest:              digestStr,
+			digestText:          digestTextStr,
+			schemaName:          schemaNameStr,
+			querySignature:      querySignature,
+			normalizedQueryHash: normalized.Hash,
+			countStar:           countStar,
+			sumTimerWait:        sumTimerWait,
+			sumLockTime:         sumLockTime,
+			sumErrors:           sumErrors,
+			sumRowsAffected:     sumRowsAffected,
+			sumRowsSent:         sumRowsSent,
+			sumRowsExamined:     sumRowsExamined,
+			sumSelectScan:       sumSelectScan,
+			sumSelectFullJoin:   sumSelectFullJoin,
+			sumNoIndexUsed:      sumNoIndexUsed,
+			sumNoGoodIndexUsed:  sumNoGoodIndexUsed,
 		}
 		dbmRows = append(dbmRows, dbmRowItem)
 	}

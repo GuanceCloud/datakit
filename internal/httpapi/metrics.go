@@ -19,6 +19,13 @@ var (
 	apiReqSizeVec *p8s.SummaryVec
 
 	apiGlobalTagsUpdatedVec *p8s.GaugeVec
+
+	dialtestingDebugRunsTotal       *p8s.CounterVec
+	dialtestingDebugRunsActive      *p8s.GaugeVec
+	dialtestingDebugPreparingSize   p8s.Gauge
+	dialtestingDebugQueueSize       p8s.Gauge
+	dialtestingDebugDurationSeconds *p8s.HistogramVec
+	dialtestingDebugResultExpired   p8s.Counter
 )
 
 func metricsSetup() {
@@ -85,11 +92,39 @@ func metricsSetup() {
 		},
 	)
 
+	dialtestingDebugRunsTotal = p8s.NewCounterVec(
+		p8s.CounterOpts{Name: "dialing_debug_runs_total", Help: "Dialtesting debug run state transitions."},
+		[]string{"type", "status"},
+	)
+	dialtestingDebugRunsActive = p8s.NewGaugeVec(
+		p8s.GaugeOpts{Name: "dialing_debug_runs_active", Help: "Currently executing dialtesting debug runs."},
+		[]string{"type"},
+	)
+	dialtestingDebugPreparingSize = p8s.NewGauge(
+		p8s.GaugeOpts{Name: "dialing_debug_preparing_size", Help: "Dialtesting debug runs currently being prepared."},
+	)
+	dialtestingDebugQueueSize = p8s.NewGauge(
+		p8s.GaugeOpts{Name: "dialing_debug_queue_size", Help: "Pending dialtesting debug runs."},
+	)
+	dialtestingDebugDurationSeconds = p8s.NewHistogramVec(
+		p8s.HistogramOpts{Name: "dialing_debug_duration_seconds", Help: "Dialtesting debug execution duration."},
+		[]string{"type"},
+	)
+	dialtestingDebugResultExpired = p8s.NewCounter(
+		p8s.CounterOpts{Name: "dialing_debug_result_expired_total", Help: "Expired dialtesting debug results."},
+	)
+
 	metrics.MustRegister(
 		apiElapsedVec,
 		apiReqSizeVec,
 		apiCountVec,
 		apiGlobalTagsUpdatedVec,
+		dialtestingDebugRunsTotal,
+		dialtestingDebugRunsActive,
+		dialtestingDebugPreparingSize,
+		dialtestingDebugQueueSize,
+		dialtestingDebugDurationSeconds,
+		dialtestingDebugResultExpired,
 	)
 }
 

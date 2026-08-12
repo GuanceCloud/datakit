@@ -28,6 +28,18 @@ Browser tasks require these binaries on the dial node:
 Chrome can be configured by `Task.SetOption()["chrome_path"]`. Lightpanda can be
 configured by `Task.SetOption()["lightpanda_path"]`.
 
+Lightpanda also reads these node-level task options:
+
+- `browser_ca_cert_file`: absolute path to a custom CA certificate file.
+- `browser_ca_cert_dir`: absolute path to a custom CA certificate directory.
+- `browser_proxy_url`: default HTTP proxy URL.
+- `browser_block_private_network`: set to `true` to block private-network requests.
+- `browser_block_cidrs`: comma-separated CIDRs to block instead of all private ranges.
+
+When a custom CA is configured, the runner passes a detected system CA directory
+and the custom CA path as separate Lightpanda arguments so both trust sources are
+loaded without moving certificate files.
+
 ## Task Fields
 
 Browser tasks use the normal common task fields, including:
@@ -189,12 +201,17 @@ Supported step actions:
 | --- | --- | --- |
 | `goto` | `url` or top-level `target` | Navigate to a page. |
 | `wait_for_selector` | `selector` | Wait until the selector appears. |
+| `wait_for_url` | `contains`, `equals`, or `text` | Wait until the current URL matches. |
 | `click` | `selector` | Click the selector. |
 | `fill` | `selector`, plus `value` or `value_from` | Fill an input. |
 | `assert_title` | `contains`, `equals`, or `text` | Assert the page title. |
 | `assert_url` | `contains`, `equals`, or `text` | Assert the current URL. |
 | `assert_text` | `selector`, plus `contains`, `equals`, or `text` | Assert element text. |
 | `eval` | `value` or `text` | Evaluate JavaScript in the page. |
+
+`wait_for_url`, `assert_title`, `assert_url`, and `assert_text` poll until they
+match or time out. A step `timeout_ms` takes precedence; otherwise the script
+timeout applies.
 
 Recorder tools should generate this schema directly. The Chrome extension code
 does not need to live in this repository; only the generated `browser_config`

@@ -191,3 +191,20 @@ All of the following data collections are appended with a global tag named `host
 ## Metric {#metric}
 
 The dialtesting collector exposes [Prometheus metrics](../datakit/datakit-metrics.md). By default, the [DataKit collector](dk.md) collects and uploads these `datakit_dialtesting_*` metrics to <<<custom_key.brand_name>>> without additional configuration.
+
+## Asynchronous Debug Deployment {#async-debug-deployment}
+
+Asynchronous debug runs are stored only in DataKit process memory. Deploy the dedicated debug DataKit as a single replica and make the backend access that instance directly. Do not put multiple replicas behind a regular load balancer: submission and query requests may reach different memories. Restarting or upgrading DataKit loses pending, running, and retained terminal runs; callers must submit a new run.
+
+The built-in defaults can be overridden at process startup. Empty or invalid values fall back to defaults and durations use Go duration syntax. Values take effect after DataKit restarts.
+
+| Environment variable | Default |
+| --- | --- |
+| `ENV_DIALTESTING_DEBUG_MAX_CONCURRENT_RUNS` | `100` |
+| `ENV_DIALTESTING_DEBUG_MAX_QUEUED_RUNS` | `1000` (preparing plus pending runs) |
+| `ENV_DIALTESTING_DEBUG_MAX_QUEUE_WAIT` | `3m` |
+| `ENV_DIALTESTING_DEBUG_RESULT_TTL` | `10m` |
+| `ENV_DIALTESTING_DEBUG_MAX_LONG_POLL_WAIT` | `10s` (values above 10 seconds are capped) |
+| `ENV_DIALTESTING_DEBUG_MAX_RETAINED_TERMINAL_RUNS` | `2000` |
+
+Size concurrency and queue limits according to CPU, memory, file-descriptor usage, and the expected mix of lightweight probes and NetPath runs. At capacity, a new run returns `429 ServerUnavailable` before task preparation. Concurrent retries with the same owner, request ID, and payload share one preparation. Internal-network destinations are validated immediately before execution with a fixed 15-second DNS timeout; validation failures mark the run as `failed`. Terminal results are retained for at most the configured TTL; when the retained-run limit is exceeded, DataKit evicts the oldest result first. Use `dialing_debug_preparing_size` and `dialing_debug_queue_size` to observe preparing and pending runs separately. Debug results are not written to formal dialtesting tasks, Kodo, MySQL, or `D::` data.

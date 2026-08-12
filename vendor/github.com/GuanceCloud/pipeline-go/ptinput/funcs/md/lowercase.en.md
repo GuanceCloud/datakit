@@ -14,7 +14,8 @@ Example:
 # input data: {"first": "HeLLo","second":2,"third":"aBC","forth":true}
 
 # script
-json(_, first) lowercase(first)
+json(_, first)
+lowercase(first)
 
 # result
 {

@@ -46,11 +46,6 @@ func (u *uploaderImpl) upload(pts []*point.Point, cat point.Category) error {
 		compact.WithPoints(pts),
 		compact.WithCategory(cat),
 		compact.WithNoWAL(true), // upload to dataway directly
-		// gzip the body during building body.
-		//
-		// dataway's default GZip is true, so we must gzip the body within body-building.
-		// or the endpoint HTTP POST will set gzip header.
-		compact.WithGzipDuringBuildBody(true),
 	)
 }
 

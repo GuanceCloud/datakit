@@ -61,6 +61,8 @@ func runIngestionCanaryTool(storageIndex string) error {
 	// Initialize dataway (similar to import.go)
 	tool.dw = dataway.NewDefaultDataway()
 	tool.dw.URLs = config.Cfg.Dataway.URLs
+	tool.dw.Compression = config.Cfg.Dataway.Compression
+	tool.dw.GZip = config.Cfg.Dataway.GZip
 	if err := tool.dw.Init(); err != nil {
 		return fmt.Errorf("init dataway failed: %w", err)
 	}
@@ -171,7 +173,6 @@ func (t *ingestionCanaryTool) feedCategory(cat point.Category, pt *point.Point) 
 		compact.WithPoints([]*point.Point{pt}),
 		compact.WithCategory(cat),
 		compact.WithNoWAL(true),
-		compact.WithGzipDuringBuildBody(true),
 		compact.WithHTTPHeader("X-Sub-Category", toolName),
 	}
 	if t.storageIndex != "" && cat == point.Logging {

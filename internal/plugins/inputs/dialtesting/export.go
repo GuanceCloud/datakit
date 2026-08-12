@@ -93,12 +93,13 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		},
 
 		{
-			ENVName: "ENABLE_DEBUG_API",
-			Type:    doc.Boolean,
-			Example: "`false`",
-			Default: "`false`",
-			Desc:    "Disable debug API on dial-testing(Default disabled)",
-			DescZh:  "禁止拨测调试接口（默认禁止）",
+			ENVName:   "ENABLE_DEBUG_API",
+			ConfField: doc.NoField,
+			Type:      doc.Boolean,
+			Example:   "`false`",
+			Default:   "`false`",
+			Desc:      "Enable the dialtesting debug API (disabled by default)",
+			DescZh:    "启用拨测调试接口（默认关闭）",
 		},
 
 		{
@@ -141,6 +142,36 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		},
 
 		{
+			ENVName:   "BROWSER_CA_CERT_FILE",
+			ConfField: "browser.ca_cert_file",
+			Type:      doc.String,
+			Example:   "`/etc/datakit/certs/internal-ca.pem`",
+			Default:   doc.NoDefaultSet,
+			Desc:      "CA certificate file trusted by Lightpanda browser dial testing; use PEM format",
+			DescZh:    "Lightpanda 浏览器拨测信任的 CA 证书文件，使用 PEM 格式",
+		},
+
+		{
+			ENVName:   "BROWSER_CA_CERT_DIR",
+			ConfField: "browser.ca_cert_dir",
+			Type:      doc.String,
+			Example:   "`/etc/datakit/certs`",
+			Default:   doc.NoDefaultSet,
+			Desc:      "Directory containing CA certificates trusted by Lightpanda browser dial testing",
+			DescZh:    "Lightpanda 浏览器拨测信任的 CA 证书目录",
+		},
+
+		{
+			ENVName:   "BROWSER_PROXY_URL",
+			ConfField: "browser.proxy_url",
+			Type:      doc.String,
+			Example:   "`http://proxy.example.com:8080`",
+			Default:   doc.NoDefaultSet,
+			Desc:      "Default HTTP proxy URL for Lightpanda browser dial testing tasks",
+			DescZh:    "Lightpanda 浏览器拨测任务默认 HTTP 代理地址",
+		},
+
+		{
 			ENVName:   "BROWSER_MAX_CONCURRENCY",
 			ConfField: "browser.max_concurrency",
 			Type:      doc.Int,
@@ -151,5 +182,63 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		},
 	}
 
-	return doc.SetENVDoc("ENV_INPUT_DIALTESTING_", infos)
+	debugInfos := []*inputs.ENVInfo{
+		{
+			ENVName:   "MAX_CONCURRENT_RUNS",
+			ConfField: doc.NoField,
+			Type:      doc.Int,
+			Example:   "`100`",
+			Default:   "`100`",
+			Desc:      "Maximum number of concurrently executing asynchronous debug runs",
+			DescZh:    "异步调试任务最大并发执行数",
+		},
+		{
+			ENVName:   "MAX_QUEUED_RUNS",
+			ConfField: doc.NoField,
+			Type:      doc.Int,
+			Example:   "`1000`",
+			Default:   "`1000`",
+			Desc:      "Maximum total number of preparing and pending asynchronous debug runs",
+			DescZh:    "准备中与排队中的异步调试任务总数上限",
+		},
+		{
+			ENVName:   "MAX_QUEUE_WAIT",
+			ConfField: doc.NoField,
+			Type:      doc.TimeDuration,
+			Example:   "`3m`",
+			Default:   "`3m`",
+			Desc:      "Maximum time an asynchronous debug run may wait in the queue",
+			DescZh:    "异步调试任务最大排队等待时间",
+		},
+		{
+			ENVName:   "RESULT_TTL",
+			ConfField: doc.NoField,
+			Type:      doc.TimeDuration,
+			Example:   "`10m`",
+			Default:   "`10m`",
+			Desc:      "Maximum retention time for terminal asynchronous debug results",
+			DescZh:    "异步调试终态结果最长保留时间",
+		},
+		{
+			ENVName:   "MAX_LONG_POLL_WAIT",
+			ConfField: doc.NoField,
+			Type:      doc.TimeDuration,
+			Example:   "`10s`",
+			Default:   "`10s`",
+			Desc:      "Maximum long-poll wait time; values above 10 seconds are capped",
+			DescZh:    "异步调试查询最大长轮询等待时间，超过 10 秒时截断",
+		},
+		{
+			ENVName:   "MAX_RETAINED_TERMINAL_RUNS",
+			ConfField: doc.NoField,
+			Type:      doc.Int,
+			Example:   "`2000`",
+			Default:   "`2000`",
+			Desc:      "Maximum number of retained terminal asynchronous debug runs; the oldest result is evicted first",
+			DescZh:    "异步调试终态任务最大保留数量，超过上限时优先淘汰最早结果",
+		},
+	}
+
+	infos = doc.SetENVDoc("ENV_INPUT_DIALTESTING_", infos)
+	return append(infos, doc.SetENVDoc("ENV_DIALTESTING_DEBUG_", debugInfos)...)
 }

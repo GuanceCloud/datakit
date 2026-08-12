@@ -1596,11 +1596,13 @@ BROWSER 拨测通过 DataKit 内置浏览器执行器执行浏览器脚本，并
 | `tags`       | object | N        | 自定义标签                                |
 | `steps`      | array  | Y        | 浏览器执行步骤                            |
 
-`steps` 中可使用 `goto`、`assert_title`、`assert_url`、`assert_text` 等动作和断言。
+`steps` 中可使用 `goto`、`wait_for_url`、`assert_title`、`assert_url`、`assert_text` 等动作和断言。`wait_for_url` 和断言都会持续轮询，直到 `contains`、`equals` 或 `text` 匹配；配置了步骤 `timeout_ms` 时优先使用步骤超时，否则使用脚本总超时。DataKit 默认的步骤超时时间为 60 秒。
 
 ##### 截图支持 {#browser-screenshot}
 
-Lightpanda 引擎当前不支持截图。即使任务开启 `advance_options.screenshot_on_failure = true`，也不会生成 `steps[].screenshot`。
+内置的 Lightpanda 不支持截图。Lightpanda 任务会忽略 `advance_options.screenshot_on_failure`。
+
+Lightpanda HTTP 代理的生效优先级为：任务 `advance_options.proxy_url` > `browser_config` 中的 `proxy_url` > 拨测节点 `[inputs.dialtesting.browser].proxy_url`，详见[内网拨测与代理](dialtesting_browser.md#private-network-and-proxy)。
 
 ### 模板函数使用说明 {#template-func}
 

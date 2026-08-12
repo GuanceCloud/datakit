@@ -11,6 +11,13 @@ jest.mock('@reduxjs/toolkit/query/react', () => ({
   createApi: jest.fn(() => ({})),
 }));
 
+jest.mock('../i18n', () => ({
+  __esModule: true,
+  default: {
+    t: (key: string) => key,
+  },
+}));
+
 const fs = require('fs');
 const path = require('path');
 export {};

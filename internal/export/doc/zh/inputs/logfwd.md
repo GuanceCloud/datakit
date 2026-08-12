@@ -112,6 +112,7 @@ logfwd 支持两种配置方式，按优先级从高到低：
     "path": "/var/log/nginx/access.log",
     "pipeline": "nginx-access.p",
     "storage_index": "app-logs",
+    "json_as_fields": false,
     "multiline_match": "^\\d{4}-\\d{2}-\\d{2}",
     "remove_ansi_escape_codes": false,
     "from_beginning": false,
@@ -134,11 +135,14 @@ logfwd 支持两种配置方式，按优先级从高到低：
 | `multiline_match`               | string  | 否       | 多行日志起始行的正则表达式，注意 JSON 中需要转义反斜杠                                                | `"^\\d{4}-\\d{2}-\\d{2}"` |
 | `pipeline`                      | string  | 否       | 日志解析管道配置文件名称（需在 DataKit 端配置）                                                       | `"nginx-access.p"`        |
 | `storage_index`                 | string  | 否       | 日志存储的索引名称                                                                                    | `"app-logs"`              |
+| `json_as_fields`                | boolean | 否       | 将 JSON 根对象转换为日志字段，默认 `false`，规则见 [JSON 字段模式](logging.md#json-as-fields)          | `false`                   |
 | `remove_ansi_escape_codes`      | boolean | 否       | 是否删除日志数据的 ANSI 转义字符（颜色代码等）                                                        | `false`                   |
 | `from_beginning`                | boolean | 否       | 是否从文件首部开始采集日志（默认从文件末尾开始）                                                      | `false`                   |
 | `from_beginning_threshold_size` | int     | 否       | 搜寻到文件时，如果文件 size 小于此值就从文件首部采集日志，单位字节，默认 20MB                         | `1000`
 | `character_encoding`            | string  | 否       | 字符编码，支持 `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030` 或空字符串（自动检测）。默认为空即可 | `"utf-8"`                 |
 | `tags`                          | object  | 否       | 额外的标签键值对，会附加到每条日志记录上                                                              | `{"env": "prod"}`         |
+
+`json_as_fields` 当前仅支持 `LOGFWD_LOG_CONFIGS` 手动配置。ClusterLoggingConfig CRD 暂不支持该字段；logfwd 客户端和 DataKit 服务端均升级后字段模式才会生效。
 
 
 当配置了 `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` 时，logfwd 会根据 `LOGFWD_POD_NAMESPACE`、`LOGFWD_POD_NAME` 以及 `pod_labels`（可选，需挂载 `/etc/podinfo/labels` 文件）向 DataKit-Operator 发起请求。只要某条 `ClusterLoggingConfig` CRD 规则匹配当前 Pod，就会返回对应的 `configs` JSON 并触发热更新。

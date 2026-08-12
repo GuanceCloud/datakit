@@ -402,6 +402,7 @@ func TestGetCleanSummaryRows(t *testing.T) {
 					/*"digest":            */ "",
 					/*"digestText":        */ "",
 					/*"querySignature":    */ "d41d8cd98f00b204e9800998ecf8427e",
+					/*"normalizedQueryHash":*/ "",
 					/*"countStar":         */ 0,
 					/*"sumTimerWait":      */ 0,
 					/*"sumLockTime":       */ 0,

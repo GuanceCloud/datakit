@@ -62,15 +62,19 @@ type BrowserCookie struct {
 type EngineFactory func(context.Context, EngineOptions) (Engine, error)
 
 type EngineOptions struct {
-	LightpandaPath    string
-	ChromePath        string
-	ScreenshotDir     string
-	RunID             string
-	ViewportWidth     int
-	ViewportHeight    int
-	ProxyURL          string
-	IgnoreHTTPSErrors bool
-	StartupTimeout    time.Duration
+	LightpandaPath      string
+	CACertFile          string
+	CACertDir           string
+	BlockPrivateNetwork bool
+	PrivateNetworkCIDRs []string
+	ChromePath          string
+	ScreenshotDir       string
+	RunID               string
+	ViewportWidth       int
+	ViewportHeight      int
+	ProxyURL            string
+	IgnoreHTTPSErrors   bool
+	StartupTimeout      time.Duration
 }
 
 type Options struct {
@@ -80,6 +84,11 @@ type Options struct {
 	Tags                map[string]string
 	EngineName          string
 	LightpandaPath      string
+	CACertFile          string
+	CACertDir           string
+	DefaultProxyURL     string
+	BlockPrivateNetwork bool
+	PrivateNetworkCIDRs []string
 	ChromePath          string
 	StartupTimeout      time.Duration
 	ScreenshotOnFailure bool
@@ -189,9 +198,6 @@ func runLoaded(ctx context.Context, loaded script.Script, options Options, runID
 		return withViewport(failureResult(runID, name, resolvedPath, timeoutMS, start, tags, &loaded, fmt.Errorf("runner engine factory is not configured"), "runner_error"), options)
 	}
 	engineName := normalizedEngineName(options.EngineName)
-	if engineName == "lightpanda" && strings.TrimSpace(loaded.ProxyURL) != "" {
-		logIgnoredOption(options, "proxy_url", "lightpanda does not support proxy_url")
-	}
 	maxAttempts := options.RetryCount + 1
 	if maxAttempts < 1 {
 		maxAttempts = 1
@@ -246,20 +252,24 @@ func retryRecordFromResult(result Result) evidence.RetryRecord {
 }
 
 func runAttempt(ctx context.Context, loaded script.Script, options Options, runID string, resolvedPath string, start time.Time, tags map[string]string, vars map[string]string, browserConfig BrowserConfig, name string, timeoutMS int, engineName string, attempt int, maxAttempts int) Result {
-	proxyURL := engineProxyURL(engineName, options.ProxyURL, loaded.ProxyURL)
+	proxyURL := engineProxyURL(options.ProxyURL, loaded.ProxyURL, options.DefaultProxyURL)
 	engineCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutMS)*time.Millisecond)
 	defer cancel()
 
 	engine, err := options.EngineFactory(engineCtx, EngineOptions{
-		LightpandaPath:    options.LightpandaPath,
-		ChromePath:        options.ChromePath,
-		ScreenshotDir:     options.ScreenshotDir,
-		RunID:             runID,
-		ViewportWidth:     options.ViewportWidth,
-		ViewportHeight:    options.ViewportHeight,
-		ProxyURL:          proxyURL,
-		IgnoreHTTPSErrors: browserConfig.IgnoreHTTPSErrors,
-		StartupTimeout:    options.StartupTimeout,
+		LightpandaPath:      options.LightpandaPath,
+		CACertFile:          options.CACertFile,
+		CACertDir:           options.CACertDir,
+		BlockPrivateNetwork: options.BlockPrivateNetwork,
+		PrivateNetworkCIDRs: append([]string(nil), options.PrivateNetworkCIDRs...),
+		ChromePath:          options.ChromePath,
+		ScreenshotDir:       options.ScreenshotDir,
+		RunID:               runID,
+		ViewportWidth:       options.ViewportWidth,
+		ViewportHeight:      options.ViewportHeight,
+		ProxyURL:            proxyURL,
+		IgnoreHTTPSErrors:   browserConfig.IgnoreHTTPSErrors,
+		StartupTimeout:      options.StartupTimeout,
 	})
 	if err != nil {
 		reason := "runner_error"
@@ -436,18 +446,8 @@ type screenshotOptions struct {
 	RunID     string
 }
 
-func engineProxyURL(engineName string, values ...string) string {
-	if engineName == "lightpanda" {
-		return ""
-	}
+func engineProxyURL(values ...string) string {
 	return firstNonEmpty(values...)
-}
-
-func logIgnoredOption(options Options, option string, reason string) {
-	if options.IgnoredOptionLogger == nil {
-		return
-	}
-	options.IgnoredOptionLogger(option, reason)
 }
 
 func engineScreenshotOptions(engineName string, options screenshotOptions) screenshotOptions {
@@ -508,12 +508,13 @@ func executeSteps(ctx context.Context, engine Engine, s script.Script, timeoutMS
 			captureStepScreenshot(context.Background(), engine, &record, screenshots, false)
 		}
 		if err != nil {
-			if errors.Is(runErr, context.DeadlineExceeded) {
-				err = errorsx.TimeoutError{TimeoutMS: timeoutMS}
-			} else if errors.Is(stepErr, context.DeadlineExceeded) {
-				err = errorsx.TimeoutError{TimeoutMS: deadlineTimeoutMS(ctx, stepCtx, timeoutMS, step.TimeoutMS)}
-			} else if errors.Is(err, context.DeadlineExceeded) {
-				err = errorsx.TimeoutError{TimeoutMS: deadlineTimeoutMS(ctx, stepCtx, timeoutMS, step.TimeoutMS)}
+			var conditionErr conditionTimeoutError
+			if !errors.As(err, &conditionErr) {
+				if errors.Is(runErr, context.DeadlineExceeded) {
+					err = errorsx.TimeoutError{TimeoutMS: timeoutMS}
+				} else if errors.Is(stepErr, context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
+					err = errorsx.TimeoutError{TimeoutMS: deadlineTimeoutMS(ctx, stepCtx, timeoutMS, step.TimeoutMS)}
+				}
 			}
 			if plan.Auth {
 				err = errorsx.AuthError{Err: err}
@@ -661,6 +662,14 @@ func executeStep(ctx context.Context, engine Engine, s script.Script, step scrip
 		return engine.Navigate(ctx, target)
 	case "wait_for_selector":
 		return engine.WaitForSelector(ctx, step.Selector)
+	case "wait_for_url":
+		return pollCondition(ctx, step.Action, func() error {
+			currentURL, err := engine.URL(ctx)
+			if err != nil {
+				return err
+			}
+			return compare("url", currentURL, step)
+		})
 	case "click":
 		return engine.Click(ctx, step.Selector)
 	case "fill":
@@ -670,23 +679,29 @@ func executeStep(ctx context.Context, engine Engine, s script.Script, step scrip
 		}
 		return engine.Fill(ctx, step.Selector, value)
 	case "assert_title":
-		title, err := engine.Title(ctx)
-		if err != nil {
-			return err
-		}
-		return compare("title", title, step)
+		return pollCondition(ctx, step.Action, func() error {
+			title, err := engine.Title(ctx)
+			if err != nil {
+				return err
+			}
+			return compare("title", title, step)
+		})
 	case "assert_url":
-		currentURL, err := engine.URL(ctx)
-		if err != nil {
-			return err
-		}
-		return compare("url", currentURL, step)
+		return pollCondition(ctx, step.Action, func() error {
+			currentURL, err := engine.URL(ctx)
+			if err != nil {
+				return err
+			}
+			return compare("url", currentURL, step)
+		})
 	case "assert_text":
-		text, err := engine.Text(ctx, step.Selector)
-		if err != nil {
-			return err
-		}
-		return compare("text", text, step)
+		return pollCondition(ctx, step.Action, func() error {
+			text, err := engine.Text(ctx, step.Selector)
+			if err != nil {
+				return err
+			}
+			return compare("text", text, step)
+		})
 	case "eval":
 		expression := step.Value
 		if expression == "" {
@@ -696,6 +711,48 @@ func executeStep(ctx context.Context, engine Engine, s script.Script, step scrip
 		return err
 	default:
 		return fmt.Errorf("unsupported action %q", step.Action)
+	}
+}
+
+const conditionPollInterval = 100 * time.Millisecond
+
+type conditionTimeoutError struct {
+	action string
+	err    error
+}
+
+func (e conditionTimeoutError) Error() string {
+	return fmt.Sprintf("%s timed out: %v", e.action, e.err)
+}
+
+func (e conditionTimeoutError) Unwrap() error {
+	return e.err
+}
+
+func pollCondition(ctx context.Context, action string, check func() error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	lastErr := check()
+	if lastErr == nil {
+		return nil
+	}
+	ticker := time.NewTicker(conditionPollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			if !errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return ctx.Err()
+			}
+			return conditionTimeoutError{action: action, err: lastErr}
+		case <-ticker.C:
+			if err := check(); err == nil {
+				return nil
+			} else {
+				lastErr = err
+			}
+		}
 	}
 }
 
@@ -796,6 +853,8 @@ func classifyFailureType(err error, steps []evidence.StepResult, failReason stri
 		switch action {
 		case "assert_title", "assert_url", "assert_text":
 			return "assertion_failed"
+		case "wait_for_url":
+			return "timeout"
 		case "goto":
 			return "navigation_failed"
 		case "wait_for_selector", "click", "fill":

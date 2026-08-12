@@ -28,6 +28,11 @@ import (
 
 const defaultHost = "127.0.0.1"
 
+var systemCACertificateDirectories = []string{
+	"/etc/ssl/certs",
+	"/etc/pki/tls/certs",
+}
+
 type Engine struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -48,11 +53,15 @@ type requestInfo struct {
 }
 
 func NewEngine(ctx context.Context, options runner.EngineOptions) (runner.Engine, error) {
+	arguments, err := lightpandaArguments(options)
+	if err != nil {
+		return nil, err
+	}
 	executable, err := resolveExecutable(options.LightpandaPath)
 	if err != nil {
 		return nil, err
 	}
-	activeSession, err := start(ctx, executable, options.StartupTimeout)
+	activeSession, err := start(ctx, executable, options.StartupTimeout, arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +96,65 @@ func NewEngine(ctx context.Context, options runner.EngineOptions) (runner.Engine
 		return nil, err
 	}
 	return engine, nil
+}
+
+func lightpandaArguments(options runner.EngineOptions) ([]string, error) {
+	return lightpandaArgumentsWithSystemCADirectories(options, systemCACertificateDirectories)
+}
+
+func lightpandaArgumentsWithSystemCADirectories(options runner.EngineOptions, systemDirectories []string) ([]string, error) {
+	arguments := []string{}
+	caCertFile := strings.TrimSpace(options.CACertFile)
+	caCertDir := strings.TrimSpace(options.CACertDir)
+	if caCertFile != "" || caCertDir != "" {
+		for _, directory := range systemDirectories {
+			directory = strings.TrimSpace(directory)
+			if directory == "" || directory == caCertDir {
+				continue
+			}
+			info, err := os.Stat(directory)
+			if err == nil && info.IsDir() {
+				arguments = append(arguments, "--ca-path", directory)
+				break
+			}
+		}
+	}
+	if caCertFile != "" {
+		if !filepath.IsAbs(caCertFile) {
+			return nil, fmt.Errorf("browser CA certificate file path must be absolute: %s", caCertFile)
+		}
+		arguments = append(arguments, "--ca-cert", caCertFile)
+	}
+	if caCertDir != "" {
+		if !filepath.IsAbs(caCertDir) {
+			return nil, fmt.Errorf("browser CA certificate directory path must be absolute: %s", caCertDir)
+		}
+		arguments = append(arguments, "--ca-path", caCertDir)
+	}
+	if proxyURL := strings.TrimSpace(options.ProxyURL); proxyURL != "" {
+		parsed, err := url.Parse(proxyURL)
+		if err != nil || parsed.Host == "" || !strings.EqualFold(parsed.Scheme, "http") {
+			return nil, fmt.Errorf("lightpanda proxy URL must use the http scheme and include a host")
+		}
+		arguments = append(arguments, "--http-proxy", proxyURL)
+	}
+	cidrs := make([]string, 0, len(options.PrivateNetworkCIDRs))
+	for _, value := range options.PrivateNetworkCIDRs {
+		cidr := strings.TrimSpace(value)
+		if cidr == "" {
+			continue
+		}
+		if _, _, err := net.ParseCIDR(cidr); err != nil {
+			return nil, fmt.Errorf("invalid private network CIDR %q: %w", cidr, err)
+		}
+		cidrs = append(cidrs, cidr)
+	}
+	if len(cidrs) > 0 {
+		arguments = append(arguments, "--block-cidrs", strings.Join(cidrs, ","))
+	} else if options.BlockPrivateNetwork {
+		arguments = append(arguments, "--block-private-networks")
+	}
+	return arguments, nil
 }
 
 func (e *Engine) ConfigureBrowser(ctx context.Context, config runner.BrowserConfig) error {
@@ -362,7 +430,7 @@ type session struct {
 	logs     *limitedBuffer
 }
 
-func start(parent context.Context, executable string, startupTimeout time.Duration) (*session, error) {
+func start(parent context.Context, executable string, startupTimeout time.Duration, extraArguments []string) (*session, error) {
 	if startupTimeout <= 0 {
 		startupTimeout = 5 * time.Second
 	}
@@ -373,7 +441,9 @@ func start(parent context.Context, executable string, startupTimeout time.Durati
 	endpoint := fmt.Sprintf("http://%s:%d", defaultHost, port)
 	procCtx, cancel := context.WithCancel(parent)
 	logs := &limitedBuffer{limit: 8_000}
-	cmd := exec.CommandContext(procCtx, executable, "serve", "--host", defaultHost, "--port", strconv.Itoa(port))
+	arguments := []string{"serve", "--host", defaultHost, "--port", strconv.Itoa(port)}
+	arguments = append(arguments, extraArguments...)
+	cmd := exec.CommandContext(procCtx, executable, arguments...)
 	cmd.Stdout = logs
 	cmd.Stderr = logs
 	if err := cmd.Start(); err != nil {

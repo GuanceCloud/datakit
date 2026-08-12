@@ -21,6 +21,7 @@ func buildTailerOptions(cfg *logConfig, fn tailer.ForwardFunc) []tailer.Option {
 		tailer.WithSource(cfg.Source),
 		tailer.WithService(cfg.Service),
 		tailer.WithStorageIndex(cfg.StorageIndex),
+		tailer.WithJSONAsFields(cfg.JSONAsFields),
 		tailer.WithCharacterEncoding(cfg.CharacterEncoding),
 		tailer.WithPipeline(cfg.Pipeline),
 		tailer.EnableMultiline(true),
@@ -52,18 +53,18 @@ func buildTailerOptions(cfg *logConfig, fn tailer.ForwardFunc) []tailer.Option {
 type writeMessageFunc func([]byte) error
 
 func forwardFunc(cfg *logConfig, fn writeMessageFunc) tailer.ForwardFunc {
-	return func(filename, text string, fields map[string]interface{}) error {
+	return func(_, text string, fields map[string]interface{}) error {
 		msg := message{
 			Type:         "1",
 			Source:       cfg.Source,
 			StorageIndex: cfg.StorageIndex,
+			JSONAsFields: cfg.JSONAsFields,
 			Pipeline:     cfg.Pipeline,
 			Log:          text,
 			Tags:         make(map[string]string),
 			Fields:       fields,
 		}
 
-		msg.Tags["filename"] = filename
 		for k, v := range cfg.Tags {
 			msg.Tags[k] = v
 		}

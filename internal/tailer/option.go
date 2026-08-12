@@ -63,6 +63,8 @@ type config struct {
 	extraTags map[string]string
 	// 字段白名单，只有在此列表中的字段才会被保留
 	fieldWhitelist []string
+	// 是否将 JSON 根对象转换为日志字段
+	jsonAsFields bool
 
 	// 日志解析模式
 	mode Mode
@@ -159,6 +161,10 @@ func EnableDebugFields(b bool) Option {
 
 func WithFieldWhitelist(list []string) Option {
 	return func(cfg *config) { cfg.fieldWhitelist = list }
+}
+
+func WithJSONAsFields(enabled bool) Option {
+	return func(cfg *config) { cfg.jsonAsFields = enabled }
 }
 
 func WithSource(s string) Option {

@@ -6,17 +6,25 @@
 package mysql
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
+)
+
+const (
+	defaultQueryTextMaxBytes = 512
+	maximumQueryTextMaxBytes = 1024
 )
 
 type dbmMetric struct {
-	Enabled  bool             `toml:"enabled"`
-	Interval datakit.Duration `toml:"interval"`
-	Limit    int              `toml:"limit"`
+	Enabled           bool             `toml:"enabled"`
+	Interval          datakit.Duration `toml:"interval"`
+	Limit             int              `toml:"limit"`
+	QueryTextMaxBytes int              `toml:"query_text_max_bytes"`
 }
 
 type dbmStateMeasurement struct {
@@ -196,15 +204,21 @@ func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 			"digest":            &inputs.TagInfo{Desc: "The digest hash value computed from the original normalized statement. "},
 			"query_signature":   &inputs.TagInfo{Desc: "The hash value computed from digest_text"},
 			"schema_name":       &inputs.TagInfo{Desc: "The schema name."},
+			"normalized_query_hash": &inputs.TagInfo{
+				Desc: "Hash computed from the available normalized SQL text for cross-database and cross-user grouping.",
+			},
+			"query_text":      &inputs.TagInfo{Desc: "A configurable UTF-8-safe prefix of the normalized SQL text for query search."},
+			"query_truncated": &inputs.TagInfo{Desc: "Whether query_text was truncated to the configured byte limit."},
 		},
 	}
 }
 
 type dbmRow struct {
-	schemaName     string
-	digest         string
-	digestText     string
-	querySignature string
+	schemaName          string
+	digest              string
+	digestText          string
+	querySignature      string
+	normalizedQueryHash string
 
 	// Total values (cumulative values from MySQL)
 	countStar          uint64
@@ -385,6 +399,10 @@ func getMetricRows(dbmRows []dbmRow, prevSnapshot map[string]dbmMetricCache) ([]
 func (ipt *Input) buildMysqlDbmMetric(rows []dbmRow, ptsTime time.Time) ([]*point.Point, error) {
 	var pts []*point.Point
 	opts := append(point.DefaultMetricOptions(), point.WithTime(ptsTime))
+	queryTextMaxBytes := ipt.DbmMetric.QueryTextMaxBytes
+	if queryTextMaxBytes <= 0 || queryTextMaxBytes > maximumQueryTextMaxBytes {
+		queryTextMaxBytes = defaultQueryTextMaxBytes
+	}
 
 	for _, row := range rows {
 		kvs := ipt.getKVs()
@@ -398,6 +416,12 @@ func (ipt *Input) buildMysqlDbmMetric(rows []dbmRow, ptsTime time.Time) ([]*poin
 		}
 		if len(row.querySignature) > 0 {
 			kvs = kvs.AddTag("query_signature", row.querySignature)
+		}
+		if row.normalizedQueryHash != "" {
+			queryText, queryTextTruncated := util.TruncateUTF8ByBytes(row.digestText, queryTextMaxBytes)
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+			kvs = kvs.AddTag("query_text", queryText)
+			kvs = kvs.AddTag("query_truncated", strconv.FormatBool(queryTextTruncated))
 		}
 
 		// Fields - report both total and delta values

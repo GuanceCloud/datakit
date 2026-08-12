@@ -91,6 +91,7 @@ type planObj struct {
 	planDefinition      string
 	planSignature       string
 	querySignature      string
+	normalizedQueryHash string
 	statement           string
 	digestText          string
 	digest              string
@@ -190,7 +191,10 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"schema_name":       &inputs.TagInfo{Desc: "The schema name."},
 			"plan_signature":    &inputs.TagInfo{Desc: "Hash of the normalized execution plan to group identical plans."},
 			"query_signature":   &inputs.TagInfo{Desc: "Hash from schema+digest_text, used to link with metrics and query objects."},
-			"digest":            &inputs.TagInfo{Desc: "The digest hash from the original normalized statement (performance_schema)."},
+			"normalized_query_hash": &inputs.TagInfo{
+				Desc: "Hash computed from the available normalized SQL text for linking plans to query metrics.",
+			},
+			"digest": &inputs.TagInfo{Desc: "The digest hash from the original normalized statement (performance_schema)."},
 		},
 	}
 }
@@ -410,10 +414,10 @@ func filterValidStatementRows(i *Input, rows []eventRow) []eventRow {
 
 func collectPlanForStatements(i *Input, rows []eventRow) []planObj {
 	var plans []planObj
-	sqlObfuscator := newMySQLSQLObfuscator()
-	obfuscator := util.NewSQLPlanObfuscator()
+	sqlNormalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseMySQL)
+	planObfuscator := util.NewSQLPlanObfuscator()
 	for _, row := range rows {
-		plan, err := collectPlanForStatement(i, row, sqlObfuscator, obfuscator)
+		plan, err := collectPlanForStatement(i, row, sqlNormalizer, planObfuscator)
 		if err != nil {
 			l.Warnf("collect plan error: %s", err.Error())
 			continue
@@ -427,21 +431,26 @@ func collectPlanForStatements(i *Input, rows []eventRow) []planObj {
 	return plans
 }
 
-func collectPlanForStatement(i *Input, row eventRow, sqlObfuscator, planObfuscator *obfuscate.Obfuscator) (planObj, error) {
+func collectPlanForStatement(
+	i *Input,
+	row eventRow,
+	sqlNormalizer *util.SQLStatementNormalizer,
+	planObfuscator *obfuscate.Obfuscator,
+) (planObj, error) {
 	var plan planObj
-	obfSQLResult, err := sqlObfuscator.ObfuscateSQLString(row.sqlText.String)
+	normalizedStatement, err := sqlNormalizer.Normalize(row.sqlText.String)
 	if err != nil {
 		l.Warnf("obfuscate sql text failed: %s", err.Error())
 		return plan, nil
 	}
-	obfuscatedStatement := obfSQLResult.Query
+	obfuscatedStatement := normalizedStatement.Text
 
-	obfDigestResult, err := sqlObfuscator.ObfuscateSQLString(row.digestText.String)
+	normalizedDigest, err := sqlNormalizer.Normalize(row.digestText.String)
 	if err != nil {
 		l.Warnf("obfuscate digest text failed: %s", err.Error())
 		return plan, nil
 	}
-	obfuscatedDigestText := obfDigestResult.Query
+	obfuscatedDigestText := normalizedDigest.Text
 
 	// querySignature: keep consistent with other MySQL DBM places (schema + digest_text via xxhash)
 	querySignature := generateQuerySignature(row.currentSchema.String, obfuscatedDigestText)
@@ -479,11 +488,12 @@ func collectPlanForStatement(i *Input, row eventRow, sqlObfuscator, planObfuscat
 			return plan, nil
 		}
 		plan = planObj{
-			planDefinition: obfuscatedPlan,
-			planSignature:  planSignature,
-			querySignature: querySignature,
-			digestText:     obfuscatedDigestText,
-			statement:      obfuscatedStatement,
+			planDefinition:      obfuscatedPlan,
+			planSignature:       planSignature,
+			querySignature:      querySignature,
+			normalizedQueryHash: normalizedDigest.Hash,
+			digestText:          obfuscatedDigestText,
+			statement:           obfuscatedStatement,
 		}
 
 		// Reuse overflow-safe timer_end conversion.

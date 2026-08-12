@@ -39,6 +39,7 @@ const (
 	sampleCfg       = `
 [inputs.logstreaming]
   ignore_url_tags = false
+  json_as_fields = false
 
   ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
@@ -64,6 +65,7 @@ var (
 
 type Input struct {
 	IgnoreURLTags    bool                         `toml:"ignore_url_tags"`
+	JSONAsFields     bool                         `toml:"json_as_fields"`
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 

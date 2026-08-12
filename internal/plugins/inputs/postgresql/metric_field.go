@@ -760,6 +760,11 @@ var dbmMetricMeasurementInfo = &inputs.MeasurementInfo{
 		"rolname":         inputs.NewTagInfo("The role name"),
 		"queryid":         inputs.NewTagInfo("The query ID reported by pg_stat_statements."),
 		"query_signature": inputs.NewTagInfo("The hash signature computed from db, rolname, and normalized query text."),
+		"normalized_query_hash": inputs.NewTagInfo(
+			"Hash computed from the complete normalized SQL text for cross-database and cross-user grouping.",
+		),
+		"query_text":      inputs.NewTagInfo("A configurable UTF-8-safe prefix of the normalized SQL text for query search."),
+		"query_truncated": inputs.NewTagInfo("Whether query_text was truncated to the configured byte limit."),
 	},
 }
 
@@ -786,12 +791,15 @@ var dbmSampleMeasurementInfo = &inputs.MeasurementInfo{
 		"service":           inputs.NewTagInfo("The service name `postgresql`"),
 		"plan_signature":    inputs.NewTagInfo("The hash signature computed from the normalized execution plan."),
 		"query_signature":   inputs.NewTagInfo("The hash value computed from query"),
-		"client_hostname":   inputs.NewTagInfo("Host name of the connected client, as reported by a reverse DNS lookup of client_addr. This field will only be non-null for IP connections, and only when log_hostname is enabled."),
-		"client_port":       inputs.NewTagInfo("TCP port number that the client is using for communication, or -1 if a Unix socket is used."),
-		"client_addr":       inputs.NewTagInfo("IP address of the client that is connected to this backend."),
-		"application_name":  inputs.NewTagInfo("Name of the application that is connected to this backend."),
-		"usename":           inputs.NewTagInfo("Name of the user logged into this backend."),
-		"db":                inputs.NewTagInfo("Name of the database this backend is connected to."),
+		"normalized_query_hash": inputs.NewTagInfo(
+			"Hash computed from the available normalized SQL text for linking plans to query metrics.",
+		),
+		"client_hostname":  inputs.NewTagInfo("Host name of the connected client, as reported by a reverse DNS lookup of client_addr. This field will only be non-null for IP connections, and only when log_hostname is enabled."),
+		"client_port":      inputs.NewTagInfo("TCP port number that the client is using for communication, or -1 if a Unix socket is used."),
+		"client_addr":      inputs.NewTagInfo("IP address of the client that is connected to this backend."),
+		"application_name": inputs.NewTagInfo("Name of the application that is connected to this backend."),
+		"usename":          inputs.NewTagInfo("Name of the user logged into this backend."),
+		"db":               inputs.NewTagInfo("Name of the database this backend is connected to."),
 	},
 }
 
@@ -856,10 +864,16 @@ var dbmActivityMeasurementInfo = &inputs.MeasurementInfo{
 		},
 	},
 	Tags: map[string]interface{}{
-		"server":           inputs.NewTagInfo("The server address"),
-		"service":          inputs.NewTagInfo("The service name `postgresql`"),
-		"status":           inputs.NewTagInfo("The status of the statement. The value is only `info` for now."),
-		"query_signature":  inputs.NewTagInfo("The hash value computed from query"),
+		"server":          inputs.NewTagInfo("The server address"),
+		"service":         inputs.NewTagInfo("The service name `postgresql`"),
+		"status":          inputs.NewTagInfo("The status of the statement. The value is only `info` for now."),
+		"query_signature": inputs.NewTagInfo("The hash value computed from query"),
+		"normalized_query_hash": inputs.NewTagInfo(
+			"Hash computed from the available normalized SQL text for linking activity to query metrics.",
+		),
+		"query_truncated": inputs.NewTagInfo(
+			"PostgreSQL activity SQL truncation state: truncated, not_truncated, or unknown.",
+		),
 		"message":          inputs.NewTagInfo("Text of a normalized statement."),
 		"client_hostname":  inputs.NewTagInfo("Host name of the connected client, as reported by a reverse DNS lookup of client_addr. This field will only be non-null for IP connections, and only when log_hostname is enabled."),
 		"client_port":      inputs.NewTagInfo("TCP port number that the client is using for communication, or -1 if a Unix socket is used."),

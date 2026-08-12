@@ -66,6 +66,7 @@ type Step struct {
 var supportedActions = map[string]struct{}{
 	"goto":              {},
 	"wait_for_selector": {},
+	"wait_for_url":      {},
 	"click":             {},
 	"fill":              {},
 	"assert_title":      {},
@@ -213,7 +214,7 @@ func (s Script) validateStep(label string, index int, step Step) error {
 		if expectedText(step) == "" {
 			return fmt.Errorf("%s %d assert_text requires contains, equals, or text", label, index+1)
 		}
-	case "assert_title", "assert_url":
+	case "wait_for_url", "assert_title", "assert_url":
 		if expectedText(step) == "" {
 			return fmt.Errorf("%s %d %s requires contains, equals, or text", label, index+1, action)
 		}

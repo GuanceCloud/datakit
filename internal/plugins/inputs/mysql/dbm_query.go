@@ -36,6 +36,9 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"database_type":     inputs.NewTagInfo("The type of the database. The value is `MySQL`"),
 			"schema_name":       inputs.NewTagInfo("The schema name"),
 			"query_signature":   inputs.NewTagInfo("The hash signature computed from schema and digest"),
+			"normalized_query_hash": inputs.NewTagInfo(
+				"Hash computed from the available normalized SQL text for cross-database and cross-user grouping",
+			),
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -92,6 +95,9 @@ func (ipt *Input) collectDbmQueries(dbmRows []dbmRow, ptsTime time.Time) {
 		kvs = kvs.AddTag("database_type", "MySQL")
 		kvs = kvs.AddTag("schema_name", row.schemaName)
 		kvs = kvs.AddTag("query_signature", row.querySignature)
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+		}
 
 		// Fields - digest_text is already obfuscated in getCleanSummaryRows
 		kvs = kvs.Set("message", row.digestText)

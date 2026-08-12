@@ -32,6 +32,17 @@ Historical entries preserve their release-time meaning. A newer version does not
 
 ## Changelog {#changelog}
 
+## v1.65.0-ext (2026/8/7) {#cl-1.65.0-ext}
+
+### update {#cl-1.65.0-ext-update}
+
+- Base the extension on DataDog `dd-trace-java` v1.65.0, incorporating its upstream features and fixes together with GuanceCloud customizations.
+- Add configurable HTTP request and response header and body collection, including JSON response body capture and allowlist/denylist filtering; responses can inject `ext_trace_id` for frontend-to-backend trace correlation.
+- Support GWT RPC request body tagging, and add JVM thread-state and GC StatsD metrics together with Netty Client SSE response-stream spans.
+- Add BES application server instrumentation, Nacos asynchronous context propagation, and package-based Trace method instrumentation; enhance xxl-job, Java-WebSocket, and RabbitMQ instrumentation, and fix split-by-host handling for Redis Lettuce/Redisson clusters.
+- Support Log4j2 2.7 log Pattern replacement; add the Kafka 3.8+ experimental option `dd.trace.experimental.kafka.enabled`; fix message host naming for Redis and RabbitMQ clients.
+
+
 ## v1.63.7-ext (2026/7/1) {#cl-1.63.7-ext}
 
 ### update {#cl-1.63.7-ext-fix}

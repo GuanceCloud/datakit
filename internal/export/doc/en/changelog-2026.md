@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.9.0(2026/08/12) {#cl-2.9.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.9.0-new}
+
+- DBM statement metrics for MySQL, PostgreSQL, Oracle, and SQL Server now provide normalized SQL search and `normalized_query_hash` for cross-instance grouping, linking statement metrics, SQL objects, activity samples, and execution plans (#3156)
+- DataWay uploads now support Protobuf with `zstd` compression (#3168)
+- The dialtesting debug API now supports asynchronous execution with queuing, concurrency control, status polling, and retained results (#3171)
+- Pipeline field-generating functions now support custom output-field prefixes (#3174)
+- Added the W32Time collector for Windows Time Service status, clock offset, NTP round-trip delay, and available time-source count (#3188)
+- Log collection now supports `json_as_fields`, converting top-level JSON object properties into log fields (#3191)
+- Browser dialtesting adds actions and polling for assertion actions (#3193)
+
+### Improvements {#cl-2.9.0-opt}
+
+- logfwd no longer adds a default `filename` field to forwarded logs (#3189)
+- Upgraded DCA to 0.1.8, improving DataKit list search debouncing and WebSocket connection and watcher lifecycle handling (#3194)
+- Improved DDTrace collector documentation (!4124)
+
+---
+
 ## 2.8.0(2026/08/06) {#cl-2.8.0}
 
 This release is an iterative release, with the following main updates:

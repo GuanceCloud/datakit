@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/jsonfields"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -94,6 +95,7 @@ func (ipt *Input) Terminate() {
 type logMessage struct {
 	Source       string                 `json:"source"`
 	StorageIndex string                 `json:"storage_index"`
+	JSONAsFields bool                   `json:"json_as_fields"`
 	Pipeline     string                 `json:"pipeline"`
 	Tags         map[string]string      `json:"tags"`
 	Fields       map[string]interface{} `json:"fields"`
@@ -159,7 +161,11 @@ func (ipt *Input) processLogMessage(msg logMessage) error {
 	feedName := ipt.buildFeedName(msg.Source, msg.StorageIndex)
 	tags := ipt.mergeTags(msg.Tags)
 
-	points := ipt.createLogPoints(msg.Source, msg.Log, tags, msg.Fields)
+	conversion := jsonfields.Conversion{}
+	if msg.JSONAsFields {
+		conversion = jsonfields.Convert([]byte(msg.Log))
+	}
+	points := ipt.createLogPoints(msg.Source, msg.Log, tags, msg.Fields, conversion)
 	if len(points) == 0 {
 		return nil
 	}
@@ -199,8 +205,13 @@ func (ipt *Input) mergeTags(msgTags map[string]string) map[string]string {
 	return msgTags
 }
 
-func (ipt *Input) createLogPoints(source, logContent string, tags map[string]string, fields map[string]interface{}) []*point.Point {
-	return ipt.buildPoints(source, []string{logContent}, tags, fields)
+func (ipt *Input) createLogPoints(
+	source, logContent string,
+	tags map[string]string,
+	fields map[string]interface{},
+	conversion jsonfields.Conversion,
+) []*point.Point {
+	return ipt.buildPoints(source, []string{logContent}, tags, fields, conversion)
 }
 
 func (ipt *Input) startServer() {
@@ -226,7 +237,13 @@ func (ipt *Input) waitForShutdown() {
 	}
 }
 
-func (ipt *Input) buildPoints(source string, logContents []string, tags map[string]string, fields map[string]interface{}) []*point.Point {
+func (ipt *Input) buildPoints(
+	source string,
+	logContents []string,
+	tags map[string]string,
+	fields map[string]interface{},
+	conversion jsonfields.Conversion,
+) []*point.Point {
 	if len(logContents) == 0 {
 		return nil
 	}
@@ -238,17 +255,30 @@ func (ipt *Input) buildPoints(source string, logContents []string, tags map[stri
 		opts := point.DefaultLoggingOptions()
 		opts = append(opts, point.WithTime(now))
 
-		pointFields := map[string]interface{}{
-			pipeline.FieldMessage: content,
-			pipeline.FieldStatus:  pipeline.DefaultStatus,
-		}
-		for k, v := range fields {
-			pointFields[k] = v
+		var kvs point.KVs
+		if conversion.Converted {
+			kvs = point.NewTags(tags).Set(pipeline.FieldStatus, pipeline.DefaultStatus)
+			for k, v := range fields {
+				if k == pipeline.FieldMessage {
+					continue
+				}
+				kvs = kvs.Set(k, v)
+			}
+			kvs = conversion.Apply(kvs)
+		} else {
+			pointFields := map[string]interface{}{
+				pipeline.FieldMessage: content,
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
+			}
+			for k, v := range fields {
+				pointFields[k] = v
+			}
+			kvs = append(point.NewTags(tags), point.NewKVs(pointFields)...)
 		}
 
 		pt := point.NewPoint(
 			source,
-			append(point.NewTags(tags), point.NewKVs(pointFields)...),
+			kvs,
 			opts...,
 		)
 		points = append(points, pt)

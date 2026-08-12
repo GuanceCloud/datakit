@@ -10,16 +10,20 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cespare/xxhash/v2"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const (
 	metricNameSQLServerDbmMetric = "sqlserver_dbm_metric"
+	defaultQueryTextMaxBytes     = 512
+	maximumQueryTextMaxBytes     = 1024
 )
 
 type dbmStatementRow struct {
@@ -30,6 +34,10 @@ type dbmStatementRow struct {
 	schemaName           string
 	procedureName        string
 	statementText        string
+	normalizedText       string
+	queryText            string
+	queryTextTruncated   bool
+	normalizedQueryHash  string
 	isEncrypted          bool
 	sqlserverHost        string
 	statementStartOffset int64
@@ -156,6 +164,8 @@ func (ipt *Input) collectDbmMetric(ctx context.Context, ptsTime time.Time) ([]*d
 		resultRows = resultRows[:maxQueries]
 	}
 
+	ipt.prepareNormalizedStatements(resultRows)
+
 	// Build points from processed rows (report derivative values, not cumulative)
 	pts := ipt.buildStatementPoints(resultRows, ptsTime)
 	if len(pts) > 0 {
@@ -191,6 +201,36 @@ func (ipt *Input) collectDbmMetric(ctx context.Context, ptsTime time.Time) ([]*d
 	}
 
 	return filteredRows, nil
+}
+
+func (ipt *Input) prepareNormalizedStatements(rows []*dbmStatementRow) {
+	// Normalization enriches legacy DBM rows and must not decide whether they are reported.
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseSQLServer)
+	queryTextMaxBytes := ipt.Dbm.Metric.QueryTextMaxBytes
+	if queryTextMaxBytes <= 0 || queryTextMaxBytes > maximumQueryTextMaxBytes {
+		queryTextMaxBytes = defaultQueryTextMaxBytes
+	}
+
+	for _, row := range rows {
+		if row == nil || row.statementText == "" || row.isEncrypted {
+			continue
+		}
+
+		obfuscateStart := time.Now()
+		normalized, err := normalizer.Normalize(row.statementText)
+		dbmObfuscateDuration.WithLabelValues("statement", "statement").Observe(time.Since(obfuscateStart).Seconds())
+		if err != nil {
+			l.Warnf("failed to normalize SQL for query_hash %s: %v", row.queryHash, err)
+			continue
+		}
+		if normalized.Hash == "" {
+			continue
+		}
+
+		row.normalizedText = normalized.Text
+		row.queryText, row.queryTextTruncated = util.TruncateUTF8ByBytes(normalized.Text, queryTextMaxBytes)
+		row.normalizedQueryHash = normalized.Hash
+	}
 }
 
 // generateQuerySignature generates a unique signature for a SQL statement.
@@ -420,6 +460,13 @@ func (ipt *Input) buildStatementPoints(rows []*dbmStatementRow, ptsTime time.Tim
 		}
 		if row.querySignature != "" {
 			kvs = kvs.AddTag("query_signature", row.querySignature)
+		}
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+			kvs = kvs.AddTag("query_truncated", strconv.FormatBool(row.queryTextTruncated))
+		}
+		if row.queryText != "" {
+			kvs = kvs.AddTag("query_text", row.queryText)
 		}
 
 		// Fields - report both total and delta values

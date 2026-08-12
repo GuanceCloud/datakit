@@ -8,6 +8,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,8 +17,6 @@ import (
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
-
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
 )
 
 type dbmSample struct {
@@ -36,7 +35,13 @@ type dbmActivity struct {
 	Interval datakit.Duration `toml:"interval"`
 }
 
-const postgreSQLBackendTypeClient = "client backend"
+const (
+	postgreSQLBackendTypeClient       = "client backend"
+	maxPostgreSQLCharacterSizeInBytes = 6
+	pgQueryTruncationTruncated        = "truncated"
+	pgQueryTruncationNotTruncated     = "not_truncated"
+	pgQueryTruncationUnknown          = "unknown"
+)
 
 var (
 	PGStatActivityColumns = []string{
@@ -96,6 +101,12 @@ func (ipt *Input) collectSampleActivity(rows []map[string]any, ptsTime time.Time
 		kvs = kvs.AddTag("service", "postgresql")
 		kvs = kvs.AddTag("status", "info")
 		kvs = kvs.AddTag("query_signature", cast.ToString(row["query_signature"]))
+		if normalizedQueryHash := cast.ToString(row["normalized_query_hash"]); normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", normalizedQueryHash)
+		}
+		if queryTruncated := cast.ToString(row["query_truncated"]); queryTruncated != "" {
+			kvs = kvs.AddTag("query_truncated", queryTruncated)
+		}
 		kvs = kvs.AddTag("client_hostname", cast.ToString(row["client_hostname"]))
 		kvs = kvs.AddTag("client_port", cast.ToString(row["client_port"]))
 		kvs = kvs.AddTag("client_addr", cast.ToString(row["client_addr"]))
@@ -255,11 +266,11 @@ func (ipt *Input) getNewPGStatActivityRows(queryColumns []string) ([]map[string]
 	newRows := []map[string]any{}
 	totalCount := 0
 	insufficientPrivilegeCount := 0
-	o := obfuscate.NewObfuscator(obfuscate.Config{
-		SQL: obfuscate.SQLConfig{
-			DBMS: obfuscate.DBMSPostgres,
-		},
-	})
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabasePostgreSQL)
+	trackActivityQuerySize, err := strconv.Atoi(ipt.dbSetting["track_activity_query_size"])
+	if err != nil {
+		trackActivityQuerySize = 0
+	}
 	for rows.Next() {
 		totalCount++
 		columnMap, err := ipt.service.GetColumnMap(rows, columns)
@@ -310,13 +321,19 @@ func (ipt *Input) getNewPGStatActivityRows(queryColumns []string) ([]map[string]
 		if backendType != postgreSQLBackendTypeClient {
 			newRow["query_signature"] = generateQuerySignature(datname, usename, backendType)
 		} else {
-			obfResult, err := o.ObfuscateSQLString(query)
+			queryTruncated := getPGActivityQueryTruncationState(query, trackActivityQuerySize)
+			normalized, err := normalizer.Normalize(query)
 			if err != nil {
-				l.Warnf("obfuscate dbm activity sql failed: %s, query: %s", err.Error(), query)
+				l.Warnf("normalize dbm activity sql failed: %s", err.Error())
 				continue
 			}
-			newRow["statement"] = obfResult.Query
-			newRow["query_signature"] = generateQuerySignature(datname, usename, obfResult.Query)
+			if normalized.Hash == "" {
+				continue
+			}
+			newRow["statement"] = normalized.Text
+			newRow["query_signature"] = generateQuerySignature(datname, usename, normalized.Text)
+			newRow["normalized_query_hash"] = normalized.Hash
+			newRow["query_truncated"] = queryTruncated
 		}
 		newRow["wait_group"] = getPGActivityWaitGroup(newRow)
 		if !shouldCollectPGActivity(newRow) {
@@ -330,6 +347,18 @@ func (ipt *Input) getNewPGStatActivityRows(queryColumns []string) ([]map[string]
 	}
 
 	return newRows, nil
+}
+
+func getPGActivityQueryTruncationState(query string, trackActivityQuerySize int) string {
+	if trackActivityQuerySize <= 0 {
+		return pgQueryTruncationUnknown
+	}
+
+	if len(query) >= trackActivityQuerySize-(maxPostgreSQLCharacterSizeInBytes+1) {
+		return pgQueryTruncationTruncated
+	}
+
+	return pgQueryTruncationNotTruncated
 }
 
 func getPGActivityWaitGroup(row map[string]any) string {

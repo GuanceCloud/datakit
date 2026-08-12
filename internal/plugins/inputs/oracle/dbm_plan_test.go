@@ -205,7 +205,8 @@ func TestBuildAndFeedDatabasePlanObjects(t *testing.T) {
 			rows: []*statementRowWithPlan{
 				{
 					OracleRow: &OracleRow{
-						querySignature: "abc123def456",
+						querySignature:      "abc123def456",
+						normalizedQueryHash: "normalized-hash",
 						RawData: StatementMetricsDB{
 							StatementMetricsKeyDB: StatementMetricsKeyDB{
 								ConID:                  1,
@@ -233,6 +234,7 @@ func TestBuildAndFeedDatabasePlanObjects(t *testing.T) {
 				planKey := generatePlanCacheKey("abc123def456", "987654321")
 				assert.Equal(t, "testhost:1521-testdb-"+planKey, tags.GetTag("name"))
 				assert.Equal(t, "abc123def456", tags.GetTag("query_signature"))
+				assert.Equal(t, "normalized-hash", tags.GetTag("normalized_query_hash"))
 				assert.Equal(t, "987654321", tags.GetTag("plan_hash_value"))
 				assert.Equal(t, "Oracle", tags.GetTag("database_type"))
 				assert.Equal(t, "JSON", tags.GetTag("plan_type"))

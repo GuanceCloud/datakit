@@ -16,8 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const (
@@ -164,7 +163,8 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"sql_id":                   inputs.NewTagInfo("The SQL ID"),
 			"force_matching_signature": inputs.NewTagInfo("The force matching signature"),
 			"plan_hash_value":          inputs.NewTagInfo("The plan hash value"),
-			"query_signature":          inputs.NewTagInfo("Hash signature generated from normalized SQL text to link metrics and objects"),
+			"query_signature":          inputs.NewTagInfo("Hash signature generated from pdb_name:query_hash to link metrics and objects"),
+			"normalized_query_hash":    inputs.NewTagInfo("Hash computed from the available normalized SQL text for linking activity to query metrics"),
 			"session_status":           inputs.NewTagInfo("The session status (ACTIVE, INACTIVE, KILLED, etc.)"),
 			"session_type":             inputs.NewTagInfo("The session type (USER, BACKGROUND)"),
 			"wait_class":               inputs.NewTagInfo("The wait event class."),
@@ -211,6 +211,7 @@ type OracleActivityRow struct {
 	PdbName               string `json:"pdb_name,omitempty"`
 	CdbName               string `json:"cdb_name,omitempty"`
 	QuerySignature        string `json:"query_signature,omitempty"`
+	NormalizedQueryHash   string `json:"normalized_query_hash,omitempty"`
 	CommandName           string `json:"command_name,omitempty"`
 	PreviousSQL           bool   `json:"previous_sql,omitempty"`
 	OpFlags               uint64 `json:"op_flags,omitempty"`
@@ -362,7 +363,7 @@ func (ipt *Input) sampleSession(ctx context.Context) ([]*OracleActivityRow, erro
 		return nil, fmt.Errorf("failed to collect session sampling activity: %w \n%s", err, activityQuery)
 	}
 
-	o := obfuscate.NewObfuscator(obfuscate.Config{})
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseOracle)
 	for _, sample := range sessionSamples {
 		sessionRow := &OracleActivityRow{}
 
@@ -501,7 +502,7 @@ func (ipt *Input) sampleSession(ctx context.Context) ([]*OracleActivityRow, erro
 			 */
 			if len(statement) == ipt.sqlSubstringLength && sessionRow.SQLID != "" {
 				var fetchedStatement string
-				err = ipt.getFullSQLText(&fetchedStatement, "sql_id", sessionRow.SQLID)
+				err = ipt.getFullSQLText(ctx, &fetchedStatement, "sql_id", sessionRow.SQLID)
 				if err != nil {
 					l.Errorf("failed to fetch full sql text for the current sql_id: %s", err)
 				}
@@ -522,11 +523,12 @@ func (ipt *Input) sampleSession(ctx context.Context) ([]*OracleActivityRow, erro
 
 		sessionRow.Statement = statement
 		if statement != "" && obfuscate {
-			obfuscatedStatement, err := o.ObfuscateSQLString(statement)
+			normalized, err := normalizer.Normalize(statement)
 			if err != nil {
-				l.Warnf("failed to obfuscate statement: %s", err)
+				l.Warnf("failed to normalize statement: %s", err)
 			} else {
-				sessionRow.Statement = obfuscatedStatement.Query
+				sessionRow.Statement = normalized.Text
+				sessionRow.NormalizedQueryHash = normalized.Hash
 			}
 		}
 
@@ -626,6 +628,9 @@ func (ipt *Input) buildDbmActivityPoints(rows []*OracleActivityRow, ptsTime time
 		}
 		if row.QuerySignature != "" {
 			kvs = kvs.AddTag("query_signature", row.QuerySignature)
+		}
+		if row.NormalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.NormalizedQueryHash)
 		}
 		if row.Status != "" {
 			kvs = kvs.AddTag("session_status", row.Status)

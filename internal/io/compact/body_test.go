@@ -410,7 +410,6 @@ func BenchmarkBuildBody(b *T.B) {
 		name  string
 		pts   []*point.Point
 		batch int
-		gz    GzipFlag
 		enc   point.Encoding
 	}{
 		{
@@ -456,14 +455,6 @@ func BenchmarkBuildBody(b *T.B) {
 		},
 
 		{
-			name:  "gz-1k-pts-on-protobuf-batch1024",
-			pts:   r.Rand(1024),
-			batch: 1024,
-			enc:   point.Protobuf,
-			gz:    1,
-		},
-
-		{
 			name:  "10k-pts-on-protobuf-batch4k",
 			pts:   r.Rand(10240),
 			batch: 4096,
@@ -490,8 +481,6 @@ func BenchmarkBuildBody(b *T.B) {
 			WithBatchSize(bc.batch)(w)
 			WithPoints(bc.pts)(w)
 			WithHTTPEncoding(bc.enc)(w)
-			WithGzip(bc.gz)(w)
-
 			for i := 0; i < b.N; i++ {
 				w.BuildPointsBody()
 			}

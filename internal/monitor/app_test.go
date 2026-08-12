@@ -141,6 +141,7 @@ datakit_io_endpoint_point_bytes_total{category="metric",enc="gzip",owner="dk",st
 datakit_io_endpoint_point_bytes_total{category="metric",enc="raw",owner="obs",status="OK"} 200
 datakit_io_endpoint_point_bytes_total{category="metric",enc="raw",owner="obs",status="total"} 240
 datakit_io_endpoint_point_bytes_total{category="metric",enc="gzip",owner="obs",status="total"} 80
+datakit_io_endpoint_point_bytes_total{category="metric",enc="zstd",owner="dk",status="total"} 30
 `)))
 	require.NoError(t, err)
 
@@ -151,9 +152,9 @@ datakit_io_endpoint_point_bytes_total{category="metric",enc="gzip",owner="obs",s
 	require.Equal(t, "Cat", normalize(app.dwptsTable.GetCell(0, 0).Text))
 	require.Equal(t, "M", normalize(app.dwptsTable.GetCell(1, 0).Text))
 	require.Equal(t, "Points(ok/total)", normalize(app.dwptsTable.GetCell(0, 1).Text))
-	require.Equal(t, "Bytes(ok/total/gz)", normalize(app.dwptsTable.GetCell(0, 2).Text))
+	require.Equal(t, "Bytes(ok/total/sent)", normalize(app.dwptsTable.GetCell(0, 2).Text))
 	require.Equal(t, "30/36", normalize(app.dwptsTable.GetCell(1, 1).Text))
-	require.Equal(t, "300/360(120)", normalize(app.dwptsTable.GetCell(1, 2).Text))
+	require.Equal(t, "300/360(150)", normalize(app.dwptsTable.GetCell(1, 2).Text))
 }
 
 func TestAppOnNilData(t *T.T) {

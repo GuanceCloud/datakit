@@ -150,6 +150,10 @@ github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
 github.com/GuanceCloud/cliutils v1.1.22-0.20260729084759-8d0dc7c33bb1 h1:ah+8WXIoH1NJu/BCZOGFsv+7FQIzV3yMgkuqYu+JaHA=
 github.com/GuanceCloud/cliutils v1.1.22-0.20260729084759-8d0dc7c33bb1/go.mod h1:+E9TCqxWSkg1JliKzarN6PKfdgWdx1GsG2ePdiYUwhc=
+github.com/GuanceCloud/cliutils v1.1.22-0.20260811134406-1a2910dfb0ea h1:D4gyg0Bn+hkYoW/u2d3CA4D/0khKPohUyJB67B3QEgY=
+github.com/GuanceCloud/cliutils v1.1.22-0.20260811134406-1a2910dfb0ea/go.mod h1:+E9TCqxWSkg1JliKzarN6PKfdgWdx1GsG2ePdiYUwhc=
+github.com/GuanceCloud/cliutils v1.1.22-0.20260812030357-4ed75798c367 h1:RsemhebrGO7+LynfjnrKeaU4B/khzeoRfzPbAYXbBo4=
+github.com/GuanceCloud/cliutils v1.1.22-0.20260812030357-4ed75798c367/go.mod h1:+E9TCqxWSkg1JliKzarN6PKfdgWdx1GsG2ePdiYUwhc=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
@@ -170,8 +174,8 @@ github.com/GuanceCloud/kubernetes v0.0.0-20260706033920-1c12edcbd89d h1:QJdBgL0c
 github.com/GuanceCloud/kubernetes v0.0.0-20260706033920-1c12edcbd89d/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386 h1:p2P0It6jjN66GO1+acZCb6JAPT9bAxNMarrIxPo+ZWk=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
-github.com/GuanceCloud/pipeline-go v1.4.1 h1:6vw68E3dU8dqyr1iKL4AQR87re1S3wqsQ/Pykanfxl4=
-github.com/GuanceCloud/pipeline-go v1.4.1/go.mod h1:MHmcR4+QF6OOw1/39/o+PMU9E84QewQGNIKu1Y5riKA=
+github.com/GuanceCloud/pipeline-go v1.4.3 h1:TSTEXgDXrfvq5m4CnLvkkKpexg13DTa9JjhrPZB4Bm4=
+github.com/GuanceCloud/pipeline-go v1.4.3/go.mod h1:MHmcR4+QF6OOw1/39/o+PMU9E84QewQGNIKu1Y5riKA=
 github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151 h1:tdqFZIXm0nHHjzJ8G0zyPS4PJBC5FhvFn9i0szmOufM=
 github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=

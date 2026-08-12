@@ -527,6 +527,7 @@ func (c *containerLogCoordinator) closeTailersForDisabledPaths(task *containerLo
 func (c *containerLogCoordinator) buildTailerOptions(cfg *logConfig) []tailer.Option {
 	opts := []tailer.Option{
 		tailer.WithStorageIndex(cfg.StorageIndex),
+		tailer.WithJSONAsFields(cfg.JSONAsFields),
 		tailer.WithSource(cfg.Source),
 		tailer.WithService(cfg.Service),
 		tailer.WithPipeline(cfg.Pipeline),

@@ -169,7 +169,10 @@ func TestBuildStatementPoints(t *testing.T) {
 			name: "single row with all fields",
 			rows: []*OracleRow{
 				{
-					querySignature: "abc123def456",
+					querySignature:      "abc123def456",
+					normalizedQueryHash: "normalized-hash",
+					queryText:           "SELECT * FROM users WHERE id = ?",
+					queryTextTruncated:  true,
 					RawData: StatementMetricsDB{
 						StatementMetricsKeyDB: StatementMetricsKeyDB{
 							ConID:                  1,
@@ -208,6 +211,9 @@ func TestBuildStatementPoints(t *testing.T) {
 				fields := pt.Fields()
 
 				assert.Equal(t, "abc123def456", tags.GetTag("query_signature"))
+				assert.Equal(t, "normalized-hash", tags.GetTag("normalized_query_hash"))
+				assert.Equal(t, "SELECT * FROM users WHERE id = ?", tags.GetTag("query_text"))
+				assert.Equal(t, "true", tags.GetTag("query_truncated"))
 				assert.Equal(t, "1", tags.GetTag("con_id"))
 				assert.Equal(t, "TESTCDB", tags.GetTag("cdb_name"))
 				assert.Equal(t, "TESTPDB", tags.GetTag("pdb_name"))

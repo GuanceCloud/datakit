@@ -167,16 +167,19 @@ type Dataway struct {
 	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host,omitempty"`
 	MaxIdleConns        int `toml:"max_idle_conns"`
 
-	// limit body size before gzip.
+	// limit body size before compression.
 	MaxRawBodySize int `toml:"max_raw_body_size"`
 
 	ContentEncoding string `toml:"content_encoding"`
 	contentEncoding point.Encoding
+	compression     compact.Compression
+	compressor      compact.Compressor
 
 	IdleTimeout          time.Duration `toml:"idle_timeout"`
 	DropExpiredPackageAt time.Duration `toml:"drop_expired_package_at"`
 
-	GZip bool `toml:"gzip"`
+	Compression string `toml:"compression,omitempty"`
+	GZip        bool   `toml:"gzip"` // Deprecated: use Compression.
 
 	PayloadObfuscation string `toml:"payload_obfuscation"`
 
@@ -340,13 +343,16 @@ func (dw *Dataway) doInit() error {
 	}
 
 	dw.contentEncoding = point.EncodingStr(dw.ContentEncoding)
+	if err := dw.initCompression(); err != nil {
+		return err
+	}
 
 	if dw.PayloadObfuscation != "" {
 		switch {
 		case dw.PayloadObfuscation != uhttp.PayloadObfuscationGzipCaesarV1:
 			l.Warnf("unsupported dataway payload obfuscation %q, disabled", dw.PayloadObfuscation)
 			dw.PayloadObfuscation = ""
-		case !dw.GZip:
+		case dw.compression != compact.CompressionGzip:
 			l.Warn("dataway payload obfuscation requires gzip, disabled")
 			dw.PayloadObfuscation = ""
 		}
@@ -459,6 +465,37 @@ func (dw *Dataway) doInit() error {
 	return nil
 }
 
+func (dw *Dataway) initCompression() error {
+	requested := strings.ToLower(strings.TrimSpace(dw.Compression))
+
+	var compression compact.Compression
+	switch requested {
+	case "":
+		if dw.GZip {
+			compression = compact.CompressionGzip
+		} else {
+			compression = compact.CompressionIdentity
+		}
+	case compact.CompressionGzip.String():
+		compression = compact.CompressionGzip
+	case compact.CompressionZstd.String():
+		compression = compact.CompressionZstd
+	default:
+		l.Warnf("invalid dataway compression %q, fallback to gzip", dw.Compression)
+		compression = compact.CompressionGzip
+	}
+
+	compressor, err := compact.NewCompressor(compression)
+	if err != nil {
+		return fmt.Errorf("create dataway %s compressor: %w", compression, err)
+	}
+
+	dw.compression = compressor.Encoding()
+	dw.compressor = compressor
+	l.Infof("dataway compression: configured=%q, effective=%q", dw.Compression, dw.compression)
+	return nil
+}
+
 // GlobalTags list all global tags of the dataway.
 func (dw *Dataway) GlobalTags() map[string]string {
 	return dw.globalTags
@@ -558,16 +595,10 @@ func (dw *Dataway) GroupPointsBySinkHeader(cat point.Category, points []*point.P
 }
 
 func (dw *Dataway) Write(opts ...compact.WriteOption) error {
-	gzOn := compact.GzipNotSet
-	if dw.GZip {
-		gzOn = compact.GzipSet
-	}
-
 	w := compact.GetWriter(
 		// set content encoding(protobuf/line-protocol/json)
 		compact.WithHTTPEncoding(dw.contentEncoding),
-		// setup gzip on or off
-		compact.WithGzip(gzOn),
+		compact.WithCompression(dw.compression),
 		// set raw body size limit
 		compact.WithMaxBodyCap(dw.MaxRawBodySize),
 	)
@@ -631,8 +662,12 @@ func (dw *Dataway) Write(opts ...compact.WriteOption) error {
 }
 
 func (dw *Dataway) writePointData(ep *endpoint.EndPoint, w *compact.Writer, b *compact.Body) error {
+	if err := dw.prepareBody(w, b); err != nil {
+		return err
+	}
+
 	mode := dw.PayloadObfuscation
-	if mode == "" || w.Gzip != compact.GzipSet {
+	if mode == "" || w.Compression != compact.CompressionGzip {
 		return ep.WritePointData(w, b)
 	}
 
@@ -678,6 +713,48 @@ func (dw *Dataway) writePointData(ep *endpoint.EndPoint, w *compact.Writer, b *c
 	}()
 
 	return ep.WritePointData(w, b)
+}
+
+func (dw *Dataway) prepareBody(w *compact.Writer, b *compact.Body) error {
+	if compression := b.ContentEncoding(); compression != compact.CompressionUnknown {
+		w.Compression = compression
+		return nil
+	}
+
+	if w.CacheClean {
+		compression := compact.CompressionIdentity
+		if compact.IsGzip(b.Buf()) == compact.GzipSet {
+			compression = compact.CompressionGzip
+		}
+		b.SetContentEncoding(compression)
+		w.Compression = compression
+		return nil
+	}
+
+	if dw.compressor == nil {
+		if err := dw.initCompression(); err != nil {
+			return err
+		}
+	}
+
+	start := time.Now()
+	payload, err := dw.compressor.Compress(b.SendBuf, b.Buf())
+	compression := dw.compressor.Encoding()
+	if err != nil {
+		return fmt.Errorf("compress point body with %s: %w", compression, err)
+	}
+	if compression != compact.CompressionIdentity {
+		b.SetPayload(payload)
+	}
+	b.SetContentEncoding(compression)
+	w.Compression = compression
+
+	compact.BuildBodyCostVec.WithLabelValues(
+		w.Category.String(),
+		w.HTTPEncoding.String(),
+		compression.String(),
+	).Observe(float64(time.Since(start)) / float64(time.Second))
+	return nil
 }
 
 func (dw *Dataway) sinkEnabled() bool {

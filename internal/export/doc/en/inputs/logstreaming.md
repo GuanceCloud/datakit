@@ -43,6 +43,10 @@ Note: If DataKit is deployed in Kubernetes as a daemonset, it can be accessed as
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable MD046 -->
 
+### JSON Fields Mode {#json-as-fields}
+
+Set `json_as_fields = true` in `[inputs.logstreaming]` to convert the JSON root object of each line for the default text type into fields. See [JSON Fields Mode](logging.md#json-as-fields) for the conversion rules. This setting does not apply to the `influxdb`, `firelens`, or `firehose` types and is not an HTTP URL parameter.
+
 ### Support Parameter {#args}
 
 logstreaming supports adding parameters to the HTTP URL to manipulate log data. The list of parameters is as follows:

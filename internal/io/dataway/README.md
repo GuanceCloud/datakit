@@ -43,7 +43,7 @@ Dataway 模块暴露如下 metrics：
 | datakit_io_dataway_point_total          | count   | dataway uploaded points, partitioned by category and send status(HTTP status)            | category,status     |
 | datakit_io_dataway_sink_point_total     | count   | dataway sink points, partitioned by category and point send status(HTTP status)          | category,status     |
 | datakit_io_dataway_sink_total           | count   | dataway sink count, partitioned by category.                                             | category            |
-| datakit_io_flush_failcache_bytes        | summary | IO flush fail-cache bytes(in gzip) summary                                               | category            |
+| datakit_io_flush_failcache_bytes        | summary | IO flush fail-cache bytes summary                                                        | category            |
 | datakit_io_dataway_not_sink_point_total | count   | dataway not-sinked points(condition or category not match)                               | category            |
 
 以下指标只会在开启 HTTP trace 的情况下才会暴露:

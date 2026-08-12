@@ -8,6 +8,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -24,10 +25,19 @@ import (
 )
 
 type dialtestingDebugRequest struct {
+	RequestID string                 `json:"request_id,omitempty"`
+	Type      string                 `json:"type,omitempty"`
 	Task      interface{}            `json:"task"`
 	TaskType  string                 `json:"task_type"`
+	Regions   []string               `json:"regions,omitempty"`
 	Variables map[string]dt.Variable `json:"variables"` // variable_id => variable
 }
+
+const dialtestingDebugDNSLookupTimeout = 15 * time.Second
+
+const dialtestingInternalNetworkDeniedMessage = "The internal network address does not support online testing. However, it can be saved and then used normally."
+
+var errDialtestingInternalNetworkDenied = errors.New(dialtestingInternalNetworkDeniedMessage)
 
 var (
 	DialtestingDisableInternalNetworkTask      = false
@@ -56,13 +66,7 @@ type dialtestingDebugResponse struct {
 }
 
 func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
-	var (
-		tid        = req.Header.Get(uhttp.XTraceID)
-		start      = time.Now()
-		ct         dt.TaskChild
-		traceroute string
-		status     = "success"
-	)
+	tid := req.Header.Get(uhttp.XTraceID)
 
 	reqDebug, err := getAPIDebugDialtestingRequest(req)
 	if err != nil {
@@ -70,6 +74,28 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
+	prepared, err := prepareDialtestingDebug(req.Context(), reqDebug, tid)
+	if err != nil {
+		l.Errorf("[%s] %s", tid, err.Error())
+		return nil, err
+	}
+
+	result, err := executeDialtestingDebug(prepared, tid)
+	if errors.Is(err, errDialtestingInternalNetworkDenied) {
+		return nil, uhttp.Error(ErrInvalidRequest, dialtestingInternalNetworkDeniedMessage)
+	}
+	return result, err
+}
+
+type preparedDialtestingDebug struct {
+	task     dt.ITask
+	taskType string
+}
+
+func prepareDialtestingDebug(
+	ctx context.Context, reqDebug *dialtestingDebugRequest, tid string,
+) (*preparedDialtestingDebug, error) {
+	var ct dt.TaskChild
 	taskType := strings.ToUpper(reqDebug.TaskType)
 	switch taskType {
 	case dt.ClassHTTP:
@@ -116,7 +142,7 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		if dialtestingNetPathDebugTaskSetup == nil {
 			return nil, uhttp.Error(ErrInvalidRequest, "NETPATH debug executor is not registered")
 		}
-		dialtestingNetPathDebugTaskSetup(req.Context(), netPathTask)
+		dialtestingNetPathDebugTaskSetup(ctx, netPathTask)
 	}
 
 	t.SetOption(map[string]string{"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
@@ -124,17 +150,6 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 
 	if strings.ToLower(t.Status()) == dt.StatusStop {
 		return nil, uhttp.Error(ErrInvalidRequest, "the task status is stop")
-	}
-
-	// check internal network
-	hostNames, err := t.GetHostName()
-	if err != nil {
-		l.Warnf("get host name error: %s", err.Error())
-	} else if isAllowed, err := IsAllowedHost(hostNames); err != nil {
-		return nil, uhttp.Errorf(ErrInvalidRequest, "dest host is not valid: %s", err.Error())
-	} else if !isAllowed {
-		return nil, uhttp.Error(ErrInvalidRequest,
-			"The internal network address does not support online testing. However, it can be saved and then used normally.")
 	}
 
 	// disable redirect
@@ -154,6 +169,35 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
+
+	return &preparedDialtestingDebug{task: t, taskType: taskType}, nil
+}
+
+func isAllowedDialtestingDebugHost(ctx context.Context, hosts []string) (bool, error) {
+	return isAllowedDialtestingDebugHostWithChecker(ctx, hosts, IsAllowedHostContext)
+}
+
+func isAllowedDialtestingDebugHostWithChecker(
+	ctx context.Context,
+	hosts []string,
+	checker func(context.Context, []string) (bool, error),
+) (bool, error) {
+	dnsCtx, cancel := context.WithTimeout(ctx, dialtestingDebugDNSLookupTimeout)
+	defer cancel()
+	return checker(dnsCtx, hosts)
+}
+
+func executeDialtestingDebug(prepared *preparedDialtestingDebug, tid string) (*dialtestingDebugResponse, error) {
+	if err := validateDialtestingDebugDestination(prepared.task); err != nil {
+		return nil, err
+	}
+
+	start := time.Now()
+	t := prepared.task
+	taskType := prepared.taskType
+	status := "success"
+	traceroute := ""
+
 	if err := defDialtestingMock.debugRun(t); err != nil {
 		if taskType == dt.ClassNetPath {
 			l.Errorf("[%s] NETPATH task %s run failed", tid, t.GetExternalID())
@@ -194,6 +238,25 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	}, nil
 }
 
+func validateDialtestingDebugDestination(task dt.ITask) error {
+	if !DialtestingDisableInternalNetworkTask {
+		return nil
+	}
+
+	hostNames, err := task.GetHostName()
+	if err != nil {
+		return uhttp.Errorf(ErrInvalidRequest, "get host name: %s", err.Error())
+	}
+	isAllowed, err := isAllowedDialtestingDebugHost(context.Background(), hostNames)
+	if err != nil {
+		return uhttp.Errorf(ErrInvalidRequest, "dest host is not valid: %s", err.Error())
+	}
+	if !isAllowed {
+		return errDialtestingInternalNetworkDenied
+	}
+	return nil
+}
+
 func getAPIDebugDialtestingRequest(req *http.Request) (*dialtestingDebugRequest, error) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -204,6 +267,9 @@ func getAPIDebugDialtestingRequest(req *http.Request) (*dialtestingDebugRequest,
 	if err := json.Unmarshal(body, &reqDebug); err != nil {
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
+	if reqDebug.TaskType == "" {
+		reqDebug.TaskType = reqDebug.Type
+	}
 
 	return &reqDebug, nil
 }
@@ -211,7 +277,20 @@ func getAPIDebugDialtestingRequest(req *http.Request) (*dialtestingDebugRequest,
 // IsInternalHost check whether the host is internal host.
 // if cidrs is not empty, check whether the host is in the cidrs.
 func IsInternalHost(host string, cidrs []string) (bool, error) {
-	ips, err := net.LookupIP(host)
+	return IsInternalHostContext(context.Background(), host, cidrs)
+}
+
+func IsInternalHostContext(ctx context.Context, host string, cidrs []string) (bool, error) {
+	return isInternalHostContext(ctx, host, cidrs, net.DefaultResolver.LookupIP)
+}
+
+func isInternalHostContext(
+	ctx context.Context,
+	host string,
+	cidrs []string,
+	lookupIP func(context.Context, string, string) ([]net.IP, error),
+) (bool, error) {
+	ips, err := lookupIP(ctx, "ip", host)
 	if err != nil {
 		return false, fmt.Errorf("lookup ip failed: %w", err)
 	}
@@ -246,8 +325,12 @@ func IsInternalHost(host string, cidrs []string) (bool, error) {
 
 // IsAllowedHost check whether the host is allowed to be tested.
 func IsAllowedHost(hosts []string) (bool, error) {
+	return IsAllowedHostContext(context.Background(), hosts)
+}
+
+func IsAllowedHostContext(ctx context.Context, hosts []string) (bool, error) {
 	return isAllowedHost(hosts, func(host string) (bool, error) {
-		return IsInternalHost(host, DialtestingDisabledInternalNetworkCidrList)
+		return IsInternalHostContext(ctx, host, DialtestingDisabledInternalNetworkCidrList)
 	})
 }
 
@@ -274,7 +357,10 @@ func init() { //nolint:gochecknoinits
 	parseDialtestingEnvs()
 
 	if DialtestingEnableDebugAPI {
+		defaultDialtestingDebugManager = newDialtestingDebugManager(loadDialtestingDebugConfigFromEnv())
 		RegHTTPRoute(http.MethodPost, "/v1/dialtesting/debug", apiDebugDialtestingHandler)
+		RegHTTPRoute(http.MethodPost, "/v1/dialtesting/debug/runs", apiCreateDialtestingDebugRun)
+		RegHTTPRoute(http.MethodGet, "/v1/dialtesting/debug/runs", apiGetDialtestingDebugRun)
 	}
 }
 

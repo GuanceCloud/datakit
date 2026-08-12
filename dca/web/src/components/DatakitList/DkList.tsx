@@ -19,6 +19,7 @@ import { AdditionColumnOptions } from './AdditionalColumnOptions/AdditionColumnO
 
 const { Text } = Typography;
 const maxRequestNumber = 10
+const searchDebounceDelay = 300
 
 interface DatakitListProps {
   workspace?: IWorkspace
@@ -52,6 +53,7 @@ function DatakitList({ updateDatakits }: Props) {
   const [modalFilterOpen, setModalFilterOpen] = useState(false)
   const [timer, setTimer] = useState<NodeJS.Timeout>()
   const [searchName, setSearchName] = useState("")
+  const [submittedSearchName, setSubmittedSearchName] = useState("")
   const [isSelectAll, setIsSelectAll] = useState(false)
   const [filterRelation, setFilterRelation] = useState('and')
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -92,10 +94,10 @@ function DatakitList({ updateDatakits }: Props) {
     return {
       pageIndex: pageQuery.pageIndex,
       pageSize: pageQuery.pageSize,
-      search: searchName,
+      search: submittedSearchName,
       filter: filterParams,
     }
-  }, [pageQuery, searchName, filterParams])
+  }, [pageQuery, submittedSearchName, filterParams])
   const initDatakitList = useCallback(async () => {
     setSelectedRowKeys([])
     setIsSelectAll(false)
@@ -107,6 +109,15 @@ function DatakitList({ updateDatakits }: Props) {
     getSearchValue()
 
   }, [initDatakitList, getSearchValue])
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      setPageQuery(prev => prev.pageIndex === 1 ? prev : { ...prev, pageIndex: 1 })
+      setSubmittedSearchName(searchName)
+    }, searchDebounceDelay)
+
+    return () => clearTimeout(debounceTimer)
+  }, [searchName])
 
   const [upgradeDatakit] = useLazyUpgradeDatakitQuery()
   const [getDatakitListByID] = useLazyGetDatakitListByIDQuery()
@@ -548,11 +559,18 @@ function DatakitList({ updateDatakits }: Props) {
     return filterItems?.filter(item => item.field && item.operator && item.value && item.value.length > 0).length || ""
   };
 
-  const searchDatakitList = (e?: React.KeyboardEvent<HTMLInputElement>) => {
-    setPageQuery({
-      ...pageQuery,
-      pageIndex: 1,
-    })
+  const searchDatakitList = () => {
+    if (searchName !== submittedSearchName) {
+      setPageQuery(prev => prev.pageIndex === 1 ? prev : { ...prev, pageIndex: 1 })
+      setSubmittedSearchName(searchName)
+      return
+    }
+
+    if (pageQuery.pageIndex !== 1) {
+      setPageQuery(prev => ({ ...prev, pageIndex: 1 }))
+      return
+    }
+
     initDatakitList()
   }
 
@@ -618,7 +636,7 @@ function DatakitList({ updateDatakits }: Props) {
             prefix={<SearchOutlined />}
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
-            onPressEnter={(e) => { searchDatakitList(e) }}
+            onPressEnter={searchDatakitList}
           />
         </div>
         <div className={styles['filter']}>

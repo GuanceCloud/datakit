@@ -383,8 +383,8 @@ func (ep *EndPoint) WritePointData(w *compact.Writer, b *compact.Body) error {
 		dynamicURL:         w.DynamicURL,
 		category:           cat,
 		contentType:        b.Enc().HTTPContentType(),
-		contentEncoding:    payloadContentEncoding(w.Gzip == 1),
-		sentEncodingLabel:  "gzip",
+		contentEncoding:    w.Compression.HTTPContentEncoding(),
+		sentEncodingLabel:  payloadMetricEncodingLabel(w.Compression.HTTPContentEncoding()),
 		body:               b.Buf(),
 		rawLen:             int(b.RawLen()),
 		points:             int(b.Npts()),
@@ -405,7 +405,7 @@ func (ep *EndPoint) WritePointData(w *compact.Writer, b *compact.Body) error {
 
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("post %d bytes to %s ok(gz: %v)", len(b.Buf()), requrl, w.Gzip)
+		l.Debugf("post %d bytes to %s ok(compression: %s)", len(b.Buf()), requrl, w.Compression)
 
 		// Send data ok, it means the error `beyond-usage` error is cleared by kodo server,
 		// we have to clear the hint in monitor too.
@@ -471,13 +471,6 @@ func (ep *EndPoint) WriteAggrData(data *AggrData) (*http.Response, []byte, error
 	}
 
 	return resp, body, err
-}
-
-func payloadContentEncoding(gzip bool) string {
-	if gzip {
-		return "gzip"
-	}
-	return ""
 }
 
 func payloadMetricEncodingLabel(contentEncoding string) string {

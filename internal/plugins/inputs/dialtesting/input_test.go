@@ -549,10 +549,14 @@ func TestDispatchTasks(t *testing.T) {
 		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
 
 		ipt := defaultInput()
+		ipt.DisableInternalNetworkTask = false
 		ipt.Browser = &BrowserDialConfig{
 			Enabled:    boolPtr(true),
 			Engine:     "lightpanda",
 			EnginePath: "/opt/browser/lightpanda",
+			CACertFile: "/etc/datakit/certs/internal-ca.pem",
+			CACertDir:  "/etc/datakit/certs/roots",
+			ProxyURL:   "http://proxy.example.com:8080",
 		}
 
 		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
@@ -584,6 +588,11 @@ func TestDispatchTasks(t *testing.T) {
 			browserTask := got.task.(*dialtesting.BrowserTask)
 			assert.Equal(t, "lightpanda", browserTask.AdvanceOptions.Engine)
 			assert.Equal(t, "/opt/browser/lightpanda", got.task.GetOption()["lightpanda_path"])
+			assert.Equal(t, "/etc/datakit/certs/internal-ca.pem", got.task.GetOption()["browser_ca_cert_file"])
+			assert.Equal(t, "/etc/datakit/certs/roots", got.task.GetOption()["browser_ca_cert_dir"])
+			assert.Equal(t, "http://proxy.example.com:8080", got.task.GetOption()["browser_proxy_url"])
+			assert.Empty(t, got.task.GetOption()["browser_block_private_network"])
+			assert.Empty(t, got.task.GetOption()["browser_block_cidrs"])
 		}
 
 		ipt.semStop.Close()
@@ -1231,6 +1240,9 @@ func TestReadEnv(t *testing.T) {
 			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":                     "true",
 			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE":                      "lightpanda",
 			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH":                 "/usr/bin/lightpanda",
+			"ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_FILE":                "/etc/datakit/certs/internal-ca.pem",
+			"ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_DIR":                 "/etc/datakit/certs/roots",
+			"ENV_INPUT_DIALTESTING_BROWSER_PROXY_URL":                   "http://proxy.example.com:8080",
 			"ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY":             "2",
 		})
 
@@ -1246,6 +1258,9 @@ func TestReadEnv(t *testing.T) {
 			assert.True(t, *ipt.Browser.Enabled)
 			assert.Equal(t, "lightpanda", ipt.Browser.Engine)
 			assert.Equal(t, "/usr/bin/lightpanda", ipt.Browser.EnginePath)
+			assert.Equal(t, "/etc/datakit/certs/internal-ca.pem", ipt.Browser.CACertFile)
+			assert.Equal(t, "/etc/datakit/certs/roots", ipt.Browser.CACertDir)
+			assert.Equal(t, "http://proxy.example.com:8080", ipt.Browser.ProxyURL)
 			assert.Equal(t, 2, ipt.Browser.MaxConcurrency)
 		}
 	})
@@ -1275,9 +1290,12 @@ func TestReadEnv(t *testing.T) {
 		ipt.Browser = nil
 
 		ipt.ReadEnv(map[string]string{
-			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":     "true",
-			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE":      "lightpanda",
-			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH": "/opt/browser/lightpanda",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":      "true",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE":       "lightpanda",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH":  "/opt/browser/lightpanda",
+			"ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_FILE": "/opt/browser/internal-ca.pem",
+			"ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_DIR":  "/opt/browser/certs",
+			"ENV_INPUT_DIALTESTING_BROWSER_PROXY_URL":    "http://proxy.example.com:8080",
 		})
 
 		if assert.NotNil(t, ipt.Browser) {
@@ -1285,6 +1303,9 @@ func TestReadEnv(t *testing.T) {
 			assert.True(t, *ipt.Browser.Enabled)
 			assert.Equal(t, "lightpanda", ipt.Browser.Engine)
 			assert.Equal(t, "/opt/browser/lightpanda", ipt.Browser.EnginePath)
+			assert.Equal(t, "/opt/browser/internal-ca.pem", ipt.Browser.CACertFile)
+			assert.Equal(t, "/opt/browser/certs", ipt.Browser.CACertDir)
+			assert.Equal(t, "http://proxy.example.com:8080", ipt.Browser.ProxyURL)
 		}
 	})
 
@@ -1515,8 +1536,77 @@ func TestInputHelpers(t *testing.T) {
 		assert.NotContains(t, ipt.SampleConfig(), `install_dir`)
 		assert.Contains(t, ipt.SampleConfig(), `engine = "lightpanda"`)
 		assert.Contains(t, ipt.SampleConfig(), `engine_path = ""`)
+		assert.Contains(t, ipt.SampleConfig(), `ca_cert_file = ""`)
+		assert.Contains(t, ipt.SampleConfig(), `ca_cert_dir = ""`)
+		assert.Contains(t, ipt.SampleConfig(), `proxy_url = ""`)
 		assert.Contains(t, ipt.SampleConfig(), `max_concurrency = 0`)
 		assert.Equal(t, "network", ipt.Catalog())
+	})
+
+	t.Run("normalize browser engine", func(t *testing.T) {
+		engine, err := normalizeBrowserEngine("")
+		assert.NoError(t, err)
+		assert.Equal(t, "lightpanda", engine)
+
+		engine, err = normalizeBrowserEngine("lightpanda")
+		assert.NoError(t, err)
+		assert.Equal(t, "lightpanda", engine)
+	})
+
+	t.Run("custom internal network CIDRs are passed to browser tasks", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Engine: "lightpanda"}
+		ipt.DisableInternalNetworkTask = true
+		ipt.DisabledInternalNetworkCIDRList = []string{"10.0.0.0/8", "192.168.0.0/16"}
+		task, err := dialtesting.NewTask(`{"name":"browser-cidr-test"}`, &dialtesting.BrowserTask{})
+		assert.NoError(t, err)
+		options := map[string]string{}
+		assert.NoError(t, ipt.applyBrowserOptions(task, options))
+		assert.Equal(t, "10.0.0.0/8,192.168.0.0/16", options["browser_block_cidrs"])
+		assert.Empty(t, options["browser_block_private_network"])
+	})
+
+	t.Run("private networks are blocked by default for browser tasks", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Engine: "lightpanda"}
+		ipt.DisableInternalNetworkTask = true
+		ipt.DisabledInternalNetworkCIDRList = nil
+		task, err := dialtesting.NewTask(`{"name":"browser-private-network-test"}`, &dialtesting.BrowserTask{})
+		assert.NoError(t, err)
+		options := map[string]string{}
+		assert.NoError(t, ipt.applyBrowserOptions(task, options))
+		assert.Equal(t, "true", options["browser_block_private_network"])
+		assert.Empty(t, options["browser_block_cidrs"])
+	})
+
+	t.Run("invalid browser engine configuration is rejected when enabled", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(true), Engine: "unsupported"}
+		assert.ErrorContains(t, ipt.validateBrowserConfig(), `unsupported browser engine "unsupported"`)
+	})
+
+	t.Run("invalid browser engine configuration is ignored when disabled", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(false), Engine: "unsupported"}
+		assert.NoError(t, ipt.validateBrowserConfig())
+	})
+
+	t.Run("invalid browser engine configuration is ignored on unsupported nodes", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSWindows
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(true), Engine: "unsupported"}
+		assert.NoError(t, ipt.validateBrowserConfig())
 	})
 
 	t.Run("available archs", func(t *testing.T) {

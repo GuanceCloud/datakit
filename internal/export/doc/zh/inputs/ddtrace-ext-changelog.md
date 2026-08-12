@@ -45,6 +45,17 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+## v1.65.0-ext (2026/8/7) {#cl-1.65.0-ext}
+
+### 更新 {#cl-1.65.0-ext-update}
+
+- 基于 DataDog `dd-trace-java` v1.65.0，合并上游功能更新与问题修复，并加入 GuanceCloud 定制内容。
+- 新增可配置的 HTTP 请求和响应 Header、Body 采集，支持捕获 JSON 响应体以及黑白名单过滤；响应可注入 `ext_trace_id`，便于关联前后端链路。
+- 支持 GWT RPC 请求体 tagging，并新增 JVM 线程状态、GC StatsD 指标以及 Netty Client SSE 响应流 span。
+- 新增 BES 应用服务器、Nacos 异步线程链路透传和基于包名配置的 Trace 方法级增强；改进 xxl-job、Java-WebSocket、RabbitMQ 等探针，并修复 Redis Lettuce/Redisson 集群的 split-by-host 处理。
+- 支持 Log4j2 2.7 日志 Pattern 替换；新增 Kafka 3.8+ 实验性开关 `dd.trace.experimental.kafka.enabled`；修复 Redis 和 RabbitMQ 客户端消息宿主命名。
+
+
 ## v1.63.7-ext (2026/7/1) {#cl-1.63.7-ext}
 
 ### 更新 {#cl-1.63.7-ext-fix}

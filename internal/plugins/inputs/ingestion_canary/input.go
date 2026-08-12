@@ -145,6 +145,8 @@ func (ipt *Input) initResultSender() error {
 
 	// Initialize dataway for reporting results
 	dw := dataway.NewDefaultDataway()
+	dw.Compression = config.Cfg.Dataway.Compression
+	dw.GZip = config.Cfg.Dataway.GZip
 	if err := dw.Init(); err != nil {
 		return fmt.Errorf("init result dataway failed: %w", err)
 	}

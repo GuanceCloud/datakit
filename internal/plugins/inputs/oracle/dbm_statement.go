@@ -9,16 +9,20 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cespare/xxhash/v2"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const (
 	metricNameOracleDbmMetric = "oracle_dbm_metric"
+	defaultQueryTextMaxBytes  = 512
+	maximumQueryTextMaxBytes  = 1024
 )
 
 type StatementMetricsDB struct {
@@ -114,9 +118,13 @@ type OracleRowMonotonicCount struct {
 }
 
 type OracleRow struct {
-	querySignature string
-	RawData        StatementMetricsDB
-	DeltaData      OracleRowMonotonicCount
+	querySignature      string
+	normalizedText      string
+	normalizedQueryHash string
+	queryText           string
+	queryTextTruncated  bool
+	RawData             StatementMetricsDB
+	DeltaData           OracleRowMonotonicCount
 }
 
 // isAllDeltasZero checks if all delta values in OracleRowMonotonicCount are zero.
@@ -165,6 +173,7 @@ func (ipt *Input) collectDbmMetric(ctx context.Context, ptsTime time.Time) ([]*O
 	if len(oracleRows) > maxQueries {
 		oracleRows = oracleRows[:maxQueries]
 	}
+	ipt.prepareNormalizedStatements(ctx, oracleRows)
 
 	l.Debugf("collectDbmMetric completed, sorted and filtered to top %d rows by elapsed time/cpu time/executions/buffer gets, total time taken: %s",
 		len(oracleRows), time.Since(start))
@@ -186,6 +195,46 @@ func (ipt *Input) collectDbmMetric(ctx context.Context, ptsTime time.Time) ([]*O
 		}
 	}
 	return oracleRows, nil
+}
+
+func (ipt *Input) prepareNormalizedStatements(ctx context.Context, rows []*OracleRow) {
+	// Normalization enriches legacy DBM rows and must not decide whether they are reported.
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseOracle)
+	queryTextMaxBytes := ipt.Dbm.Metric.QueryTextMaxBytes
+	if queryTextMaxBytes <= 0 || queryTextMaxBytes > maximumQueryTextMaxBytes {
+		queryTextMaxBytes = defaultQueryTextMaxBytes
+	}
+
+	for _, row := range rows {
+		if row == nil || row.querySignature == "" || row.RawData.SQLText == "" {
+			continue
+		}
+
+		sqlStatement := row.RawData.SQLText
+		if row.RawData.SQLTextLength >= MaxSQLFullTextVSQLStats {
+			var fullSQLText string
+			if err := ipt.getFullSQLText(ctx, &fullSQLText, "sql_id", row.RawData.SQLID); err != nil {
+				l.Warnf("failed to get full SQL text for sql_id %s: %v", row.RawData.SQLID, err)
+			}
+			if fullSQLText != "" {
+				sqlStatement = fullSQLText
+				row.RawData.SQLText = fullSQLText
+			}
+		}
+
+		normalized, err := normalizer.Normalize(sqlStatement)
+		if err != nil {
+			l.Warnf("failed to normalize SQL for query_signature %s: %v", row.querySignature, err)
+			continue
+		}
+		if normalized.Hash == "" {
+			continue
+		}
+
+		row.normalizedText = normalized.Text
+		row.normalizedQueryHash = normalized.Hash
+		row.queryText, row.queryTextTruncated = util.TruncateUTF8ByBytes(normalized.Text, queryTextMaxBytes)
+	}
 }
 
 func queryOracleRows(ipt *Input, ctx context.Context) ([]*OracleRow, error) {
@@ -389,6 +438,13 @@ func (ipt *Input) buildStatementPoints(rows []*OracleRow, ptsTime time.Time) []*
 
 		// Tags
 		kvs = kvs.AddTag("query_signature", row.querySignature)
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+			kvs = kvs.AddTag("query_truncated", strconv.FormatBool(row.queryTextTruncated))
+		}
+		if row.queryText != "" {
+			kvs = kvs.AddTag("query_text", row.queryText)
+		}
 		if row.RawData.ConID > 0 {
 			kvs = kvs.AddTag("con_id", fmt.Sprintf("%d", row.RawData.ConID))
 		}

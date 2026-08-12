@@ -16,22 +16,28 @@ import (
 )
 
 func URLParseChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
-	if len(funcExpr.Param) != 1 {
-		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
+		"key", "prefix",
+	}, 1); err != nil {
+		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
 	if funcExpr.Param[0].NodeType != ast.TypeIdentifier && funcExpr.Param[0].NodeType != ast.TypeAttrExpr {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"expect Identifier or AttrExpr, got %s", funcExpr.Param[0].NodeType), funcExpr.Param[0].StartPos())
 	}
+	if funcExpr.Param[1] != nil {
+		switch funcExpr.Param[1].NodeType { //nolint:exhaustive
+		case ast.TypeIdentifier, ast.TypeStringLiteral, ast.TypeAttrExpr:
+		default:
+			return runtime.NewRunError(ctx, fmt.Sprintf(
+				"expect StringLiteral or Identifier or AttrExpr, got %s",
+				funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())
+		}
+	}
 	return nil
 }
 
 func URLParse(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
-	if len(funcExpr.Param) != 1 {
-		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
-	}
 	if funcExpr.Param[0].NodeType != ast.TypeIdentifier && funcExpr.Param[0].NodeType != ast.TypeAttrExpr {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"expect Identifier or AttrExpr, got %s", funcExpr.Param[0].NodeType),
@@ -41,6 +47,20 @@ func URLParse(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
 	}
+
+	prefix := ""
+	if funcExpr.Param[1] != nil {
+		prefixVal, dtype, errR := runtime.RunStmt(ctx, funcExpr.Param[1])
+		if errR != nil {
+			return errR
+		}
+		if dtype != ast.String {
+			return runtime.NewRunError(ctx, "param data type expect string",
+				funcExpr.Param[1].StartPos())
+		}
+		prefix = prefixVal.(string)
+	}
+
 	u, err := ctx.GetKeyConv2Str(key)
 	if err != nil {
 		l.Debug(err)
@@ -58,11 +78,11 @@ func URLParse(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		params[k] = strings.Join(vs, ",")
 	}
 	res := map[string]any{
-		"scheme": uu.Scheme,
-		"host":   uu.Host,
-		"port":   uu.Port(),
-		"path":   uu.Path,
-		"params": params,
+		prefix + "scheme": uu.Scheme,
+		prefix + "host":   uu.Host,
+		prefix + "port":   uu.Port(),
+		prefix + "path":   uu.Path,
+		prefix + "params": params,
 	}
 	ctx.Regs.ReturnAppend(res, ast.Map)
 	return nil

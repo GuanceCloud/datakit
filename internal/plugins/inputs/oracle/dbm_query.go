@@ -6,6 +6,8 @@
 package oracle
 
 import (
+	"context"
+	"database/sql/driver"
 	"fmt"
 	"time"
 
@@ -15,8 +17,6 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
 )
 
 const (
@@ -36,6 +36,7 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":                     inputs.NewTagInfo("Object identifier generated from server:database_instance:query_signature"),
 			"query_signature":          inputs.NewTagInfo("Hash signature generated from pdb_name:query_hash to link metrics and objects"),
+			"normalized_query_hash":    inputs.NewTagInfo("Hash computed from the available normalized SQL text for cross-database and cross-user grouping"),
 			"server":                   inputs.NewTagInfo("The server address (host:port)"),
 			"database_instance":        inputs.NewTagInfo("Oracle instance identifier from configured tag or v$instance.host_name."),
 			"database_type":            inputs.NewTagInfo("The type of the database. The value is `Oracle`"),
@@ -75,7 +76,6 @@ func (ipt *Input) collectDbmQueries(oracleRows []*OracleRow, ptsTime time.Time) 
 	opts := append(point.DefaultObjectOptions(), point.WithTime(ptsTime))
 	var pts []*point.Point
 
-	obfuscator := obfuscate.NewObfuscator(obfuscate.Config{})
 	for _, row := range oracleRows {
 		// Use query signature from OracleRow
 		querySignature := row.querySignature
@@ -99,6 +99,9 @@ func (ipt *Input) collectDbmQueries(oracleRows []*OracleRow, ptsTime time.Time) 
 		}
 		kvs = kvs.AddTag("name", objectName)
 		kvs = kvs.AddTag("query_signature", querySignature)
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+		}
 		kvs = kvs.AddTag("server", ipt.Object.name)
 		kvs = kvs.AddTag("database_type", "Oracle")
 		if row.RawData.ConID > 0 {
@@ -119,24 +122,10 @@ func (ipt *Input) collectDbmQueries(oracleRows []*OracleRow, ptsTime time.Time) 
 			kvs = kvs.AddTag("sql_id", row.RawData.SQLID)
 		}
 
-		// Fields - obfuscate SQL text
-		sqlStatement := row.RawData.SQLText
-		// If SQL text is truncated (length == 1000), get full text from v$sql
-		if row.RawData.SQLTextLength == MaxSQLFullTextVSQLStats {
-			err := ipt.getFullSQLText(&sqlStatement, "sql_id", row.RawData.SQLID)
-			if err != nil {
-				l.Warnf("failed to get full SQL text for sql_id %s: %v", row.RawData.SQLID, err)
-			}
-		}
-
-		obfuscatedText := sqlStatement
-		if sqlStatement != "" {
-			obfResult, err := obfuscator.ObfuscateSQLString(sqlStatement)
-			if err != nil {
-				l.Warnf("failed to obfuscate SQL for query_signature %s: %v", querySignature, err)
-			} else {
-				obfuscatedText = obfResult.Query
-			}
+		// Reuse the normalized text prepared for query metrics.
+		obfuscatedText := row.normalizedText
+		if obfuscatedText == "" {
+			obfuscatedText = row.RawData.SQLText
 		}
 
 		kvs = kvs.Set("message", obfuscatedText)
@@ -166,7 +155,17 @@ func (ipt *Input) collectDbmQueries(oracleRows []*OracleRow, ptsTime time.Time) 
 }
 
 // getFullSQLText retrieves the full SQL text from v$sql when SQL text is truncated in v$sqlstats.
-func (ipt *Input) getFullSQLText(sqlStatement *string, key string, value string) error {
+func (ipt *Input) getFullSQLText(ctx context.Context, sqlStatement *string, key string, value string) error {
+	if key == "sql_id" && ipt.fullSQLTextCache != nil {
+		if cached, ok := ipt.fullSQLTextCache.Get(value); ok {
+			*sqlStatement = cached
+			return nil
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	// Initialize go-ora connection if not already initialized (lazy loading)
 	if ipt.goOraConnection == nil {
 		conn, err := ipt.connectGoOra()
@@ -180,7 +179,10 @@ func (ipt *Input) getFullSQLText(sqlStatement *string, key string, value string)
 	var sqlFullText go_ora.Clob
 	sql := fmt.Sprintf("BEGIN SELECT /* DK */ sql_fulltext INTO :sql_fulltext FROM v$sql WHERE %s = :v AND rownum = 1; END;", key)
 	queryStart := time.Now()
-	_, err := ipt.goOraConnection.Exec(sql, go_ora.Out{Dest: &sqlFullText, Size: 8000}, value)
+	_, err := ipt.goOraConnection.ExecContext(ctx, sql, []driver.NamedValue{
+		{Ordinal: 1, Value: go_ora.Out{Dest: &sqlFullText, Size: 8000}},
+		{Ordinal: 2, Value: value},
+	})
 	dbmSQLQueryDuration.WithLabelValues("query", "full_sql_text").Observe(time.Since(queryStart).Seconds())
 	if err != nil {
 		// Close connection on error so it will be recreated on next call
@@ -197,6 +199,9 @@ func (ipt *Input) getFullSQLText(sqlStatement *string, key string, value string)
 	}
 
 	*sqlStatement = sqlFullText.String
+	if key == "sql_id" && ipt.fullSQLTextCache != nil {
+		ipt.fullSQLTextCache.Add(value, sqlFullText.String)
+	}
 
 	return nil
 }

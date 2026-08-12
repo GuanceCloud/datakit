@@ -48,6 +48,16 @@ func TestEmpty(t *T.T) {
 	})
 }
 
+func TestJSONAsFieldsConfig(t *T.T) {
+	ipt := defaultInput()
+	_, err := bstoml.Decode(`json_as_fields = true`, ipt)
+	assert.NoError(t, err)
+	assert.True(t, ipt.JSONAsFields)
+
+	_, err = bstoml.Decode(`json_as_fields = "true"`, defaultInput())
+	assert.Error(t, err)
+}
+
 func TestMultilineCompatibility(t *T.T) {
 	t.Run("enable_multiline controls explicit and automatic patterns", func(t *T.T) {
 		ipt := defaultInput()

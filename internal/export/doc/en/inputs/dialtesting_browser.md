@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Browser dialtesting is a `BROWSER` task type under the `inputs.dialtesting` collector. It simulates page access through the Lightpanda browser engine, including opening pages, clicking elements, entering text, waiting for selectors, and asserting titles or text. It reports page performance, step details, and failure reasons. The Lightpanda engine currently does not support screenshots.
+Browser dialtesting is a `BROWSER` task type under the `inputs.dialtesting` collector. It simulates page access through the Lightpanda browser engine, including opening pages, clicking elements, entering text, waiting for selectors, and asserting titles or text. It reports page performance, step details, and failure reasons. The bundled Lightpanda build does not include screenshots.
 
 For basic dialtesting node configuration, see [Network Dialtesting](dialtesting.md). This page only describes browser-specific configuration, deployment, and troubleshooting.
 
@@ -35,14 +35,13 @@ Browser dialtesting is enabled by default. To configure it explicitly, set it in
 
 Browser dialtesting currently supports Linux dialtesting nodes only. On non-Linux platforms, DataKit service mode does not run `BROWSER` tasks even when `enabled = true` is configured, except when using local debug verification mode.
 
-DataKit runs `BROWSER` tasks with the embedded browser runner. The node environment must provide the Lightpanda browser engine. DataKit forces `BROWSER` tasks to use Lightpanda; task-level `advance_options.engine` is overwritten by the node configuration.
+DataKit runs `BROWSER` tasks with the embedded browser runner and the Lightpanda browser engine. Task-level `advance_options.engine` is overwritten by the node configuration. `[inputs.dialtesting.browser].engine` defaults to and currently only accepts `lightpanda`.
 
 DataKit resolves Lightpanda in the following order:
 
 1. `[inputs.dialtesting.browser].engine_path`
 1. `LIGHTPANDA_EXECUTABLE_PATH`
 1. `lightpanda` from `PATH`
-1. `~/.cache/lightpanda-node/lightpanda`
 
 Use `max_concurrency` to limit browser tasks running at the same time. `0` means no limit. On resource-limited nodes, `1` is recommended.
 
@@ -75,29 +74,24 @@ For host deployment, install Lightpanda on the dialtesting node first, then conf
 
 ### Install Lightpanda {#host-install-lightpanda}
 
-For Lightpanda installation methods, see the [official installation guide](https://lightpanda.io/docs/open-source/installation){:target="_blank"}. On Linux hosts, use the official installer:
+The DataKit image uses the GuanceCloud Lightpanda `0.3.6-g2` release. To install the same build on x86_64 Linux:
 
 ```shell
-curl -fsSL https://pkg.lightpanda.io/install.sh | bash
-```
-
-The DataKit testing image currently uses the GuanceCloud
-`0.3.6-g1` build. To install the same build on x86_64 Linux:
-
-```shell
-curl -L -o lightpanda \
-  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g1/lightpanda-x86_64-linux
-chmod a+x ./lightpanda
+curl -fL -o lightpanda \
+  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g2/lightpanda-x86_64-linux
+echo "c68f7f340252156fa954fa1e2603769e3fcdb1dd6d07bce9d8b9f034545f09ba  lightpanda" | sha256sum -c -
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
+rm lightpanda
 ```
 
 For arm64/aarch64 Linux, use:
 
 ```shell
-curl -L -o lightpanda \
-  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g1/lightpanda-aarch64-linux
-chmod a+x ./lightpanda
+curl -fL -o lightpanda \
+  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g2/lightpanda-aarch64-linux
+echo "76f13c2debc88b5b7de91dbb1a540c0de97189fa134a8c84369097f7551e2566  lightpanda" | sha256sum -c -
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
+rm lightpanda
 ```
 
 Verify the installation:
@@ -150,6 +144,43 @@ Restart DataKit after updating the configuration:
 ```shell
 sudo datakit service restart
 ```
+
+### Custom CA Certificates {#custom-ca-certificates}
+
+For sites whose certificates are issued by an enterprise or private CA, import the trusted CA used by Lightpanda on the dialtesting node:
+
+```toml
+[inputs.dialtesting.browser]
+  ca_cert_file = "/etc/datakit/certs/internal-ca.pem"
+  # ca_cert_dir = "/etc/datakit/certs"
+```
+
+Use PEM certificates. `ca_cert_dir` loads certificate files from a directory, and both settings can be used together. Paths must be absolute paths on the dialtesting node, and certificate files must not contain private keys.
+
+The equivalent environment variables are `ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_FILE` and `ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_DIR`. In Kubernetes, mount the CA certificate into the DataKit container through a ConfigMap or Secret and configure its in-container path.
+
+The imported CA does not disable TLS verification: the engine still verifies the certificate chain, hostname, and validity period. This is a node-level trust setting and cannot be overridden by an individual `BROWSER` task. Lightpanda itself replaces the active trust store when custom CA arguments are present, so DataKit passes a detected system CA directory and the configured custom CA file or directory as separate arguments. The system and custom certificate files remain in their original directories while both are loaded into the same in-memory trust store.
+
+### Private Network and Proxy {#private-network-and-proxy}
+
+DataKit blocks internal network targets by default. On a private dialtesting node that must access loopback, RFC1918, or link-local addresses, disable this restriction in the dialtesting input:
+
+```toml
+[[inputs.dialtesting]]
+  disable_internal_network_task = false
+```
+
+DataKit also passes this setting to Lightpanda. With the default `disable_internal_network_task = true` and no custom CIDR list, Lightpanda starts with `--block-private-networks`. When `disabled_internal_network_cidr_list` is configured, DataKit passes those exact ranges through `--block-cidrs` instead of blocking every private range. When `disable_internal_network_task` is `false`, Lightpanda allows private-network requests. No engine-specific environment variable is required.
+
+Lightpanda `0.3.6-g2` supports the following default HTTP proxy setting:
+
+```toml
+[inputs.dialtesting.browser]
+  proxy_url = "http://proxy.example.com:8080"
+  # proxy_url = "http://user:password@proxy.example.com:8080"
+```
+
+The equivalent environment variable is `ENV_INPUT_DIALTESTING_BROWSER_PROXY_URL`. Proxy precedence is: task `advance_options.proxy_url` > `proxy_url` in `browser_config` > node-level `browser.proxy_url`. If the proxy intercepts HTTPS traffic, import its CA through `ca_cert_file` or `ca_cert_dir` as well.
 
 ### Verify with a Local Task {#host-local-test}
 
@@ -243,7 +274,20 @@ Common `browser_config` fields:
 | `tags` | object | N | Custom tags |
 | `steps` | array | Y | Browser execution steps |
 
-`steps` can use actions and assertions such as `goto`, `click`, `input`, `wait_for_selector`, `assert_title`, `assert_url`, and `assert_text`.
+`steps` can use actions and assertions such as `goto`, `click`, `fill`, `wait_for_selector`, `wait_for_url`, `assert_title`, `assert_url`, and `assert_text`.
+
+`wait_for_url` accepts `contains`, `equals`, or `text` and polls until the URL matches or the step/script timeout expires. `assert_title`, `assert_url`, and `assert_text` always poll as well. A configured step `timeout_ms` takes precedence; otherwise the script timeout applies. DataKit uses a 60-second default step timeout. For example:
+
+```yaml
+- name: wait for dashboard redirect
+  action: wait_for_url
+  contains: https://console.example.com/dashboard
+  timeout_ms: 15000
+- name: assert dashboard title
+  action: assert_title
+  contains: Dashboard
+  timeout_ms: 5000
+```
 
 In the full task JSON, `browser_config` is inside the `BROWSER` task object:
 
@@ -264,7 +308,7 @@ In the full task JSON, `browser_config` is inside the `BROWSER` task object:
 
 ## Screenshot Support {#screenshot}
 
-The Lightpanda engine currently does not support screenshots. Even when `advance_options.screenshot_on_failure = true` is enabled, no `steps[].screenshot` is generated.
+The bundled Lightpanda build does not support screenshots. `advance_options.screenshot_on_failure` is ignored for Lightpanda tasks, and no `steps[].screenshot` is generated.
 
 ## Troubleshooting {#troubleshooting}
 
@@ -299,6 +343,6 @@ Troubleshoot common issues as follows:
 - Results are not reported: check that task `post_url` is reachable, and that `datakit_dialtesting_dataway_send_failed_number`, `datakit_dialtesting_worker_cached_points_number`, and `datakit_dialtesting_worker_dropped_points_number` do not keep increasing.
 - Browser fails to start: check that `engine_path`, `LIGHTPANDA_EXECUTABLE_PATH`, or `lightpanda` from `PATH` is accessible to the DataKit process.
 - Browser dependencies are missing: in Kubernetes, use the `datakit:<version>` image directly; on hosts, confirm that Lightpanda is installed correctly.
-- Screenshot is not uploaded: the Lightpanda engine currently does not generate screenshots.
+- Screenshot is not uploaded: the bundled Lightpanda build does not generate screenshots.
 
 Normally, the node can pull `BROWSER` tasks, `datakit_dialtesting_worker_send_points_number{status="ok"}` keeps increasing, and `datakit_dialtesting_dataway_send_failed_number`, `datakit_dialtesting_worker_cached_points_number`, and `datakit_dialtesting_worker_dropped_points_number` do not keep increasing.

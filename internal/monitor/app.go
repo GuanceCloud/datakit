@@ -30,7 +30,7 @@ var (
 	goroutineCols    = strings.Split(`Name|Running|Done|TotalCost`, "|")
 	httpAPIStatCols  = strings.Split(`API|Status|Total|Lat(avg)|Body(avg)`, "|")
 	filterRuleCols   = strings.Split("Cat|Total|Filtered(%)|Cost(avg)", "|")
-	dwptsStatCols    = strings.Split(`Cat|Points(ok/total)|Bytes(ok/total/gz)`, "|")
+	dwptsStatCols    = strings.Split(`Cat|Points(ok/total)|Bytes(ok/total/sent)`, "|")
 	dwCols           = strings.Split(`API|Status|Count|Lat(avg)|Retry`, "|")
 
 	moduleGoroutine = []string{"G", "goroutine"}

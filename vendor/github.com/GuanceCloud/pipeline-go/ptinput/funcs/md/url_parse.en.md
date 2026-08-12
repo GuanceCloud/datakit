@@ -1,12 +1,13 @@
 ### `url_parse()` {#fn-url-parse}
 
-Function prototype: `fn url_parse(key)`
+Function prototype: `fn url_parse(key, prefix: str = "")`
 
 Function description: parse the url whose field name is key.
 
 Function parameters:
 
 - `key`: field name of the url to parse.
+- `prefix`: Optional. Adds a custom prefix to the fixed keys (`scheme`, `host`, `port`, `path`, `params`) of the returned map to avoid conflicts with existing fields. It can also be passed as a named parameter, e.g. `url_parse(url, prefix="up_")`.
 
 Example:
 
@@ -22,6 +23,25 @@ add_key(scheme, m["scheme"])
 {
      "url": "https://www.baidu.com",
      "scheme": "https"
+}
+```
+
+Example with prefix:
+
+```python
+# Data to be processed: {"url": "https://www.baidu.com"}
+
+# process script
+json(_, url)
+m = url_parse(url, "up_")
+add_key(scheme, m["up_scheme"])
+add_key(h, m["up_host"])
+
+# process result
+{
+     "url": "https://www.baidu.com",
+     "scheme": "https",
+     "h": "www.baidu.com"
 }
 ```
 

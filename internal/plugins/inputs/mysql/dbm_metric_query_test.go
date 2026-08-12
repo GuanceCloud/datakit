@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 type mockDBMFeeder struct {
@@ -74,6 +76,22 @@ func TestMergeDuplicateRows(t *testing.T) {
 	}
 }
 
+func TestNormalizedQueryHashExcludesSchema(t *testing.T) {
+	normalized, err := util.NewSQLStatementNormalizer(util.SQLDatabaseMySQL).
+		Normalize("SELECT * FROM users WHERE id = ?")
+	assert.NoError(t, err)
+
+	assert.NotEmpty(t, normalized.Hash)
+	assert.NotEqual(t,
+		generateQuerySignature("app_a", normalized.Text),
+		generateQuerySignature("app_b", normalized.Text),
+	)
+	assert.Equal(t,
+		normalized.Hash,
+		util.ComputeNormalizedSQLHash(normalized.Text),
+	)
+}
+
 func TestGetMetricRowsSkipsCounterReset(t *testing.T) {
 	var snapshot map[string]dbmMetricCache
 
@@ -122,7 +140,9 @@ func TestBuildMysqlDbmMetric(t *testing.T) {
 		{
 			schemaName:           "app",
 			digest:               "digest-1",
+			digestText:           "SELECT * FROM app.orders WHERE id = ?",
 			querySignature:       "sig-1",
+			normalizedQueryHash:  "normalized-query-1",
 			countStar:            12,
 			sumTimerWait:         36000,
 			sumLockTime:          9000,
@@ -149,6 +169,7 @@ func TestBuildMysqlDbmMetric(t *testing.T) {
 	}
 
 	ipt := &Input{
+		DbmMetric: dbmMetric{QueryTextMaxBytes: 24},
 		mergedTags: map[string]string{
 			"server":            "127.0.0.1:3306",
 			"database_instance": "mysql-test",
@@ -168,6 +189,12 @@ func TestBuildMysqlDbmMetric(t *testing.T) {
 		assert.Equal(t, "app", tags.GetTag("schema_name"))
 		assert.Equal(t, "digest-1", tags.GetTag("digest"))
 		assert.Equal(t, "sig-1", tags.GetTag("query_signature"))
+		assert.Equal(t, "normalized-query-1", tags.GetTag("normalized_query_hash"))
+		assert.Equal(t, "SELECT * FROM app.orders", tags.GetTag("query_text"))
+		assert.Equal(t, "true", tags.GetTag("query_truncated"))
+		assert.Contains(t, (&dbmStateMeasurement{}).Info().Tags, "normalized_query_hash")
+		assert.Contains(t, (&dbmStateMeasurement{}).Info().Tags, "query_text")
+		assert.Contains(t, (&dbmStateMeasurement{}).Info().Tags, "query_truncated")
 
 		if countStar := fields.Get("count_star"); countStar != nil {
 			assert.Equal(t, uint64(12), countStar.Raw())
@@ -193,20 +220,21 @@ func TestBuildMysqlDbmSample(t *testing.T) {
 
 	pts, err := ipt.buildMysqlDbmSample([]planObj{
 		{
-			timestamp:       1700000000123,
-			duration:        987654,
-			currentSchema:   "app",
-			planDefinition:  `{"query_block":{"select_id":1}}`,
-			planSignature:   "plan-1",
-			querySignature:  "query-1",
-			statement:       "SELECT * FROM app.orders WHERE id = ?",
-			digest:          "digest-1",
-			lockTimeNs:      123,
-			noGoodIndexUsed: 1,
-			noIndexUsed:     0,
-			rowsAffected:    2,
-			rowsExamined:    3,
-			rowsSent:        4,
+			timestamp:           1700000000123,
+			duration:            987654,
+			currentSchema:       "app",
+			planDefinition:      `{"query_block":{"select_id":1}}`,
+			planSignature:       "plan-1",
+			querySignature:      "query-1",
+			normalizedQueryHash: "normalized-query-1",
+			statement:           "SELECT * FROM app.orders WHERE id = ?",
+			digest:              "digest-1",
+			lockTimeNs:          123,
+			noGoodIndexUsed:     1,
+			noIndexUsed:         0,
+			rowsAffected:        2,
+			rowsExamined:        3,
+			rowsSent:            4,
 		},
 	}, time.Unix(1700000000, 0))
 	assert.NoError(t, err)
@@ -225,6 +253,8 @@ func TestBuildMysqlDbmSample(t *testing.T) {
 		assert.Equal(t, "app", tags.GetTag("schema_name"))
 		assert.Equal(t, "plan-1", tags.GetTag("plan_signature"))
 		assert.Equal(t, "query-1", tags.GetTag("query_signature"))
+		assert.Equal(t, "normalized-query-1", tags.GetTag("normalized_query_hash"))
+		assert.Contains(t, (&dbmSampleMeasurement{}).Info().Tags, "normalized_query_hash")
 		assert.Equal(t, "digest-1", tags.GetTag("digest"))
 
 		if message := fields.Get("message"); message != nil {
@@ -252,10 +282,11 @@ func TestCollectMysqlDbmQueriesDeduplicates(t *testing.T) {
 
 	rows := []dbmRow{
 		{
-			schemaName:     "app",
-			digest:         "digest-1",
-			digestText:     "SELECT ?",
-			querySignature: "query-1",
+			schemaName:          "app",
+			digest:              "digest-1",
+			digestText:          "SELECT ?",
+			querySignature:      "query-1",
+			normalizedQueryHash: "normalized-query-1",
 		},
 		{
 			schemaName:     "app",
@@ -281,10 +312,39 @@ func TestCollectMysqlDbmQueriesDeduplicates(t *testing.T) {
 		assert.Equal(t, "MySQL", tags.GetTag("database_type"))
 		assert.Equal(t, "app", tags.GetTag("schema_name"))
 		assert.Equal(t, "query-1", tags.GetTag("query_signature"))
+		assert.Equal(t, "normalized-query-1", tags.GetTag("normalized_query_hash"))
+		assert.Contains(t, (&dbmQueryObjectMeasurement{}).Info().Tags, "normalized_query_hash")
 		assert.Equal(t, "digest-1", tags.GetTag("digest"))
 
 		if message := fields.Get("message"); message != nil {
 			assert.Equal(t, "SELECT ?", message.Raw())
 		}
 	}
+}
+
+func TestObfuscateRowNormalizedQueryHash(t *testing.T) {
+	assert.Contains(t, (&dbmActivityMeasurement{}).Info().Tags, "normalized_query_hash")
+
+	t.Run("digest text", func(t *testing.T) {
+		row, ok := obfuscateRow(activityRow{
+			CurrentSchema: sql.NullString{String: "app", Valid: true},
+			SQLText:       sql.NullString{String: "SELECT * FROM users WHERE id = 42", Valid: true},
+			DigestText:    sql.NullString{String: "SELECT * FROM users WHERE id = ?", Valid: true},
+		}, util.NewSQLStatementNormalizer(util.SQLDatabaseMySQL))
+
+		assert.True(t, ok)
+		assert.NotEmpty(t, row.NormalizedQueryHash)
+		assert.Equal(t, row.NormalizedQueryHash, util.ComputeNormalizedSQLHash(row.DigestText.String))
+	})
+
+	t.Run("sql text fallback", func(t *testing.T) {
+		row, ok := obfuscateRow(activityRow{
+			CurrentSchema: sql.NullString{String: "app", Valid: true},
+			SQLText:       sql.NullString{String: "SELECT * FROM users WHERE id = 42", Valid: true},
+		}, util.NewSQLStatementNormalizer(util.SQLDatabaseMySQL))
+
+		assert.True(t, ok)
+		assert.NotEmpty(t, row.NormalizedQueryHash)
+		assert.Equal(t, row.NormalizedQueryHash, util.ComputeNormalizedSQLHash(row.SQLText.String))
+	})
 }

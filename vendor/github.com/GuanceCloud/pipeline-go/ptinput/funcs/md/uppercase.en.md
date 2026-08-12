@@ -14,7 +14,8 @@ Example:
 # Data to be processed: {"first": "hello","second":2,"third":"aBC","forth":true}
 
 # process script
-json(_, first) uppercase(first)
+json(_, first)
+uppercase(first)
 
 # process result
 {

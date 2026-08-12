@@ -2,6 +2,7 @@ package funcs
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -102,9 +103,19 @@ func filterURL(urlStr string, disable bool, cidrs, hosts []string) bool {
 
 func HTTPRequestChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
-		"method", "url", "headers", "body",
+		"method", "url", "headers", "body", "prefix",
 	}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
+	}
+
+	if funcExpr.Param[4] != nil {
+		switch funcExpr.Param[4].NodeType { //nolint:exhaustive
+		case ast.TypeIdentifier, ast.TypeStringLiteral, ast.TypeAttrExpr:
+		default:
+			return runtime.NewRunError(ctx, fmt.Sprintf(
+				"expect StringLiteral or Identifier or AttrExpr, got %s",
+				funcExpr.Param[4].NodeType), funcExpr.Param[4].StartPos())
+		}
 	}
 
 	return nil
@@ -128,6 +139,19 @@ func HTTPRequest(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if urlType != ast.String {
 		return runtime.NewRunError(ctx, "param data type expect string",
 			funcExpr.Param[1].StartPos())
+	}
+
+	var prefix string
+	if funcExpr.Param[4] != nil {
+		prefixVal, prefixType, errP := runtime.RunStmt(ctx, funcExpr.Param[4])
+		if errP != nil {
+			return errP
+		}
+		if prefixType != ast.String {
+			return runtime.NewRunError(ctx, "param data type expect string",
+				funcExpr.Param[4].StartPos())
+		}
+		prefix = prefixVal.(string)
 	}
 
 	if filterURL(url.(string), gDisableInternalNet, gCIDRsWhitelist, gHostWhitelist) {
@@ -191,8 +215,8 @@ func HTTPRequest(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	}
 
 	respData := map[string]interface{}{
-		"status_code": resp.StatusCode,
-		"body":        string(body),
+		prefix + "status_code": resp.StatusCode,
+		prefix + "body":        string(body),
 	}
 	ctx.Regs.ReturnAppend(respData, ast.Map)
 

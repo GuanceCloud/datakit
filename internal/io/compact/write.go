@@ -54,15 +54,9 @@ func WithCacheClean(on bool) WriteOption {
 	}
 }
 
-func WithGzip(on GzipFlag) WriteOption {
+func WithCompression(compression Compression) WriteOption {
 	return func(w *Writer) {
-		w.Gzip = on
-	}
-}
-
-func WithGzipDuringBuildBody(on bool) WriteOption {
-	return func(w *Writer) {
-		w.gzipDuringBuildBody = on
+		w.Compression = compression
 	}
 }
 
@@ -112,12 +106,11 @@ type Writer struct {
 	Callback bodyCallback
 
 	HTTPEncoding point.Encoding
+	Compression  Compression
 
-	Gzip GzipFlag
 	CacheClean,
 	CacheAll,
-	NoWAL,
-	gzipDuringBuildBody bool
+	NoWAL bool
 
 	HTTPHeaders map[string]string
 
@@ -129,11 +122,10 @@ func (w *Writer) reset() {
 	w.DynamicURL = ""
 	w.IndexName = ""
 	w.Points = w.Points[:0]
-	w.Gzip = GzipNotSet
+	w.Compression = CompressionUnknown
 	w.CacheClean = false
 	w.CacheAll = false
 	w.NoWAL = false
-	w.gzipDuringBuildBody = false
 	w.batchBytesSize = defaultBatchSize
 	w.batchSize = 0
 	w.Callback = nil

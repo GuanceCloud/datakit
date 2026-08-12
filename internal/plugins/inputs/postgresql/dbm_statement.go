@@ -9,6 +9,7 @@ import (
 	"context"
 	// nolint:gosec
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,8 +17,12 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
+)
 
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
+const (
+	defaultQueryTextMaxBytes = 512
+	maximumQueryTextMaxBytes = 1024
 )
 
 var (
@@ -95,18 +100,22 @@ var statStatementsDeltaColumns = map[string]string{
 }
 
 type dbmMetric struct {
-	Enabled  bool             `toml:"enabled"`
-	Interval datakit.Duration `toml:"interval"`
+	Enabled           bool             `toml:"enabled"`
+	Interval          datakit.Duration `toml:"interval"`
+	QueryTextMaxBytes int              `toml:"query_text_max_bytes"`
 }
 
 type dbmMetricRow struct {
-	db             string
-	rolname        string
-	queryID        string
-	querySignature string
-	message        string
-	metrics        map[string]float64
-	deltas         map[string]float64
+	db                  string
+	rolname             string
+	queryID             string
+	querySignature      string
+	normalizedQueryHash string
+	queryText           string
+	queryTextTruncated  bool
+	message             string
+	metrics             map[string]float64
+	deltas              map[string]float64
 }
 
 type dbmMetricValueCache struct {
@@ -240,11 +249,11 @@ func (ipt *Input) collectDbmMetricRows() ([]dbmMetricRow, error) {
 	}
 
 	dbmRows := make([]dbmMetricRow, 0, 256)
-	o := obfuscate.NewObfuscator(obfuscate.Config{
-		SQL: obfuscate.SQLConfig{
-			DBMS: obfuscate.DBMSPostgres,
-		},
-	})
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabasePostgreSQL)
+	queryTextMaxBytes := ipt.DbmMetric.QueryTextMaxBytes
+	if queryTextMaxBytes <= 0 || queryTextMaxBytes > maximumQueryTextMaxBytes {
+		queryTextMaxBytes = defaultQueryTextMaxBytes
+	}
 	for rows.Next() {
 		columnMap, err := ipt.service.GetColumnMap(rows, columns)
 		if err != nil {
@@ -267,12 +276,14 @@ func (ipt *Input) collectDbmMetricRows() ([]dbmMetricRow, error) {
 				if query == "" {
 					continue
 				}
-				obfResult, err := o.ObfuscateSQLString(query)
+				normalized, err := normalizer.Normalize(query)
 				if err != nil {
-					l.Warnf("obfuscate dbm metric sql failed: %s, query: %s", err.Error(), query)
+					l.Warnf("normalize dbm metric sql failed: %s", err.Error())
 					continue
 				}
-				row.message = obfResult.Query
+				row.message = normalized.Text
+				row.normalizedQueryHash = normalized.Hash
+				row.queryText, row.queryTextTruncated = util.TruncateUTF8ByBytes(normalized.Text, queryTextMaxBytes)
 			case "datname":
 				row.db = interfaceToString(*v)
 			case "rolname":
@@ -284,6 +295,9 @@ func (ipt *Input) collectDbmMetricRows() ([]dbmMetricRow, error) {
 			}
 		}
 
+		if row.normalizedQueryHash == "" {
+			continue
+		}
 		row.querySignature = generateQuerySignature(row.db, row.rolname, row.message)
 
 		dbmRows = append(dbmRows, row)
@@ -360,6 +374,13 @@ func (ipt *Input) buildDbmMetricPoints(rows []dbmMetricRow, ptsTime time.Time) (
 			kvs = kvs.AddTag("queryid", row.queryID)
 		}
 		kvs = kvs.AddTag("query_signature", row.querySignature)
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+			kvs = kvs.AddTag("query_truncated", strconv.FormatBool(row.queryTextTruncated))
+		}
+		if row.queryText != "" {
+			kvs = kvs.AddTag("query_text", row.queryText)
+		}
 
 		for k, v := range row.metrics {
 			kvs = kvs.Set(k, v)

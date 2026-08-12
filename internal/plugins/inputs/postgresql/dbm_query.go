@@ -40,6 +40,9 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"rolname":           inputs.NewTagInfo("The role name"),
 			"queryid":           inputs.NewTagInfo("The query ID reported by pg_stat_statements, if available."),
 			"query_signature":   inputs.NewTagInfo("The hash signature computed from db, rolname, and normalized query text."),
+			"normalized_query_hash": inputs.NewTagInfo(
+				"Hash computed from the complete normalized SQL text for cross-database and cross-user grouping.",
+			),
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -96,6 +99,9 @@ func (ipt *Input) collectDbmQueries(rows []dbmMetricRow, ptsTime time.Time) {
 			kvs = kvs.AddTag("queryid", row.queryID)
 		}
 		kvs = kvs.AddTag("query_signature", row.querySignature)
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+		}
 		kvs = kvs.Set("message", row.message)
 
 		pts = append(pts, point.NewPoint(dbmQueryObjectMeasurementID, kvs, opts...))

@@ -39,6 +39,7 @@ func Open(opts ...CacheOption) (*DiskCache, error) {
 	if err := c.doOpen(); err != nil {
 		return nil, WrapOpenError(err, c.path).WithDetails("failed_to_open_diskcache")
 	}
+	c.initMetrics()
 
 	defer func() {
 		c.labels = append(c.labels,

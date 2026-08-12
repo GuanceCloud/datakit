@@ -329,6 +329,37 @@ describe('DkList', () => {
     });
   });
 
+  it('debounces rapid search input changes into one list query', async () => {
+    jest.useFakeTimers();
+
+    try {
+      render(<DkList updateDatakits={mockUpdateDatakits} />);
+
+      const initialListCalls = mockQueryDatakitList.mock.calls.length;
+      const searchInput = screen.getByPlaceholderText('search_host_ip');
+
+      fireEvent.change(searchInput, { target: { value: 'h' } });
+      fireEvent.change(searchInput, { target: { value: 'ho' } });
+      fireEvent.change(searchInput, { target: { value: 'host' } });
+
+      expect(mockQueryDatakitList).toHaveBeenCalledTimes(initialListCalls);
+
+      act(() => {
+        jest.advanceTimersByTime(299);
+      });
+      expect(mockQueryDatakitList).toHaveBeenCalledTimes(initialListCalls);
+
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+
+      expect(mockQueryDatakitList).toHaveBeenCalledTimes(initialListCalls + 1);
+      expect(mockQueryDatakitList).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'host' }));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('navigates to the runinfo page from the management action', async () => {
     render(<DkList updateDatakits={mockUpdateDatakits} />);
 

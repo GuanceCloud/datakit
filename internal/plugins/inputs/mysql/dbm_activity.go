@@ -17,8 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const maxPayloadBytes = 19e6
@@ -397,6 +396,9 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"host":              &inputs.TagInfo{Desc: "The server host address"},
 			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"database_instance": &inputs.TagInfo{Desc: "MySQL instance identifier from configured tag or @@server_uuid."},
+			"normalized_query_hash": &inputs.TagInfo{
+				Desc: "Hash computed from the available normalized SQL text for linking activity to query metrics.",
+			},
 		},
 	}
 }
@@ -428,6 +430,9 @@ func (ipt *Input) metricCollectMysqlDbmActivity(connections []connectionRow) ([]
 		}
 
 		kvs = kvs.Set("query_signature", activity.QuerySignature)
+		if activity.NormalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", activity.NormalizedQueryHash)
+		}
 		kvs = kvs.Set("message", message)
 		kvs = kvs.Set("thread_id", activity.ThreadID.String)
 		kvs = kvs.Set("processlist_id", activity.ProcesslistID.String)
@@ -519,6 +524,7 @@ func getActiveConnections(i *Input) (connectionRows []connectionRow) {
 
 type activityRow struct {
 	QuerySignature        string         `json:"query_signature"`
+	NormalizedQueryHash   string         `json:"normalized_query_hash,omitempty"`
 	ThreadID              sql.NullString `json:"thread_id"`
 	ProcesslistID         sql.NullString `json:"processlist_id"`
 	ProcesslistUser       sql.NullString `json:"processlist_user"`
@@ -631,8 +637,7 @@ func getActivityRows(i *Input) (activityRows []activityRow) {
 
 func getNormalLizeActivityRows(rows activityRowSlice) activityRowSlice {
 	sort.Sort(rows)
-	// Create a fresh obfuscator per normalization run to avoid shared state across inputs.
-	o := newMySQLSQLObfuscator()
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseMySQL)
 
 	// Deduplicate rows per thread, keeping only the most recent statement per thread,
 	// following the Datadog activity normalization logic.
@@ -663,7 +668,7 @@ func getNormalLizeActivityRows(rows activityRowSlice) activityRowSlice {
 			}
 		}
 
-		obfuscatedRow, ok := obfuscateRow(row, o)
+		obfuscatedRow, ok := obfuscateRow(row, normalizer)
 		if !ok {
 			continue
 		}
@@ -701,32 +706,34 @@ func eliminateDuplicateActivityRows(rows activityRowSlice, secondPass map[string
 	return filtered
 }
 
-func obfuscateRow(row activityRow, o *obfuscate.Obfuscator) (activityRow, bool) {
-	var obfSQLResult, obfDigestResult *obfuscate.ObfuscatedQuery
+func obfuscateRow(row activityRow, normalizer *util.SQLStatementNormalizer) (activityRow, bool) {
+	var normalizedSQL, normalizedDigest util.NormalizedStatement
 	var err error
 
 	if row.SQLText.Valid && len(row.SQLText.String) > 0 {
-		obfSQLResult, err = o.ObfuscateSQLString(row.SQLText.String)
+		normalizedSQL, err = normalizer.Normalize(row.SQLText.String)
 		if err != nil {
-			l.Warnf("obfuscate sql text failed: %s, sql: %s", err.Error(), row.SQLText.String)
+			l.Warnf("obfuscate sql text failed: %s", err.Error())
 			return row, false
 		}
-		row.SQLText.String = obfSQLResult.Query
+		row.SQLText.String = normalizedSQL.Text
 	}
 
 	if row.DigestText.Valid && len(row.DigestText.String) > 0 {
-		obfDigestResult, err = o.ObfuscateSQLString(row.DigestText.String)
+		normalizedDigest, err = normalizer.Normalize(row.DigestText.String)
 		if err != nil {
-			l.Warnf("obfuscate digest text failed: %s, digest: %s", err.Error(), row.DigestText.String)
+			l.Warnf("obfuscate digest text failed: %s", err.Error())
 			return row, false
 		}
-		row.DigestText.String = obfDigestResult.Query
+		row.DigestText.String = normalizedDigest.Text
 	}
 
 	if row.DigestText.Valid && len(row.DigestText.String) > 0 {
 		row.QuerySignature = generateQuerySignature(row.CurrentSchema.String, row.DigestText.String)
+		row.NormalizedQueryHash = normalizedDigest.Hash
 	} else if row.SQLText.Valid && len(row.SQLText.String) > 0 {
 		row.QuerySignature = generateQuerySignature(row.CurrentSchema.String, row.SQLText.String)
+		row.NormalizedQueryHash = normalizedSQL.Hash
 	}
 
 	return row, true

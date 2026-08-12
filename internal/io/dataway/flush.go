@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -138,14 +139,9 @@ func (f *flusher) start() {
 }
 
 func (f *flusher) do(b *compact.Body, opts ...compact.WriteOption) error {
-	gzOn := compact.GzipNotSet
-	if f.dw.GZip {
-		gzOn = compact.GzipSet
-	}
-
 	w := compact.GetWriter(
 		compact.WithHTTPEncoding(b.Enc()),
-		compact.WithGzip(gzOn),
+		compact.WithCompression(f.dw.compression),
 		compact.WithCacheAll(true), // cache all data into fail-cache
 		compact.WithCategory(b.Cat()),
 	)
@@ -163,44 +159,29 @@ func (dw *Dataway) doFlush(w *compact.Writer, b *compact.Body, opts ...compact.W
 	//
 	// These headers comes from fail-cache, so we reuse them, it's import for sinked body.
 	for _, h := range b.GetHeaders() {
+		if strings.EqualFold(h.Key, "Content-Encoding") {
+			continue
+		}
 		compact.WithHTTPHeader(h.Key, h.Value)(w)
 	}
 
-	isGzip := "F"
-	if w.CacheClean {
-		isGzip = "T" // fail-cache always gzipped before HTTP POST
-	}
-
-	if dw.GZip && !w.CacheClean { // under cacheClean, all body has been gzipped during previous POST
-		var (
-			zstart = time.Now()
-			gz     = compact.GetZipper()
-		)
-
-		isGzip = "T"
-		defer compact.PutZipper(gz)
-
-		if zbuf, err := gz.Zip(b.Buf()); err != nil {
-			l.Errorf("gzip: %s", err.Error())
-			return err
-		} else {
-			ncopy := copy(b.SendBuf, zbuf)
-			l.Debugf("copy %d(origin: %d) zipped bytes to buf", ncopy, len(b.Buf()))
-			b.CacheData.Payload = b.SendBuf[:ncopy]
-		}
-
-		compact.BuildBodyCostVec.WithLabelValues(
-			w.Category.String(),
-			w.HTTPEncoding.String(),
-			"gzip",
-		).Observe(float64(time.Since(zstart)) / float64(time.Second))
-	}
-
 	defer func() {
+		isGzip := "F"
+		if b.ContentEncoding() == compact.CompressionGzip {
+			isGzip = "T"
+		}
+		compression := b.ContentEncoding().String()
+		if compression == "" {
+			compression = "unknown"
+		}
 		// NOTE: for multiple dw.eps, here only 1 flush metric.
 		walWorkerFlush.WithLabelValues(
 			b.Cat().Alias(),
 			isGzip,
+			b.From.String()).Observe(float64(len(b.Buf())))
+		walWorkerFlushByCompression.WithLabelValues(
+			b.Cat().Alias(),
+			compression,
 			b.From.String()).Observe(float64(len(b.Buf())))
 
 		// b always comes from pool, no matter from disk queue or mem queue.
@@ -268,6 +249,7 @@ func (dw *Dataway) doFlush(w *compact.Writer, b *compact.Body, opts ...compact.W
 }
 
 func (dw *Dataway) dumpFailCache(b *compact.Body) error {
+	b.PersistContentEncoding()
 	if x, err := b.Dump(); err != nil {
 		return err
 	} else {

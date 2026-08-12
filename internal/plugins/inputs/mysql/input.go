@@ -1263,9 +1263,10 @@ func defaultInput() *Input {
 			},
 		},
 		DbmMetric: dbmMetric{
-			Enabled:  true,
-			Interval: datakit.Duration{Duration: 60 * time.Second},
-			Limit:    10000,
+			Enabled:           true,
+			Interval:          datakit.Duration{Duration: 60 * time.Second},
+			Limit:             10000,
+			QueryTextMaxBytes: defaultQueryTextMaxBytes,
 		},
 		DbmSample: dbmSample{
 			Enabled:               true,

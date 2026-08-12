@@ -298,6 +298,9 @@ func (ipt *Input) buildMysqlDbmSample(plans []planObj, ptsTime time.Time) ([]*gc
 		kvs = kvs.AddTag("schema_name", plan.currentSchema)
 		kvs = kvs.AddTag("plan_signature", plan.planSignature)
 		kvs = kvs.AddTag("query_signature", plan.querySignature)
+		if plan.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", plan.normalizedQueryHash)
+		}
 		kvs = kvs.AddTag("digest", plan.digest)
 
 		// fields (only core timing / rows / index usage, plus plan text)

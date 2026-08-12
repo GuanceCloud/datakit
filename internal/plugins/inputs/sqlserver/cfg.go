@@ -122,6 +122,8 @@ var (
     # Maximum runtime in seconds for plan collection (default: 30)
     # If collection takes longer than this, plan collection will be skipped
     max_run_time = 30
+    # Maximum number of normalized SQL bytes stored in the query_text tag (default: 512, maximum: 1024)
+    query_text_max_bytes = 512
 
   ## Config DBM activity (current active queries)
   ## Collects information about currently executing queries and active sessions
@@ -236,6 +238,7 @@ type dbmConfig struct {
 // dbmMetricConfig represents DBM metric (query metrics) configuration.
 type dbmMetricConfig struct {
 	Enabled                  bool             `toml:"enabled"`
+	QueryTextMaxBytes        int              `toml:"query_text_max_bytes"`
 	CollectionInterval       datakit.Duration `toml:"collection_interval"`
 	DmExecQueryStatsRowLimit int              `toml:"dm_exec_query_stats_row_limit"`
 	MaxQueries               int              `toml:"max_queries"`

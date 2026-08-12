@@ -1256,6 +1256,40 @@ HTTP Code: 400
 }
 ```
 
+### `/v1/dialtesting/debug/runs` {#api-debug-dt-runs}
+
+提交异步拨测调试任务。该接口与同步调试接口共用 `ENV_INPUT_DIALTESTING_ENABLE_DEBUG_API` 开关。
+
+```http
+POST /v1/dialtesting/debug/runs HTTP/1.1
+Content-Type: application/json
+X-Dialing-Debug-Owner: workspace_uuid:account_uuid
+X-Trace-ID: trace_id
+
+{
+  "request_id": "2df08a9c-d949-4db9-bf6f-bc4992d4c140",
+  "task_type": "http",
+  "task": {},
+  "variables": {}
+}
+```
+
+`request_id` 必须是 UUID v4。同一 owner、request ID 和规范化请求内容重复提交时返回原 run；同一 request ID 在准备中收到相同内容的并发请求时只准备一次，并向所有请求返回同一个 run。同一 request ID 携带不同内容时返回 `400 InvalidTask`。准备中与排队中的任务共用容量限制，容量已满时不再执行任务准备，直接返回 `429 ServerUnavailable`。DataKit 在任务执行前校验内网目标，DNS 校验使用固定 15 秒超时；校验失败时 run 进入 `failed`。
+
+```json
+{
+  "content": {
+    "run_id": "9f6f8bea-ece2-455f-92ac-e535638f7364",
+    "status": "pending",
+    "expires_at": 1785137413
+  }
+}
+```
+
+使用 `GET /v1/dialtesting/debug/runs?run_id={run_id}&wait=5` 查询任务。`run_id` 必须是 UUID v4。`wait` 单位为秒，默认 5，必须为非负数，最大按 10 秒处理；状态发生变化时会提前返回。
+
+状态包括 `pending`、`running`、`completed`、`timed_out` 和 `failed`。完成响应的 `result` 与同步调试接口的完整结果合同一致；断言失败和目标不可达属于正常完成的拨测结果，不属于异步执行失败。`timed_out` 仅表示排队时间超过上限。终态结果默认最多保留 10 分钟，可通过 `ENV_DIALTESTING_DEBUG_RESULT_TTL` 调整最长保留时间。终态任务数量超过 `ENV_DIALTESTING_DEBUG_MAX_RETAINED_TERMINAL_RUNS` 时，DataKit 优先淘汰最早结果。`expires_at` 是按 TTL 计算的最晚保留时间，容量淘汰时不保证保留至该时间。结果过期、被淘汰、任务不存在或 owner 不匹配时均返回 `404 RunNotFound`；执行前发现内网目标时返回 `400 InternalNetworkDenied`；其他执行器失败返回 `500 ExecutionFailed`。
+
 ## 信息查询类接口 {#query-apis}
 
 ### `/v1/env_variable` {#api-env-variable}

@@ -31,26 +31,46 @@ var geoDefaultVal = "unknown"
 // }
 
 func GeoIPChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
-	if len(funcExpr.Param) != 1 {
-		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"func `%s' expected 1 args", funcExpr.Name), funcExpr.NamePos)
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
+		"ip", "prefix",
+	}, 1); err != nil {
+		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
 
 	if _, err := getKeyName(funcExpr.Param[0]); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
 	}
 
+	if funcExpr.Param[1] != nil {
+		switch funcExpr.Param[1].NodeType { //nolint:exhaustive
+		case ast.TypeIdentifier, ast.TypeStringLiteral, ast.TypeAttrExpr:
+		default:
+			return runtime.NewRunError(ctx, fmt.Sprintf(
+				"expect StringLiteral or Identifier or AttrExpr, got %s",
+				funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())
+		}
+	}
+
 	return nil
 }
 
 func GeoIP(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
-	if len(funcExpr.Param) != 1 {
-		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"func `%s' expected 1 args", funcExpr.Name), funcExpr.NamePos)
-	}
 	key, err := getKeyName(funcExpr.Param[0])
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
+	}
+
+	prefix := ""
+	if funcExpr.Param[1] != nil {
+		prefixVal, dtype, errR := runtime.RunStmt(ctx, funcExpr.Param[1])
+		if errR != nil {
+			return errR
+		}
+		if dtype != ast.String {
+			return runtime.NewRunError(ctx, "param data type expect string",
+				funcExpr.Param[1].StartPos())
+		}
+		prefix = prefixVal.(string)
 	}
 
 	ipStr, err := ctx.GetKeyConv2Str(key)
@@ -69,7 +89,7 @@ func GeoIP(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		return nil
 	} else {
 		for k, v := range dic {
-			_ = addKey2PtWithVal(ctx.InData(), k, v, ast.String, ptinput.KindPtDefault)
+			_ = addKey2PtWithVal(ctx.InData(), prefix+k, v, ast.String, ptinput.KindPtDefault)
 		}
 	}
 

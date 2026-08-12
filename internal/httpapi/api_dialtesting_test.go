@@ -9,9 +9,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
@@ -444,4 +446,33 @@ func TestIsAllowedHost(t *testing.T) {
 		}
 		assert.False(t, ok)
 	})
+}
+
+func TestIsInternalHostContextHonorsCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := isInternalHostContext(ctx, "blocked.example", nil,
+		func(ctx context.Context, network, host string) ([]net.IP, error) {
+			<-ctx.Done()
+			return nil, ctx.Err()
+		})
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestDialtestingDebugDNSLookupHasFixedTimeout(t *testing.T) {
+	var remaining time.Duration
+	allowed, err := isAllowedDialtestingDebugHostWithChecker(
+		context.Background(),
+		[]string{"fixed-timeout.invalid"},
+		func(ctx context.Context, hosts []string) (bool, error) {
+			deadline, ok := ctx.Deadline()
+			require.True(t, ok)
+			remaining = time.Until(deadline)
+			return true, nil
+		},
+	)
+	require.NoError(t, err)
+	assert.True(t, allowed)
+	assert.Greater(t, remaining, 14*time.Second)
+	assert.LessOrEqual(t, remaining, 15*time.Second)
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 func TestObfuscateXMLPlan(t *testing.T) {
@@ -349,11 +350,7 @@ func TestBuildActivityQueryWithColumns(t *testing.T) {
 }
 
 func TestBuildDbmActivityRow(t *testing.T) {
-	obfuscator := obfuscate.NewObfuscator(obfuscate.Config{
-		SQL: obfuscate.SQLConfig{
-			DBMS: obfuscate.DBMSSQLServer,
-		},
-	})
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseSQLServer)
 
 	tests := []struct {
 		name      string
@@ -413,6 +410,7 @@ func TestBuildDbmActivityRow(t *testing.T) {
 				assert.Equal(t, "testhost", row.hostName)
 				assert.Equal(t, "testdb", row.databaseName)
 				assert.NotEmpty(t, row.obfuscatedText)
+				assert.NotEmpty(t, row.normalizedQueryHash)
 				assert.Equal(t, "running", row.sessionStatus)
 				assert.Equal(t, "running", row.requestStatus)
 				assert.Equal(t, "SELECT", row.command)
@@ -493,7 +491,7 @@ func TestBuildDbmActivityRow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			row, err := buildDbmActivityRow(tt.columnMap, obfuscator)
+			row, err := buildDbmActivityRow(tt.columnMap, normalizer)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -512,11 +510,7 @@ func TestBuildDbmActivityRow(t *testing.T) {
 }
 
 func TestBuildIdleBlockingActivityRow(t *testing.T) {
-	obfuscator := obfuscate.NewObfuscator(obfuscate.Config{
-		SQL: obfuscate.SQLConfig{
-			DBMS: obfuscate.DBMSSQLServer,
-		},
-	})
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseSQLServer)
 
 	tests := []struct {
 		name     string
@@ -555,6 +549,7 @@ func TestBuildIdleBlockingActivityRow(t *testing.T) {
 				assert.Empty(t, row.waitType)
 				assert.Equal(t, "Other", row.waitCategory)
 				assert.NotEmpty(t, row.obfuscatedText)
+				assert.NotEmpty(t, row.normalizedQueryHash)
 				assert.Equal(t, "dbo.testproc", row.procedureName)
 				assert.Equal(t, "dbo", row.schemaName)
 				assert.Equal(t, "192.168.1.1", row.clientAddress)
@@ -591,7 +586,7 @@ func TestBuildIdleBlockingActivityRow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			row, err := buildIdleBlockingActivityRow(tt.rawRow, obfuscator)
+			row, err := buildIdleBlockingActivityRow(tt.rawRow, normalizer)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -1677,12 +1672,24 @@ func TestDbmActivityMeasurementInfo(t *testing.T) {
 	assert.Contains(t, info.Tags, "schema_name")
 	assert.Contains(t, info.Tags, "program_name")
 	assert.Contains(t, info.Tags, "query_hash")
+	assert.Contains(t, info.Tags, "normalized_query_hash")
 	assert.Contains(t, info.Tags, "query_plan_hash")
 	assert.Contains(t, info.Tags, "session_status")
 	assert.Contains(t, info.Tags, "request_status")
 	assert.Contains(t, info.Tags, "command")
 	assert.Contains(t, info.Tags, "wait_type")
 	assert.Contains(t, info.Tags, "query_signature")
+}
+
+func TestDatabaseQueryObjectMeasurementInfo(t *testing.T) {
+	info := (&dbmQueryObjectMeasurement{}).Info()
+
+	assert.NotNil(t, info)
+	assert.Equal(t, dbmQueryObjectName, info.Name)
+	assert.Equal(t, point.Object, info.Cat)
+	assert.Contains(t, info.Tags, "query_signature")
+	assert.Contains(t, info.Tags, "normalized_query_hash")
+	assert.Contains(t, info.Fields, "message")
 }
 
 func TestDatabasePlanObjectMeasurementInfo(t *testing.T) {
@@ -1702,6 +1709,7 @@ func TestDatabasePlanObjectMeasurementInfo(t *testing.T) {
 	assert.Contains(t, info.Tags, "name")
 	assert.Contains(t, info.Tags, "query_plan_hash")
 	assert.Contains(t, info.Tags, "query_hash")
+	assert.Contains(t, info.Tags, "normalized_query_hash")
 	assert.Contains(t, info.Tags, "server")
 	assert.Contains(t, info.Tags, "sqlserver_host")
 	assert.Contains(t, info.Tags, "database_type")

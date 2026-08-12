@@ -15,8 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const (
@@ -214,20 +213,21 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server":            inputs.NewTagInfo("The server address (host:port)"),
-			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
-			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
-			"database_name":     inputs.NewTagInfo("The name of the database"),
-			"user_name":         inputs.NewTagInfo("The login name of the user"),
-			"host_name":         inputs.NewTagInfo("The host name of the client"),
-			"procedure_name":    inputs.NewTagInfo("The name of the stored procedure in the format 'schema_name.procedure_name' (if applicable)"),
-			"schema_name":       inputs.NewTagInfo("The schema name of the stored procedure (if applicable)"),
-			"program_name":      inputs.NewTagInfo("The name of the client program"),
-			"query_hash":        inputs.NewTagInfo("The hash value computed from the query."),
-			"query_plan_hash":   inputs.NewTagInfo("The hash value computed from the query plan."),
-			"session_status":    inputs.NewTagInfo("The status of the session."),
-			"request_status":    inputs.NewTagInfo("The status of the request."),
-			"command":           inputs.NewTagInfo("The type of command being executed."),
+			"server":                inputs.NewTagInfo("The server address (host:port)"),
+			"sqlserver_host":        inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance":     inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
+			"database_name":         inputs.NewTagInfo("The name of the database"),
+			"user_name":             inputs.NewTagInfo("The login name of the user"),
+			"host_name":             inputs.NewTagInfo("The host name of the client"),
+			"procedure_name":        inputs.NewTagInfo("The name of the stored procedure in the format 'schema_name.procedure_name' (if applicable)"),
+			"schema_name":           inputs.NewTagInfo("The schema name of the stored procedure (if applicable)"),
+			"program_name":          inputs.NewTagInfo("The name of the client program"),
+			"query_hash":            inputs.NewTagInfo("The hash value computed from the query."),
+			"normalized_query_hash": inputs.NewTagInfo("Hash computed from the complete normalized SQL text for linking activity to query metrics."),
+			"query_plan_hash":       inputs.NewTagInfo("The hash value computed from the query plan."),
+			"session_status":        inputs.NewTagInfo("The status of the session."),
+			"request_status":        inputs.NewTagInfo("The status of the request."),
+			"command":               inputs.NewTagInfo("The type of command being executed."),
 			//nolint:lll
 			"wait_type":       inputs.NewTagInfo("The wait type from SQL Server, or a derived CPU sentinel such as CPU / WAITING_ON_CPU when the request is runnable without a reported wait."),
 			"wait_group":      inputs.NewTagInfo("Datakit unified wait group: Lock, I/O, Concurrency, Memory, Network, CPU, Commit/Log, Other."),
@@ -237,7 +237,8 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type dbmActivityRow struct {
-	querySignature string
+	querySignature      string
+	normalizedQueryHash string
 
 	// Identifiers
 	sessionID     int64
@@ -334,11 +335,7 @@ func (ipt *Input) collectDbmActivity(duration time.Duration, ptsTime time.Time) 
 	}
 
 	var activeRows []*dbmActivityRow
-	obfuscator := obfuscate.NewObfuscator(obfuscate.Config{
-		SQL: obfuscate.SQLConfig{
-			DBMS: obfuscate.DBMSSQLServer,
-		},
-	})
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseSQLServer)
 	for rows.Next() {
 		columnMap, err := GetColumnMap(rows, columns)
 		if err != nil {
@@ -346,7 +343,7 @@ func (ipt *Input) collectDbmActivity(duration time.Duration, ptsTime time.Time) 
 			continue
 		}
 
-		row, err := buildDbmActivityRow(columnMap, obfuscator)
+		row, err := buildDbmActivityRow(columnMap, normalizer)
 		if err != nil {
 			l.Errorf("%v", err)
 			continue
@@ -417,7 +414,7 @@ func (ipt *Input) collectDbmActivity(duration time.Duration, ptsTime time.Time) 
 	return pts, nil
 }
 
-func buildDbmActivityRow(columnMap map[string]*interface{}, obfuscator *obfuscate.Obfuscator) (*dbmActivityRow, error) {
+func buildDbmActivityRow(columnMap map[string]*interface{}, normalizer *util.SQLStatementNormalizer) (*dbmActivityRow, error) {
 	row := &dbmActivityRow{}
 
 	// Extract basic fields
@@ -436,14 +433,15 @@ func buildDbmActivityRow(columnMap map[string]*interface{}, obfuscator *obfuscat
 
 	// Obfuscate SQL and compute signature
 	obfStart := time.Now()
-	obfuscated, err := obfuscator.ObfuscateSQLString(statementText)
+	normalized, err := normalizer.Normalize(statementText)
 	obfuscateTime := time.Since(obfStart)
 	dbmObfuscateDuration.WithLabelValues("activity", "statement").Observe(obfuscateTime.Seconds())
 	if err != nil {
 		l.Warnf("failed to obfuscate SQL statement: %v", err)
 		row.obfuscatedText = statementText
 	} else {
-		row.obfuscatedText = obfuscated.Query
+		row.obfuscatedText = normalized.Text
+		row.normalizedQueryHash = normalized.Hash
 	}
 	// Extract other fields (status, command, wait info, resource usage, connection info)
 	row.sessionStatus = getStringField(columnMap, "session_status")
@@ -518,14 +516,14 @@ func buildDbmActivityRow(columnMap map[string]*interface{}, obfuscator *obfuscat
 	if procedureText != "" && row.procedureName != "" {
 		// Obfuscate stored procedure text
 		procObfStart := time.Now()
-		obfResult, err := obfuscator.ObfuscateSQLString(procedureText)
+		normalizedProcedure, err := normalizer.Normalize(procedureText)
 		procObfuscateTime := time.Since(procObfStart)
 		dbmObfuscateDuration.WithLabelValues("activity", "procedure").Observe(procObfuscateTime.Seconds())
 		if err != nil {
 			l.Warnf("failed to obfuscate stored procedure text: %v", err)
 			// Continue even if obfuscation fails
 		} else {
-			row.procedureText = obfResult.Query
+			row.procedureText = normalizedProcedure.Text
 		}
 	}
 
@@ -567,11 +565,7 @@ func (ipt *Input) getIdleBlockingSessions(ctx context.Context, blockingSessionID
 	}()
 
 	var idleRows []*dbmActivityRow
-	obfuscator := obfuscate.NewObfuscator(obfuscate.Config{
-		SQL: obfuscate.SQLConfig{
-			DBMS: obfuscate.DBMSSQLServer,
-		},
-	})
+	normalizer := util.NewSQLStatementNormalizer(util.SQLDatabaseSQLServer)
 
 	for rows.Next() {
 		var rawRow rawIdleBlockingSessionRow
@@ -597,7 +591,7 @@ func (ipt *Input) getIdleBlockingSessions(ctx context.Context, blockingSessionID
 			continue
 		}
 
-		row, err := buildIdleBlockingActivityRow(&rawRow, obfuscator)
+		row, err := buildIdleBlockingActivityRow(&rawRow, normalizer)
 		if err != nil {
 			l.Errorf("%v", err)
 			continue
@@ -615,7 +609,7 @@ func (ipt *Input) getIdleBlockingSessions(ctx context.Context, blockingSessionID
 	return idleRows, nil
 }
 
-func buildIdleBlockingActivityRow(rawRow *rawIdleBlockingSessionRow, obfuscator *obfuscate.Obfuscator) (*dbmActivityRow, error) {
+func buildIdleBlockingActivityRow(rawRow *rawIdleBlockingSessionRow, normalizer *util.SQLStatementNormalizer) (*dbmActivityRow, error) {
 	row := &dbmActivityRow{}
 
 	// Extract basic fields
@@ -637,14 +631,15 @@ func buildIdleBlockingActivityRow(rawRow *rawIdleBlockingSessionRow, obfuscator 
 
 	// Obfuscate SQL and compute signature
 	obfStart := time.Now()
-	obfuscated, err := obfuscator.ObfuscateSQLString(statementText)
+	normalized, err := normalizer.Normalize(statementText)
 	obfuscateTime := time.Since(obfStart)
 	dbmObfuscateDuration.WithLabelValues("activity", "statement").Observe(obfuscateTime.Seconds())
 	if err != nil {
 		l.Warnf("failed to obfuscate SQL statement: %v", err)
 		row.obfuscatedText = statementText
 	} else {
-		row.obfuscatedText = obfuscated.Query
+		row.obfuscatedText = normalized.Text
+		row.normalizedQueryHash = normalized.Hash
 	}
 
 	// Extract other fields (idle blocking sessions don't have request_status, query_start, etc.)
@@ -696,6 +691,9 @@ func (ipt *Input) buildActivityPoints(rows []*dbmActivityRow, ptsTime time.Time)
 		kvs = kvs.AddTag("sqlserver_host", row.sqlserverHost)
 
 		kvs = kvs.AddTag("query_signature", row.querySignature)
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+		}
 		if row.queryHash != "" {
 			kvs = kvs.AddTag("query_hash", row.queryHash)
 		}

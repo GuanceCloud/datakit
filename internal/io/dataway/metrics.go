@@ -77,7 +77,7 @@ var (
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "flush_failcache_bytes",
-			Help:      "IO flush fail-cache bytes(in gzip) summary",
+			Help:      "IO flush fail-cache bytes summary",
 
 			Objectives: map[float64]float64{
 				0.5:  0.05,
@@ -103,6 +103,25 @@ var (
 		[]string{
 			"category",
 			"gzip",
+			"queue", // from walqueue disk or mem
+		},
+	)
+
+	walWorkerFlushByCompression = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_wal_flush_bytes",
+			Help:      "Dataway WAL worker flushed bytes by compression",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{
+			"category",
+			"compression",
 			"queue", // from walqueue disk or mem
 		},
 	)
@@ -170,6 +189,7 @@ func Metrics() []prometheus.Collector {
 		datawayDialSeconds,
 		datawayActiveConnections,
 		walWorkerFlush,
+		walWorkerFlushByCompression,
 		walPointCounterVec,
 		walPutRetriedVec,
 		writeDropPointsCounterVec,
@@ -188,6 +208,7 @@ func metricsReset() {
 	initIPFamilyMetrics()
 
 	walWorkerFlush.Reset()
+	walWorkerFlushByCompression.Reset()
 	walPointCounterVec.Reset()
 	walPutRetriedVec.Reset()
 	writeDropPointsCounterVec.Reset()
@@ -206,6 +227,7 @@ func doRegister() {
 		datawayDialSeconds,
 		datawayActiveConnections,
 		walWorkerFlush,
+		walWorkerFlushByCompression,
 		walPointCounterVec,
 		walPutRetriedVec,
 		writeDropPointsCounterVec,

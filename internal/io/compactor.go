@@ -197,7 +197,6 @@ func (x *dkIO) compactAndUpload(points []*point.Point, cat point.Category) error
 		compact.WithBatchSize(x.compactAt), // max cache size(in memory) upload as a batch
 		compact.WithCategory(cat),
 		compact.WithNoWAL(true), // send body directly(without WAL)
-		compact.WithGzipDuringBuildBody(true),
 	}
 
 	return x.dw.Write(opts...)

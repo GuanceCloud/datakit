@@ -112,6 +112,9 @@ func (m *oracleMeasurement) getDbmMetricTags() map[string]interface{} {
 	tags["force_matching_signature"] = &inputs.TagInfo{Desc: "The force matching signature of the query"}
 	tags["plan_hash_value"] = &inputs.TagInfo{Desc: "The hash value of the query execution plan"}
 	tags["query_signature"] = &inputs.TagInfo{Desc: "Hash signature generated to link metrics and objects"}
+	tags["normalized_query_hash"] = &inputs.TagInfo{Desc: "Hash computed from the available normalized SQL text for cross-database and cross-user grouping"}
+	tags["query_text"] = &inputs.TagInfo{Desc: "A configurable UTF-8-safe prefix of the normalized SQL text for query search"}
+	tags["query_truncated"] = &inputs.TagInfo{Desc: "Whether query_text was truncated to the configured byte limit"}
 	return tags
 }
 

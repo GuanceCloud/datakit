@@ -40,6 +40,11 @@ const (
 
 	optionLightpandaPath      = "lightpanda_path"
 	optionLightpandaPathCamel = "lightpandaPath"
+	optionBrowserCACertFile   = "browser_ca_cert_file"
+	optionBrowserCACertDir    = "browser_ca_cert_dir"
+	optionBrowserProxyURL     = "browser_proxy_url"
+	optionBlockPrivateNetwork = "browser_block_private_network"
+	optionBrowserBlockCIDRs   = "browser_block_cidrs"
 	optionChromePath          = "chrome_path"
 	optionChromePathCamel     = "chromePath"
 
@@ -346,6 +351,11 @@ func (t *BrowserTask) runBrowserDialEmbedded(path string, viewport BrowserViewpo
 		Tags:                t.Tags,
 		EngineName:          engineName,
 		LightpandaPath:      t.lightpandaPath(),
+		CACertFile:          t.browserCACertFile(),
+		CACertDir:           t.browserCACertDir(),
+		DefaultProxyURL:     t.browserDefaultProxyURL(),
+		BlockPrivateNetwork: t.browserBlockPrivateNetwork(),
+		PrivateNetworkCIDRs: t.browserPrivateNetworkCIDRs(),
 		ChromePath:          t.chromePath(),
 		StartupTimeout:      5 * time.Second,
 		ScreenshotOnFailure: t.AdvanceOptions != nil && t.AdvanceOptions.ScreenshotOnFailure,
@@ -503,6 +513,37 @@ func (t *BrowserTask) lightpandaPath() string {
 		return value
 	}
 	return ""
+}
+
+func (t *BrowserTask) browserCACertFile() string {
+	return strings.TrimSpace(t.GetOption()[optionBrowserCACertFile])
+}
+
+func (t *BrowserTask) browserCACertDir() string {
+	return strings.TrimSpace(t.GetOption()[optionBrowserCACertDir])
+}
+
+func (t *BrowserTask) browserDefaultProxyURL() string {
+	return strings.TrimSpace(t.GetOption()[optionBrowserProxyURL])
+}
+
+func (t *BrowserTask) browserBlockPrivateNetwork() bool {
+	return strings.EqualFold(strings.TrimSpace(t.GetOption()[optionBlockPrivateNetwork]), "true")
+}
+
+func (t *BrowserTask) browserPrivateNetworkCIDRs() []string {
+	value := strings.TrimSpace(t.GetOption()[optionBrowserBlockCIDRs])
+	if value == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	cidrs := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if cidr := strings.TrimSpace(part); cidr != "" {
+			cidrs = append(cidrs, cidr)
+		}
+	}
+	return cidrs
 }
 
 func (t *BrowserTask) chromePath() string {

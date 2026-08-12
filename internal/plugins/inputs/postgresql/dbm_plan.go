@@ -64,6 +64,9 @@ func (ipt *Input) collectSamplePlans(rows []map[string]any, ptsTime time.Time, m
 			l.Warnf("stop collecting dbm plans after reaching max duration %s", maxDuration)
 			break
 		}
+		if cast.ToString(row["query_truncated"]) == pgQueryTruncationTruncated {
+			continue
+		}
 
 		statement := cast.ToString(row["statement"])
 		datname := cast.ToString(row["datname"])
@@ -96,12 +99,12 @@ func (ipt *Input) collectSamplePlans(rows []map[string]any, ptsTime time.Time, m
 
 		normalizedPlan, err := obfuscator.ObfuscateSQLExecPlan(plan, true)
 		if err != nil {
-			l.Warnf("normalize dbm plan failed: %s, plan: %s", err.Error(), plan)
+			l.Warnf("normalize dbm plan failed: %s", err.Error())
 			continue
 		}
 		obfuscatedPlan, err := obfuscator.ObfuscateSQLExecPlan(plan, false)
 		if err != nil {
-			l.Warnf("obfuscate dbm plan failed: %s, plan: %s", err.Error(), plan)
+			l.Warnf("obfuscate dbm plan failed: %s", err.Error())
 			continue
 		}
 
@@ -126,6 +129,9 @@ func (ipt *Input) collectSamplePlans(rows []map[string]any, ptsTime time.Time, m
 		kvs = kvs.AddTag("service", "postgresql")
 		kvs = kvs.AddTag("plan_signature", planSignature)
 		kvs = kvs.AddTag("query_signature", querySignature)
+		if normalizedQueryHash := cast.ToString(row["normalized_query_hash"]); normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", normalizedQueryHash)
+		}
 		kvs = kvs.AddTag("client_hostname", cast.ToString(row["client_hostname"]))
 		kvs = kvs.AddTag("client_port", cast.ToString(row["client_port"]))
 		kvs = kvs.AddTag("client_addr", cast.ToString(row["client_addr"]))

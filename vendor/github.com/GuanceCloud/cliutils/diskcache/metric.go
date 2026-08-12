@@ -247,6 +247,14 @@ func setupMetrics() {
 	metrics.MustRegister(Metrics()...)
 }
 
+func (c *DiskCache) initMetrics() {
+	sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
+	putBytesVec.WithLabelValues(c.path)
+	getBytesVec.WithLabelValues(c.path)
+	putLatencyVec.WithLabelValues(c.path)
+	getLatencyVec.WithLabelValues(c.path)
+}
+
 // ResetMetrics used to cleanup exist metrics of diskcache.
 func ResetMetrics() {
 	droppedDataVec.Reset()

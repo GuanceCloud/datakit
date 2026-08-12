@@ -185,7 +185,7 @@ test-2 f1=1i,f2=false 123
 		assert.NoError(t, err)
 
 		w := compact.GetWriter(
-			compact.WithGzip(1),
+			compact.WithCompression(compact.CompressionGzip),
 			compact.WithPoints([]*point.Point{
 				point.NewPoint("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPoint("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
@@ -263,7 +263,7 @@ test-2 f1=1i,f2=false 123
 				point.NewPoint("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
 			compact.WithHTTPEncoding(point.LineProtocol),
-			compact.WithGzip(1),
+			compact.WithCompression(compact.CompressionGzip),
 		)
 		defer compact.PutWriter(w)
 
@@ -339,7 +339,7 @@ test-2 f1=1i,f2=false 123
 				point.NewPoint("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
 			compact.WithHTTPEncoding(point.LineProtocol),
-			compact.WithGzip(1))
+			compact.WithCompression(compact.CompressionGzip))
 		defer compact.PutWriter(w)
 
 		reg := prometheus.NewRegistry()

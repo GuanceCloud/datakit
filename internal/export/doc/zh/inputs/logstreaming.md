@@ -39,6 +39,10 @@ monitor   :
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable MD046 -->
 
+### JSON 字段模式 {#json-as-fields}
+
+在 `[inputs.logstreaming]` 中设置 `json_as_fields = true`，可将默认文本类型中每行日志的 JSON 根对象转换为字段，详细规则见 [JSON 字段模式](logging.md#json-as-fields)。该配置不作用于 `influxdb`、`firelens` 和 `firehose` 类型，也不是 HTTP URL 参数。
+
 ### 支持参数 {#args}
 
 Log-Streaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。参数列表如下：

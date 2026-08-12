@@ -1604,11 +1604,13 @@ The overall JSON structure is as follows:
 | `tags`       | object | N        | Custom tags                                |
 | `steps`      | array  | Y        | Browser execution steps                            |
 
-`steps` can contain actions and assertions such as `goto`, `assert_title`, `assert_url`, and `assert_text`.
+`steps` can contain actions and assertions such as `goto`, `wait_for_url`, `assert_title`, `assert_url`, and `assert_text`. `wait_for_url` and assertions poll until `contains`, `equals`, or `text` matches. A configured step `timeout_ms` takes precedence; otherwise the script timeout applies. DataKit uses a 60-second default step timeout.
 
 ##### Screenshot Support {#browser-screenshot}
 
-The Lightpanda engine currently does not support screenshots. Even when `advance_options.screenshot_on_failure = true` is enabled, no `steps[].screenshot` is generated.
+The bundled Lightpanda build does not support screenshots. `advance_options.screenshot_on_failure` is ignored for Lightpanda tasks.
+
+Lightpanda HTTP proxy precedence is: task `advance_options.proxy_url` > `proxy_url` in `browser_config` > dialtesting node `[inputs.dialtesting.browser].proxy_url`. See [Private Network and Proxy](dialtesting_browser.md#private-network-and-proxy).
 
 ### Template Function Usage Instructions {#template-func}
 

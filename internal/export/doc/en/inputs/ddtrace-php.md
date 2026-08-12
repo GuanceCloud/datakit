@@ -89,7 +89,7 @@ The following are common PHP APM parameters. See the [Datadog PHP configuration 
 
     **Default**: `100`
 
-    The trace receiver connection timeout in milliseconds. For remote, proxied, or cross-cluster deployments, evaluate it against actual latency rather than increasing it blindly.
+    The trace receiver connection timeout in milliseconds. For remote deployments, deployments through a proxy, or cross-cluster deployments, evaluate it against actual latency rather than increasing it blindly.
 
 - **`DD_TAGS`**
 

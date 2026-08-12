@@ -267,7 +267,15 @@ func TestInput(t *testing.T) {
 	}
 	callsFieldInfo, ok := info.Fields["calls"].(*inputs.FieldInfo)
 	assert.True(t, ok)
-	assert.ElementsMatch(t, []string{"db", "query_signature", "queryid", "rolname"}, callsFieldInfo.Taggedby)
+	assert.ElementsMatch(t, []string{
+		"db",
+		"normalized_query_hash",
+		"query_signature",
+		"query_text",
+		"query_truncated",
+		"queryid",
+		"rolname",
+	}, callsFieldInfo.Taggedby)
 
 	assert.Equal(t, input.Catalog(), catalogName)
 	assert.Equal(t, input.SampleConfig(), sampleConfig)

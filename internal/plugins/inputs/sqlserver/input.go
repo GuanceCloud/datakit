@@ -1253,6 +1253,7 @@ func defaultInput() *Input {
 			StoredProcedureCharactersLimit: 500,
 			Metric: &dbmMetricConfig{
 				Enabled:                  false,
+				QueryTextMaxBytes:        defaultQueryTextMaxBytes,
 				CollectionInterval:       dbmMetricInterval,
 				DmExecQueryStatsRowLimit: 10000,
 				MaxQueries:               500,

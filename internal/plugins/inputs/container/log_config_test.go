@@ -6,6 +6,7 @@
 package container
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,13 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 )
+
+func TestLogConfigJSONAsFields(t *testing.T) {
+	var config logConfig
+	require.NoError(t, json.Unmarshal([]byte(`{"json_as_fields":true}`), &config))
+	assert.True(t, config.JSONAsFields)
+	require.Error(t, json.Unmarshal([]byte(`{"json_as_fields":"true"}`), &config))
+}
 
 func TestParseLogConfigs(t *testing.T) {
 	cases := []struct {

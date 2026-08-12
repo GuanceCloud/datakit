@@ -22,6 +22,7 @@ type message struct {
 	Type         string                 `json:"type"`
 	Source       string                 `json:"source"`
 	StorageIndex string                 `json:"storage_index,omitempty"`
+	JSONAsFields bool                   `json:"json_as_fields,omitempty"`
 	Pipeline     string                 `json:"pipeline,omitempty"`
 	Tags         map[string]string      `json:"tags,omitempty"`
 	Fields       map[string]interface{} `json:"fields,omitempty"`

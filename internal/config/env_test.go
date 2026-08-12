@@ -45,6 +45,14 @@ func TestLoadDatawayPayloadObfuscationEnv(t *testing.T) {
 	assert.Equal(t, uhttp.PayloadObfuscationGzipCaesarV1, c.Dataway.PayloadObfuscation)
 }
 
+func TestLoadDatawayCompressionEnv(t *testing.T) {
+	t.Setenv("ENV_DATAWAY_COMPRESSION", "zstd")
+
+	c := DefaultConfig()
+	assert.NoError(t, c.LoadEnvs())
+	assert.Equal(t, "zstd", c.Dataway.Compression)
+}
+
 func TestLoadEnv(t *testing.T) {
 	cases := []struct {
 		name   string

@@ -291,16 +291,17 @@ ulimit = 64000
   #  - v2: protobuf
   content_encoding = "v2"
 
-  # Enable GZip to upload point data.
-  #
-  # do NOT disable gzip or your get large network payload.
+  # Compression for uploaded point data. Supported values: "gzip", "zstd".
+  # compression = "gzip"
+
+  # Deprecated: used only when compression is not set.
   gzip = true
 
-  # Optional gzip obfuscation, disabled by default. Only "gzip-caesar-v1" is supported and requires gzip.
+  # Optional gzip obfuscation, disabled by default. Only "gzip-caesar-v1" is supported and requires compression = "gzip".
   # Invalid settings disable it without stopping DataKit. This is not encryption, so keep HTTPS enabled.
   payload_obfuscation = ""
 
-  max_raw_body_size = 1048576 # max body size(before gizp) in bytes
+  max_raw_body_size = 1048576 # max body size before compression in bytes
 
   # Customer tag or field keys that will extract from exist points
   # to build the sinker HTTP header.

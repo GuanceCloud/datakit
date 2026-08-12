@@ -36,7 +36,7 @@ func getOSSInfo() (*cliutils.OssCli, error) {
 	}
 
 	path = os.Getenv("OSS_PATH")
-	if ossHost == "" {
+	if path == "" {
 		return nil, errors.New("env OSS_PATH is not configured")
 	}
 

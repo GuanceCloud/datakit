@@ -100,7 +100,9 @@ func (app *monitorAPP) renderDWPointsTable(mfs map[string]*dto.MetricFamily, col
 			ptsOK          = sumCounterByLabels(dwPtsTotal, map[string]string{labelCategory: cat, "status": "OK"})
 			bytesTotal     = sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "raw", "status": "total"})
 			bytesOK        = sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "raw", "status": "OK"})
-			bytesGzipTotal = sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "gzip", "status": "total"})
+			bytesSentTotal = sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "gzip", "status": "total"}) +
+				sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "zstd", "status": "total"}) +
+				sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "identity", "status": "total"})
 		)
 
 		table.SetCell(row,
@@ -119,7 +121,7 @@ func (app *monitorAPP) renderDWPointsTable(mfs map[string]*dto.MetricFamily, col
 			// only show ok points and total points.
 			table.SetCell(row, 2,
 				tview.NewTableCell(fmt.Sprintf("%s/%s(%s)",
-					number(bytesOK), number(bytesTotal), number(bytesGzipTotal))).
+					number(bytesOK), number(bytesTotal), number(bytesSentTotal))).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		}
 

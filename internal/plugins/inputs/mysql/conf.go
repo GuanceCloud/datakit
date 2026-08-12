@@ -107,6 +107,8 @@ const (
     ## @param limit - number - optional - default: 10000
     ## Maximum number of statement rows read per collection.
     limit = 10000
+    ## Maximum number of normalized SQL bytes stored in the query_text tag (default: 512, maximum: 1024).
+    query_text_max_bytes = 512
   
   ## Config dbm sample 
   [inputs.mysql.dbm_sample]

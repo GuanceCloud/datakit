@@ -378,7 +378,8 @@ Dataway got following settings to be configured:
 - `content_encoding` : v1 or v2 can be selected [:octicons-tag-24: Version-1.17.1](Changelog.md #cl-1.17.1)
     - v1 is line-protocol (default: v1)
     - v2 is the Protobuf protocol. Compared with v1, it has better performance in all aspects
-- `payload_obfuscation`: Empty (disabled) by default. Only `gzip-caesar-v1` is supported and requires `gzip`; invalid settings disable obfuscation without stopping DataKit. This is not encryption, so HTTPS is still required
+- `compression`: Compression for uploaded Point data. Supported values are `gzip` and `zstd`; the default is `gzip`. The legacy `gzip` option is used only when `compression` is not set
+- `payload_obfuscation`: Empty (disabled) by default. Only `gzip-caesar-v1` is supported and requires `compression = "gzip"`; invalid settings disable obfuscation without stopping DataKit. This is not encryption, so HTTPS is still required
 
 See [here](datakit-daemonset-deploy.md#env-dataway) for configuration under Kubernetes.
 

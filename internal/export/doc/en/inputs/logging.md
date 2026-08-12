@@ -77,6 +77,17 @@ This document focuses on local disk log collection and Socket log collection:
     More: For configuration and code examples of Java Go Python mainstream logging components, see: [socket client configuration](logging_socket.md)
 <!-- markdownlint-enable MD046 -->
 
+### JSON Fields Mode {#json-as-fields}
+
+`json_as_fields` defaults to `false`. When enabled, DataKit converts the JSON root object of each complete log entry after character decoding, ANSI removal, and multiline aggregation, then runs Pipeline:
+
+- Top-level strings, booleans, `int64` integers, and `float64` decimals keep their types. Objects and arrays become compact JSON strings. `null` and numbers outside the supported ranges are ignored.
+- A successful conversion does not retain the original JSON. A JSON-provided `message` is retained. Invalid JSON, a non-object root, or an object without usable fields falls back to the original `message`.
+- Field names are truncated to 256 bytes, then `.` is replaced with `_`, trailing backslashes are removed, and newlines are replaced with spaces. Fields whose names become empty are ignored. When multiple original names produce the same name, an unchanged name wins; otherwise, the lexically first original name wins. A name that becomes reserved after conversion is still renamed by the reserved-field rule below.
+- Each Point retains at most 1024 fields, excluding tags. Existing collector fields take priority, and the remaining capacity is filled in lexical order of the converted JSON field names.
+- JSON fields replace collector tags or fields with the same name and are not filtered by `field_white_list`.
+- `time`, `source`, `date`, and `storage_index` are renamed to `json_time`, `json_source`, `json_date`, and `json_storage_index`. If the target exists, `_N` is appended. These JSON fields do not override log time, collector semantics, or the configured storage index.
+
 ---
 
 ## Advanced Topics {#deepin-topics}

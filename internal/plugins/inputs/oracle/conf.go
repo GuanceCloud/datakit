@@ -117,6 +117,8 @@ const (
     # Disable last active time filter (default: false)
     # If true, queries will be selected randomly instead of by last active time
     disable_last_active = false
+    # Maximum number of normalized SQL bytes stored in the query_text tag (default: 512, maximum: 1024)
+    query_text_max_bytes = 512
 
   ## Config DBM activity (current active queries)
   ## Collects information about currently executing queries and active sessions

@@ -110,6 +110,7 @@ The `LOGFWD_LOG_CONFIGS` field structure example is as follows:
     "path": "/var/log/nginx/access.log",
     "pipeline": "nginx-access.p",
     "storage_index": "app-logs",
+    "json_as_fields": false,
     "multiline_match": "^\\d{4}-\\d{2}-\\d{2}",
     "remove_ansi_escape_codes": false,
     "from_beginning": false,
@@ -132,11 +133,14 @@ The `LOGFWD_LOG_CONFIGS` field structure example is as follows:
 | `multiline_match`               | string  | No                     | Regular expression for the start line of multi-line logs, note that backslashes need to be escaped in JSON                                | `"^\\d{4}-\\d{2}-\\d{2}"` |
 | `pipeline`                      | string  | No                     | Log parsing pipeline configuration file name (needs to be configured on the DataKit side)                                                 | `"nginx-access.p"`        |
 | `storage_index`                 | string  | No                     | Log storage index name                                                                                                                    | `"app-logs"`              |
+| `json_as_fields`                | boolean | No                     | Convert a JSON root object into log fields. Defaults to `false`. See [JSON Fields Mode](logging.md#json-as-fields).                        | `false`                   |
 | `remove_ansi_escape_codes`      | boolean | No                     | Whether to remove ANSI escape characters (color codes, etc.) from log data                                                                | `false`                   |
 | `from_beginning`                | boolean | No                     | Whether to collect logs from the beginning of the file (default starts from the end of the file)                                          | `false`                   |
 | `from_beginning_threshold_size` | int     | No                     | When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB | `1000`                    |
 | `character_encoding`            | string  | No                     | Character encoding, supports `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030` or empty string (auto-detect). Default is empty.           | `"utf-8"`                 |
 | `tags`                          | object  | No                     | Additional tag key-value pairs that will be attached to each log record                                                                   | `{"env": "prod"}`         |
+
+`json_as_fields` currently works only with manual `LOGFWD_LOG_CONFIGS`. ClusterLoggingConfig CRD does not expose this field yet. Both the logfwd client and the DataKit server must be upgraded before fields mode takes effect.
 
 When `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` is configured, logfwd will make requests to DataKit-Operator based on `LOGFWD_POD_NAMESPACE`, `LOGFWD_POD_NAME`, and `pod_labels` (optional, requires mounting `/etc/podinfo/labels` file). As long as a `ClusterLoggingConfig` CRD rule matches the current Pod, the corresponding `configs` JSON will be returned and hot update will be triggered.
 

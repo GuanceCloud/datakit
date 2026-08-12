@@ -1,12 +1,13 @@
 ### `user_agent()` {#fn-user-agent}
 
-Function prototype: `fn user_agent(key: str)`
+Function prototype: `fn user_agent(key: str, prefix: str = "")`
 
 Function description: Obtain client information on the specified field
 
 Function parameters:
 
 - `key`: the field to be extracted
+- `prefix`: Optional. Adds a custom prefix to the generated fields to avoid conflicts with existing fields. It can also be passed as a named parameter, e.g. `user_agent(userAgent, prefix="ua_")`.
 
 `user_agent()` will generate multiple fields, such as:
 
@@ -24,5 +25,14 @@ Example:
 # "forth" : true
 # }
 
-json(_, userAgent) user_agent(userAgent)
+json(_, userAgent)
+user_agent(userAgent)
+```
+
+Example with prefix:
+
+```python
+json(_, userAgent)
+user_agent(userAgent, "ua_")
+# Generated fields are ua_isMobile, ua_os, ua_browser, etc.
 ```

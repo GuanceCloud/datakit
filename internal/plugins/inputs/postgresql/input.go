@@ -127,6 +127,8 @@ const sampleConfig = `
   [inputs.postgresql.dbm_metric]
     enabled = true
     interval = "60s"
+    ## Maximum number of normalized SQL bytes stored in the query_text tag (default: 512, maximum: 1024).
+    query_text_max_bytes = 512
   
   ## Config dbm sample 
   [inputs.postgresql.dbm_sample]
@@ -1808,8 +1810,9 @@ func NewInput(service Service) *Input {
 		},
 		Dbm: false,
 		DbmMetric: dbmMetric{
-			Enabled:  true,
-			Interval: datakit.Duration{Duration: defaultDbmMetricInterval},
+			Enabled:           true,
+			Interval:          datakit.Duration{Duration: defaultDbmMetricInterval},
+			QueryTextMaxBytes: defaultQueryTextMaxBytes,
 		},
 		DbmActivity: dbmActivity{
 			Enabled:  true,

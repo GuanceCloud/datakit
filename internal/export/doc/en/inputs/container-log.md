@@ -45,6 +45,7 @@ If you want to customize the collection configuration, it can be done through ad
     "service" : "<your-service>",
     "pipeline": "<your-pipeline.p>",
     "storage_index": "<your-storage-index>",
+    "json_as_fields": false,
     "remove_ansi_escape_codes": false,
     "from_beginning"          : false,
     "tags" : {
@@ -66,11 +67,14 @@ Field explanations:
 | `multiline_match`               | regular expression string | The pattern used for recognizing the first line of a [multiline log match](logging.md#multiline), e.g., `"multiline_match":"^\\d{4}"` indicates that the first line starts with four digits. In regular expression rules, `\d` represents a digit, and the preceding `\` is used for escaping. |
 | `pipeline`                      | string                    | The Pipeline script for processing the logs. The default value is the script name that matches the log source (`<source>.p`).                                                                                                                                                                  |
 | `storage_index`                 | string                    | Index name for log storage.                                                                                                                                                                                                                                                                    |
+| `json_as_fields`                | true/false                | Convert a JSON root object into log fields. Defaults to `false`. See [JSON Fields Mode](logging.md#json-as-fields).                                                                                                                                                                             |
 | `remove_ansi_escape_codes`      | true/false                | Enable ANSI codes removal.                                                                                                                                                                                                                                                                     |
 | `from_beginning`                | true/false                | Whether to collect logs from the begin of the file.                                                                                                                                                                                                                                            |
 | `from_beginning_threshold_size` | int                       | When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB                                                                                                                                                      |
 | `character_encoding`            | string                    | The character encoding. If the encoding is incorrect, the data may not be viewable. Supported values are `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or an empty string. The default is empty.                                                                                          |
 | `tags`                          | key/value pairs           | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence.                                                                                                                                                                                |
+
+`json_as_fields` currently works only in JSON log configurations supplied through container environment variables or Pod annotations/labels. ClusterLoggingConfig CRD does not support it yet.
 
 Below is a complete example:
 

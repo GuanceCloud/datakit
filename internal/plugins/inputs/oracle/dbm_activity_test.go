@@ -51,6 +51,7 @@ func TestBuildDbmActivityPoints(t *testing.T) {
 					FinalBlockingInstance: 1,
 					Statement:             "SELECT * FROM users",
 					QuerySignature:        "abc123def456",
+					NormalizedQueryHash:   "normalized-hash",
 					OracleSQLRow: OracleSQLRow{
 						SQLID:                  "abc123",
 						SQLPlanHashValue:       987654321,
@@ -76,6 +77,7 @@ func TestBuildDbmActivityPoints(t *testing.T) {
 				assert.Equal(t, "TESTCDB", tags.GetTag("cdb_name"))
 				assert.Equal(t, "TESTPDB", tags.GetTag("pdb_name"))
 				assert.Equal(t, "abc123def456", tags.GetTag("query_signature"))
+				assert.Equal(t, "normalized-hash", tags.GetTag("normalized_query_hash"))
 				assert.Equal(t, "abc123", tags.GetTag("sql_id"))
 				assert.Equal(t, "987654321", tags.GetTag("plan_hash_value"))
 				assert.Equal(t, "1234567890", tags.GetTag("force_matching_signature"))

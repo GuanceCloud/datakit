@@ -1,12 +1,13 @@
 ### `url_parse()` {#fn-url-parse}
 
-函数原型：`fn url_parse(key)`
+函数原型：`fn url_parse(key, prefix: str = "")`
 
 函数说明：解析字段名称为 key 的 url。
 
 函数参数
 
 - `key`: 要解析的 url 的字段名称。
+- `prefix`: 可选参数，为返回 map 中固定的 key（`scheme`、`host`、`port`、`path`、`params`）添加自定义前缀，避免与已有字段产生冲突。支持以命名参数形式传入，如 `url_parse(url, prefix="up_")`
 
 示例：
 
@@ -22,6 +23,25 @@ add_key(scheme, m["scheme"])
 {
     "url": "https://www.baidu.com",
     "scheme": "https"
+}
+```
+
+添加前缀示例：
+
+```python
+# 待处理数据：{"url": "https://www.baidu.com"}
+
+# 处理脚本
+json(_, url)
+m = url_parse(url, "up_")
+add_key(scheme, m["up_scheme"])
+add_key(h, m["up_host"])
+
+# 处理结果
+{
+    "url": "https://www.baidu.com",
+    "scheme": "https",
+    "h": "www.baidu.com"
 }
 ```
 

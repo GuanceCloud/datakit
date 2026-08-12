@@ -39,6 +39,7 @@ func (*dbmPlanObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":                     inputs.NewTagInfo("Object identifier generated from server:database_instance:query_signature:plan_hash_value"),
 			"query_signature":          inputs.NewTagInfo("Hash signature generated from pdb_name:query_hash to link metrics and objects"),
+			"normalized_query_hash":    inputs.NewTagInfo("Hash computed from the available normalized SQL text for linking plans to query metrics"),
 			"plan_hash_value":          inputs.NewTagInfo("The hash value of the query execution plan"),
 			"server":                   inputs.NewTagInfo("The server address (host:port)"),
 			"database_instance":        inputs.NewTagInfo("Oracle instance identifier from configured tag or v$instance.host_name."),
@@ -469,6 +470,9 @@ func (ipt *Input) buildAndFeedDatabasePlanObjects(rowsWithPlans []*statementRowW
 		}
 		kvs = kvs.AddTag("name", objectName)
 		kvs = kvs.AddTag("query_signature", row.querySignature)
+		if row.normalizedQueryHash != "" {
+			kvs = kvs.AddTag("normalized_query_hash", row.normalizedQueryHash)
+		}
 		kvs = kvs.AddTag("plan_hash_value", fmt.Sprintf("%d", row.RawData.PlanHashValue))
 		kvs = kvs.AddTag("server", ipt.Object.name)
 		kvs = kvs.AddTag("database_type", "Oracle")

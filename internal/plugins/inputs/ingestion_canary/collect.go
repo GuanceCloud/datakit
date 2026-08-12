@@ -208,7 +208,6 @@ func (ipt *Input) reportToWorkspace(pts ...*point.Point) error {
 		compact.WithDynamicURL(ipt.writeURL),
 		compact.WithCategory(point.DynamicDWCategory),
 		compact.WithNoWAL(true),
-		compact.WithGzipDuringBuildBody(true),
 		compact.WithHTTPHeader("X-Sub-Category", inputName),
 	)
 }

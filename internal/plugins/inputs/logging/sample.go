@@ -52,6 +52,9 @@ var sampleCfg = `
   # Storage index name
   storage_index = ""
 
+  # Parse a JSON root object as log fields
+  json_as_fields = false
+
   # Ignored log levels
   # Supported levels: emerg/alert/critical/error/warning/info/debug/OK
   ignore_status = []

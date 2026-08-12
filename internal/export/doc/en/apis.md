@@ -1228,6 +1228,40 @@ HTTP Code: 400
 }
 ```
 
+### `/v1/dialtesting/debug/runs` {#api-debug-dt-runs}
+
+Submit a dialtesting debug run for asynchronous execution. This API is enabled by the same `ENV_INPUT_DIALTESTING_ENABLE_DEBUG_API` switch as the synchronous debug API.
+
+```http
+POST /v1/dialtesting/debug/runs HTTP/1.1
+Content-Type: application/json
+X-Dialing-Debug-Owner: workspace_uuid:account_uuid
+X-Trace-ID: trace_id
+
+{
+  "request_id": "2df08a9c-d949-4db9-bf6f-bc4992d4c140",
+  "task_type": "http",
+  "task": {},
+  "variables": {}
+}
+```
+
+`request_id` must be a UUID v4. Repeating the same owner, request ID, and normalized payload returns the original run. Concurrent submissions with the same request ID and payload share one preparation and receive the same run. Reusing the request ID with another payload returns `400 InvalidTask`. Preparing and pending runs share the capacity limit; once that capacity is full, DataKit skips task preparation and returns `429 ServerUnavailable` immediately. DataKit validates internal-network destinations immediately before execution with a fixed 15-second DNS timeout. Validation failures mark the run as `failed`.
+
+```json
+{
+  "content": {
+    "run_id": "9f6f8bea-ece2-455f-92ac-e535638f7364",
+    "status": "pending",
+    "expires_at": 1785137413
+  }
+}
+```
+
+Query a run with `GET /v1/dialtesting/debug/runs?run_id={run_id}&wait=5`. `run_id` must be a UUID v4. `wait` is in seconds, defaults to 5, accepts non-negative values, and is capped at 10. A status change wakes the request early.
+
+Statuses are `pending`, `running`, `completed`, `timed_out`, and `failed`. A completed response contains `result`, whose contract is identical to the synchronous debug API. Probe assertion failures and unreachable targets are completed probe results, not asynchronous execution failures. `timed_out` only means the run waited in the queue longer than the configured queue wait. Terminal results are retained for at most 10 minutes by default; `ENV_DIALTESTING_DEBUG_RESULT_TTL` overrides this maximum duration. When the number of terminal runs exceeds `ENV_DIALTESTING_DEBUG_MAX_RETAINED_TERMINAL_RUNS`, DataKit evicts the oldest result first. `expires_at` is the TTL-based upper bound and does not guarantee retention when capacity eviction occurs. Expired, evicted, missing, and owner-mismatched runs return `404 RunNotFound`; an internal-network destination rejected before execution returns `400 InternalNetworkDenied`; other executor failures return `500 ExecutionFailed`.
+
 ## Information Query APIs {#query-apis}
 
 ### `/v1/env_variable` {#api-env-variable}

@@ -190,3 +190,20 @@ graph TD
 ## 拨测采集器自身指标采集 {#metric}
 
 拨测采集器会暴露 [Prometheus 指标](../datakit/datakit-metrics.md)。默认情况下，[DataKit 采集器](dk.md) 会采集这些 `datakit_dialtesting_*` 指标并上报至<<<custom_key.brand_name>>>，无需额外配置。
+
+## 异步调试部署 {#async-debug-deployment}
+
+异步调试任务只保存在 DataKit 进程内存中。专用调试 DataKit 必须以单副本部署，并由 Backend 固定访问该实例；不要将多个副本放在普通负载均衡之后，否则提交与查询可能访问不同内存。DataKit 重启或升级后，排队中、执行中以及仍在保留期内的终态任务都会丢失，调用方需要重新提交测试。
+
+以下内置默认值可在进程启动时通过环境变量覆盖。空值或非法值回退默认值，时长使用 Go duration 格式；修改后需重启 DataKit 才能生效。
+
+| 环境变量 | 默认值 |
+| --- | --- |
+| `ENV_DIALTESTING_DEBUG_MAX_CONCURRENT_RUNS` | `100` |
+| `ENV_DIALTESTING_DEBUG_MAX_QUEUED_RUNS` | `1000`（准备中与排队中的任务总数） |
+| `ENV_DIALTESTING_DEBUG_MAX_QUEUE_WAIT` | `3m` |
+| `ENV_DIALTESTING_DEBUG_RESULT_TTL` | `10m` |
+| `ENV_DIALTESTING_DEBUG_MAX_LONG_POLL_WAIT` | `10s`（超过 10 秒时截断） |
+| `ENV_DIALTESTING_DEBUG_MAX_RETAINED_TERMINAL_RUNS` | `2000` |
+
+请根据 CPU、内存、文件描述符以及轻量拨测与 NetPath 的任务占比调整并发和队列容量。容量已满时，新任务在执行任务准备之前返回 `429 ServerUnavailable`；相同 owner、request ID 和请求内容的并发重试共用一次准备。DataKit 在任务执行前校验内网目标，DNS 校验使用固定 15 秒超时；校验失败时 run 进入 `failed`。终态结果最多保留至配置的 TTL；超过终态任务保留数量上限时，DataKit 优先淘汰最早结果。可通过 `dialing_debug_preparing_size` 和 `dialing_debug_queue_size` 分别观察准备中与排队中的任务数。即时调试结果不会写入正式拨测任务、Kodo、MySQL 或 `D::` 数据链路。

@@ -59,9 +59,10 @@ type Body struct {
 	caller,
 	chksum string
 
-	selfBuffer bufOnwer // buffer that belongs to itself, and we should not drop it when putback
-	Gzon       GzipFlag
-	From       walFrom
+	selfBuffer  bufOnwer // buffer that belongs to itself, and we should not drop it when putback
+	compression Compression
+	Gzon        GzipFlag
+	From        walFrom
 }
 
 func (b *Body) reset() {
@@ -86,6 +87,7 @@ func (b *Body) reset() {
 	// this will **panic** body encoding and protobuf marshal.
 
 	b.Gzon = GzipNotSet
+	b.compression = CompressionUnknown
 	b.From = WalFromNotSet
 }
 
@@ -117,11 +119,53 @@ func (b *Body) RawLen() int32 {
 	return b.CacheData.RawLen
 }
 
+// ContentEncoding returns the body's actual compression after it is prepared.
+func (b *Body) ContentEncoding() Compression {
+	return b.compression
+}
+
+// SetContentEncoding records the body's actual compression in memory.
+func (b *Body) SetContentEncoding(compression Compression) {
+	b.compression = compression
+}
+
+// PersistContentEncoding adds the actual compression to fail-cache metadata.
+func (b *Body) PersistContentEncoding() {
+	if b.compression != CompressionIdentity &&
+		b.compression != CompressionGzip &&
+		b.compression != CompressionZstd {
+		return
+	}
+
+	for _, header := range b.CacheData.Headers {
+		if strings.EqualFold(header.Key, "Content-Encoding") {
+			header.Value = b.compression.String()
+			return
+		}
+	}
+	b.CacheData.Headers = append(b.CacheData.Headers, &HTTPHeader{
+		Key:   "Content-Encoding",
+		Value: b.compression.String(),
+	})
+}
+
+// SetPayload replaces the body payload without changing its reusable buffers.
+func (b *Body) SetPayload(payload []byte) {
+	b.CacheData.Payload = payload
+}
+
 func (b *Body) LoadCache(data []byte) error {
 	b.CacheData.Reset()
+	b.compression = CompressionUnknown
 
 	if err := b.CacheData.Unmarshal(data); err != nil {
 		return fmt.Errorf("Unmarshal: %w", err)
+	}
+	for _, header := range b.CacheData.Headers {
+		if strings.EqualFold(header.Key, "Content-Encoding") {
+			b.compression = ParseCompression(header.Value)
+			break
+		}
 	}
 
 	if b.Enc() == encNotSet || b.Cat() == point.UnknownCategory {
@@ -146,8 +190,8 @@ func (b *Body) Dump() ([]byte, error) {
 }
 
 func (b *Body) String() string {
-	return fmt.Sprintf("from: %s, enc: %s, cat: %s, gzon: %v, headers: %d, pts: %d, buf bytes: %d, chksum: %s, rawLen: %d, cap: %d",
-		b.From, b.Enc(), b.Cat(), b.Gzon, len(b.GetHeaders()), b.Npts(), len(b.Buf()), b.chksum, b.RawLen(), cap(b.SendBuf))
+	return fmt.Sprintf("from: %s, enc: %s, compression: %s, cat: %s, gzon: %v, headers: %d, pts: %d, buf bytes: %d, chksum: %s, rawLen: %d, cap: %d",
+		b.From, b.Enc(), b.ContentEncoding(), b.Cat(), b.Gzon, len(b.GetHeaders()), b.Npts(), len(b.Buf()), b.chksum, b.RawLen(), cap(b.SendBuf))
 }
 
 func (b *Body) Expired(ttl time.Duration) bool {
@@ -162,6 +206,7 @@ func (b *Body) Pretty() string {
 	arr = append(arr, fmt.Sprintf("enc: %d/%s", b.Enc(), b.Enc()))
 	arr = append(arr, fmt.Sprintf("cat: %d/%s", b.Cat(), b.Cat()))
 	arr = append(arr, fmt.Sprintf("gzon: %d", b.Gzon))
+	arr = append(arr, fmt.Sprintf("compression: %s", b.ContentEncoding()))
 	arr = append(arr, fmt.Sprintf("#buf: %d", len(b.Buf())))
 	arr = append(arr, fmt.Sprintf("#send-buf: %d", len(b.SendBuf)))
 	arr = append(arr, fmt.Sprintf("#mars-buf: %d", len(b.SendBuf)))
@@ -266,20 +311,6 @@ func (w *Writer) BuildPointsBody() error {
 		b.From = WalFromMem
 		b.CacheData.Payload = encodeBytes
 
-		if w.gzipDuringBuildBody {
-			gz := GetZipper()
-			defer PutZipper(gz)
-
-			if zbuf, err := gz.Zip(b.Buf()); err != nil {
-				l.Errorf("gzip: %s", err.Error())
-				return err
-			} else {
-				ncopy := copy(b.SendBuf, zbuf)
-				l.Debugf("copy %d(origin: %d) zipped bytes to buf", ncopy, len(b.Buf()))
-				b.CacheData.Payload = b.SendBuf[:ncopy]
-			}
-		}
-
 		b.CacheData.Category = int32(w.Category)
 		b.CacheData.Pts = int32(nptsArr[parts])
 		b.CacheData.RawLen = int32(len(encodeBytes))
@@ -287,6 +318,10 @@ func (w *Writer) BuildPointsBody() error {
 		b.CacheData.DynURL = w.DynamicURL
 		b.CacheData.PkgTime = uint32(compactStart.Unix())
 		for k, v := range w.HTTPHeaders {
+			if strings.EqualFold(k, "Content-Encoding") {
+				delete(w.HTTPHeaders, k)
+				continue
+			}
 			b.CacheData.Headers = append(b.CacheData.Headers, &HTTPHeader{Key: k, Value: v})
 		}
 

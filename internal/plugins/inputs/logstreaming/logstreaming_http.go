@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/jsonfields"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
@@ -193,7 +194,11 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		}
 	}
 
-	switch param.queryValues.Get("type") {
+	requestType := param.queryValues.Get("type")
+	jsonAsFields := ipt.JSONAsFields && requestType != InfluxDBType &&
+		requestType != FireLensType && requestType != FireHoseType
+
+	switch requestType {
 	case InfluxDBType:
 		body, err := ioutil.ReadAll(param.body)
 		if err != nil {
@@ -325,12 +330,23 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			if line == "" {
 				continue
 			}
-			var kvs point.KVs
 
-			kvs = kvs.Set(constants.FieldMessage, line).
-				Set(constants.FieldStatus, pipeline.DefaultStatus)
-			pts = append(pts, point.NewPoint(source, kvs,
-				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...))
+			conversion := jsonfields.Conversion{}
+			if jsonAsFields {
+				conversion = jsonfields.Convert([]byte(line))
+			}
+
+			var kvs point.KVs
+			if conversion.Converted {
+				kvs = kvs.Set(constants.FieldStatus, pipeline.DefaultStatus)
+				kvs = conversion.Apply(kvs)
+			} else {
+				kvs = kvs.Set(constants.FieldMessage, line).
+					Set(constants.FieldStatus, pipeline.DefaultStatus)
+			}
+			pt := point.NewPoint(source, kvs,
+				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...)
+			pts = append(pts, pt)
 		}
 
 		// scan error

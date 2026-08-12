@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/jsonfields"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
@@ -160,19 +161,30 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 }
 
 func (sk *SocketLogger) feedMessages(pending []socketMessage) {
-	pts := []*point.Point{}
+	points := make([]*point.Point, 0, len(pending))
 	for _, msg := range pending {
 		if len(msg.content) == 0 {
 			continue
 		}
+
+		conversion := jsonfields.Conversion{}
+		if sk.cfg.jsonAsFields {
+			conversion = jsonfields.Convert(msg.content)
+		}
+
 		fields := map[string]interface{}{
-			"message_length":       len(msg.content),
-			constants.FieldMessage: string(msg.content),
-			constants.FieldStatus:  pipeline.DefaultStatus,
+			"message_length":      len(msg.content),
+			constants.FieldStatus: pipeline.DefaultStatus,
+		}
+		if !conversion.Converted {
+			fields[constants.FieldMessage] = string(msg.content)
 		}
 		kvs := append(point.NewTags(sk.tags), point.NewKVs(fields)...)
 		if msg.sourceIP != "" {
 			kvs = kvs.SetTag(collectorSourceIPTag, msg.sourceIP)
+		}
+		if conversion.Converted {
+			kvs = conversion.Apply(kvs)
 		}
 
 		pt := point.NewPoint(
@@ -180,21 +192,21 @@ func (sk *SocketLogger) feedMessages(pending []socketMessage) {
 			kvs,
 			point.DefaultLoggingOptions()...,
 		)
-		pts = append(pts, pt)
+		points = append(points, pt)
 	}
 
-	if len(pts) == 0 {
+	if len(points) == 0 {
 		return
 	}
 
-	if err := sk.cfg.feeder.Feed(point.Logging, pts,
+	if err := sk.cfg.feeder.Feed(point.Logging, points,
 		dkio.WithSource(sk.feedName),
 		dkio.WithStorageIndex(sk.cfg.storageIndex),
 		dkio.WithPipelineOption(&lang.LogOption{
 			ScriptMap: map[string]string{sk.cfg.source: sk.cfg.pipeline},
 		}),
 	); err != nil {
-		sk.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
+		sk.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(points), err)
 	}
 }
 

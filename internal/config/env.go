@@ -302,6 +302,7 @@ func (c *Config) loadPointPoolEnvs() {
 	}
 }
 
+//nolint:funlen // Keep DataWay environment mappings in one place.
 func (c *Config) loadDatawayEnvs() {
 	if v := datakit.GetEnv("ENV_DATAWAY_SINKER_HEADER_VERSION"); v != "" {
 		l.Info("ENV_DATAWAY_SINKER_HEADER_VERSION set to %q", v)
@@ -329,15 +330,19 @@ func (c *Config) loadDatawayEnvs() {
 		c.Dataway.ContentEncoding = v
 	}
 
+	if v := datakit.GetEnv("ENV_DATAWAY_COMPRESSION"); v != "" {
+		l.Infof("ENV_DATAWAY_COMPRESSION set to %q", v)
+		c.Dataway.Compression = v
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_PAYLOAD_OBFUSCATION"); v != "" {
 		l.Infof("ENV_DATAWAY_PAYLOAD_OBFUSCATION set to %q", v)
 		c.Dataway.PayloadObfuscation = v
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_DISABLE_GZIP"); v != "" {
-		// NOTE: list the entry here only for test.
-		// Do NOT enable this ENV, kodo only accept gzip /v1/write/ payload
-		l.Info("ENV_DATAWAY_GZIP disabled")
+		// Legacy test-only switch. ENV_DATAWAY_COMPRESSION takes precedence.
+		l.Info("ENV_DATAWAY_DISABLE_GZIP set")
 		c.Dataway.GZip = false
 	}
 

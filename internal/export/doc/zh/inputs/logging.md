@@ -76,6 +76,17 @@ monitor   :
 
 <!-- markdownlint-enable MD046 -->
 
+### JSON 字段模式 {#json-as-fields}
+
+`json_as_fields` 默认为 `false`。设为 `true` 后，将在字符解码、ANSI 清理和多行合并之后，把一条完整日志的 JSON 根对象转换为字段，再执行 Pipeline：
+
+- 顶层字符串、布尔值、`int64` 整数和 `float64` 小数保持类型；对象和数组保存为紧凑 JSON 字符串，`null` 和无法表示的数字忽略。
+- 转换成功后不再保留原始 JSON；JSON 自带的 `message` 会正常保留。非法 JSON、非对象根节点或无有效字段时回退为原始 `message`。
+- 字段名先截断到 256 字节，再将 `.` 替换为 `_`、移除末尾连续反斜杠，并将换行符替换为空格；结果为空的字段忽略。多个原始字段名转换为同名时，原本无需修改的名称优先，否则按原始名称字典序保留第一个。转换后命中保留字段名时，仍按下述保留规则改名。
+- 每个 Point 最多保留 1024 个 field（不含 tag）：采集器已有 field 优先，剩余额度按转换后的 JSON 字段名字典序填充。
+- JSON 字段覆盖采集器的同名 tag/field，且不受 `field_white_list` 限制。
+- `time`、`source`、`date`、`storage_index` 分别改名为 `json_time`、`json_source`、`json_date`、`json_storage_index`；若目标名称已存在，则追加 `_N`。这些 JSON 字段不覆盖日志时间、采集器语义或配置的存储索引。
+
 ## 高级主题 {#deepin-topics}
 
 以下涉及日志采集更深入的一些介绍，如果您感兴趣，可以了解一下。

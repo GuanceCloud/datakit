@@ -16,7 +16,9 @@ Example:
 # input data: {"first": 1,"second":2,"third":"aBC","forth":true}
 
 # script
-json(_, first) json(_, second) nullif(first, "1")
+json(_, first)
+json(_, second)
+nullif(first, "1")
 
 # result
 {

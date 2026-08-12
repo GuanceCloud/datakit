@@ -14,7 +14,8 @@
 # 待处理数据：{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"}
 
 # 处理脚本
-json(_, url) url_decode(url)
+json(_, url)
+url_decode(url)
 
 # 处理结果
 {

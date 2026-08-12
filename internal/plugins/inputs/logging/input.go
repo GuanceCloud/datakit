@@ -45,6 +45,7 @@ type Input struct {
 	StorageIndex          string   `toml:"storage_index"`
 	IgnoreStatus          []string `toml:"ignore_status"`
 	FieldWhitelist        []string `toml:"field_white_list"`
+	JSONAsFields          bool     `toml:"json_as_fields"`
 	CharacterEncoding     string   `toml:"character_encoding"`
 	RemoveAnsiEscapeCodes bool     `toml:"remove_ansi_escape_codes"`
 
@@ -192,6 +193,7 @@ func (ipt *Input) buildTailerOptions(fieldWhitelist []string, ignoreDuration tim
 		tailer.WithSource(ipt.Source),
 		tailer.WithService(ipt.Service),
 		tailer.WithStorageIndex(ipt.StorageIndex),
+		tailer.WithJSONAsFields(ipt.JSONAsFields),
 		tailer.WithIgnorePatterns(ipt.Ignore),
 		tailer.WithPipeline(ipt.Pipeline),
 

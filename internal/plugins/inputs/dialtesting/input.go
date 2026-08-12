@@ -173,6 +173,9 @@ type BrowserDialConfig struct {
 	Enabled        *bool  `toml:"enabled,omitempty"`
 	Engine         string `toml:"engine,omitempty"`
 	EnginePath     string `toml:"engine_path,omitempty"`
+	CACertFile     string `toml:"ca_cert_file,omitempty"`
+	CACertDir      string `toml:"ca_cert_dir,omitempty"`
+	ProxyURL       string `toml:"proxy_url,omitempty"`
 	MaxConcurrency int    `toml:"max_concurrency,omitempty"`
 }
 
@@ -180,6 +183,11 @@ var browserDialtestingGOOS = runtime.GOOS
 
 const (
 	browserLightpandaOptionPath = "lightpanda_path"
+	browserCACertFileOption     = "browser_ca_cert_file"
+	browserCACertDirOption      = "browser_ca_cert_dir"
+	browserProxyURLOption       = "browser_proxy_url"
+	browserBlockPrivateOption   = "browser_block_private_network"
+	browserBlockCIDRsOption     = "browser_block_cidrs"
 	defaultBrowserEngine        = "lightpanda"
 )
 
@@ -452,8 +460,19 @@ const sample = `
     engine = "lightpanda"
 
     # Optional browser engine executable path.
-    # If empty, the embedded browser runner will use LIGHTPANDA_EXECUTABLE_PATH or PATH.
+    # If empty, the embedded browser runner uses the engine-specific environment variable or PATH.
     engine_path = ""
+
+    # Optional CA certificate file or directory trusted by the browser engine.
+    # Use PEM certificates for compatibility with Lightpanda.
+    # Configure these instead of disabling HTTPS certificate verification.
+    ca_cert_file = ""
+    ca_cert_dir = ""
+
+    # Optional default proxy for browser dialtesting tasks.
+    # Lightpanda supports HTTP proxies.
+    # A proxy configured by an individual task takes precedence.
+    proxy_url = ""
 
     # Max browser dialtesting tasks running at the same time. 0 means no limit.
     max_concurrency = 0
@@ -601,6 +620,10 @@ func (ipt *Input) Resume() error {
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
+	if err := ipt.validateBrowserConfig(); err != nil {
+		l.Errorf("invalid browser dialtesting configuration: %s", err)
+		return
+	}
 
 	if ipt.MaxSendFailCount > 0 {
 		MaxSendFailCount = int(ipt.MaxSendFailCount)
@@ -1096,14 +1119,18 @@ func redactNetPathTaskError(err error, taskJSON string) string {
 	return strings.ReplaceAll(err.Error(), taskJSON, "<redacted>")
 }
 
-func (ipt *Input) applyBrowserOptions(t dt.ITask, opt map[string]string) {
+func (ipt *Input) applyBrowserOptions(t dt.ITask, opt map[string]string) error {
 	if t == nil || t.Class() != dt.ClassHeadless {
-		return
+		return nil
 	}
 
 	engine := defaultBrowserEngine
 	if ipt.Browser != nil {
-		engine = normalizeBrowserEngine(ipt.Browser.Engine)
+		var err error
+		engine, err = normalizeBrowserEngine(ipt.Browser.Engine)
+		if err != nil {
+			return err
+		}
 	}
 	if browserTask, ok := t.(*dt.BrowserTask); ok {
 		if browserTask.AdvanceOptions == nil {
@@ -1111,22 +1138,45 @@ func (ipt *Input) applyBrowserOptions(t dt.ITask, opt map[string]string) {
 		}
 		browserTask.AdvanceOptions.Engine = engine
 	}
+	if ipt.DisableInternalNetworkTask && len(ipt.DisabledInternalNetworkCIDRList) > 0 {
+		opt[browserBlockCIDRsOption] = strings.Join(ipt.DisabledInternalNetworkCIDRList, ",")
+	} else if ipt.DisableInternalNetworkTask {
+		opt[browserBlockPrivateOption] = "true"
+	}
 
 	if ipt.Browser == nil {
-		return
+		return nil
 	}
 	if enginePath := strings.TrimSpace(ipt.Browser.EnginePath); enginePath != "" {
 		opt[browserLightpandaOptionPath] = enginePath
 	}
+	if caCertFile := strings.TrimSpace(ipt.Browser.CACertFile); caCertFile != "" {
+		opt[browserCACertFileOption] = caCertFile
+	}
+	if caCertDir := strings.TrimSpace(ipt.Browser.CACertDir); caCertDir != "" {
+		opt[browserCACertDirOption] = caCertDir
+	}
+	if proxyURL := strings.TrimSpace(ipt.Browser.ProxyURL); proxyURL != "" {
+		opt[browserProxyURLOption] = proxyURL
+	}
+	return nil
 }
 
-func normalizeBrowserEngine(engine string) string {
+func normalizeBrowserEngine(engine string) (string, error) {
 	switch strings.TrimSpace(strings.ToLower(engine)) {
-	case "lightpanda":
-		return "lightpanda"
+	case "", "lightpanda":
+		return defaultBrowserEngine, nil
 	default:
-		return defaultBrowserEngine
+		return "", fmt.Errorf("unsupported browser engine %q; supported engine: lightpanda", strings.TrimSpace(engine))
 	}
+}
+
+func (ipt *Input) validateBrowserConfig() error {
+	if ipt.Browser == nil || !ipt.browserEnabled() {
+		return nil
+	}
+	_, err := normalizeBrowserEngine(ipt.Browser.Engine)
+	return err
 }
 
 func protectedRun(d *dialer) {
@@ -1208,7 +1258,9 @@ func (ipt *Input) newTaskFromClassJSON(class, taskJSON string) (dt.ITask, error)
 		"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
 			runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost),
 	}
-	ipt.applyBrowserOptions(t, opt)
+	if err := ipt.applyBrowserOptions(t, opt); err != nil {
+		return nil, err
+	}
 	t.SetOption(opt)
 
 	return t, nil
@@ -1813,6 +1865,9 @@ type taskPullResp struct {
 
 func (ipt *Input) dispatchTasks(j []byte) error {
 	var resp taskPullResp
+	if err := ipt.validateBrowserConfig(); err != nil {
+		return err
+	}
 
 	if err := json.Unmarshal(j, &resp); err != nil {
 		l.Errorf("json.Unmarshal: %s", err.Error())
@@ -1955,7 +2010,9 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
 					runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost),
 			}
-			ipt.applyBrowserOptions(t, opt)
+			if err := ipt.applyBrowserOptions(t, opt); err != nil {
+				return err
+			}
 			t.SetOption(opt)
 
 			if k == dt.ClassNetPath {
@@ -2139,6 +2196,9 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs, variableSinceUs int64) 
 // ENV_INPUT_DIALTESTING_BROWSER_ENABLED: bool.
 // ENV_INPUT_DIALTESTING_BROWSER_ENGINE: string.
 // ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH: string.
+// ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_FILE: string.
+// ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_DIR: string.
+// ENV_INPUT_DIALTESTING_BROWSER_PROXY_URL: string.
 // ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY: int.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
@@ -2206,6 +2266,27 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.Browser = &BrowserDialConfig{}
 		}
 		ipt.Browser.EnginePath = enginePath
+	}
+
+	if caCertFile, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_FILE"]; ok {
+		if ipt.Browser == nil {
+			ipt.Browser = &BrowserDialConfig{}
+		}
+		ipt.Browser.CACertFile = caCertFile
+	}
+
+	if caCertDir, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_CA_CERT_DIR"]; ok {
+		if ipt.Browser == nil {
+			ipt.Browser = &BrowserDialConfig{}
+		}
+		ipt.Browser.CACertDir = caCertDir
+	}
+
+	if proxyURL, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_PROXY_URL"]; ok {
+		if ipt.Browser == nil {
+			ipt.Browser = &BrowserDialConfig{}
+		}
+		ipt.Browser.ProxyURL = proxyURL
 	}
 
 	if v, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY"]; ok {

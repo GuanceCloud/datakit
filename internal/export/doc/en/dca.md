@@ -240,6 +240,11 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
+### 0.1.8 (2026/08/12) {#cl-0.1.8}
+
+- Improved DataKit list search debouncing to avoid duplicate queries and error notifications caused by canceled requests during rapid input.
+- Improved DCA WebSocket connection and watcher lifecycle handling for better stability during connection changes and unexpected disconnections.
+
 ### 0.1.7 (2026/06/18) {#cl-0.1.7}
 
 - DataKit list now supports workspace search filtering, improving workspace switching in multi-workspace scenarios.
