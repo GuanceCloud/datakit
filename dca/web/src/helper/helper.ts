@@ -1,7 +1,7 @@
 import { message } from "antd"
 import CryptoJS from 'crypto-js'
 import { getMsg } from "src/store/baseApi"
-import { DCA_STATUS, IDatakit } from "src/store/type"
+import { DCA_STATUS, IDatakit, IDatakitVersionLine, ILatestDatakitVersions } from "src/store/type"
 
 export async function sleep(time: number) {
   return new Promise((resolve) => {
@@ -74,9 +74,104 @@ export function isLoadingStatus(dk: IDatakit): boolean {
   return [DCA_STATUS.UPGRADING, DCA_STATUS.RESTARTING].includes((dk.status as DCA_STATUS))
 }
 
-export function isDatakitUpgradeable(dk: IDatakit, latestDatakitVersion: string): boolean {
+type ParsedDatakitVersion = {
+  major: number
+  minor: number
+  patch: number
+  suffix: string
+}
+
+function parseDatakitVersion(version: string): ParsedDatakitVersion | undefined {
+  const normalized = version.trim().replace(/^v/, '').split('_', 1)[0]
+  const match = normalized.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/)
+  if (!match) {
+    return undefined
+  }
+
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+    suffix: match[4] || '',
+  }
+}
+
+export function getDatakitVersionLine(version: string): IDatakitVersionLine | undefined {
+  const parsed = parseDatakitVersion(version)
+  if (parsed?.major === 1) {
+    return "v1"
+  }
+  if (parsed?.major === 2) {
+    return "v2"
+  }
+  return undefined
+}
+
+export function getLatestDatakitVersion(version: string, latestVersions: ILatestDatakitVersions): string | undefined {
+  const line = getDatakitVersionLine(version)
+  return line ? latestVersions[line] : undefined
+}
+
+function compareVersionSuffix(current: string, latest: string): number | undefined {
+  if (current === latest) {
+    return 0
+  }
+
+  const currentRC = current.match(/^rc(\d+)$/)
+  const latestRC = latest.match(/^rc(\d+)$/)
+  if (currentRC && latestRC) {
+    return Number(currentRC[1]) - Number(latestRC[1])
+  }
+  if (currentRC && !latest) {
+    return -1
+  }
+  if (!current && latestRC) {
+    return 1
+  }
+
+  const currentBuild = current.match(/^(\d+)-g[0-9a-f]+$/i)
+  const latestBuild = latest.match(/^(\d+)-g[0-9a-f]+$/i)
+  if (currentBuild && latestBuild) {
+    return Number(currentBuild[1]) - Number(latestBuild[1])
+  }
+  if (currentBuild && !latest) {
+    return 1
+  }
+  if (!current && latestBuild) {
+    return -1
+  }
+
+  return undefined
+}
+
+export function compareDatakitVersions(currentVersion: string, latestVersion: string): number | undefined {
+  const current = parseDatakitVersion(currentVersion)
+  const latest = parseDatakitVersion(latestVersion)
+  if (!current || !latest) {
+    return undefined
+  }
+
+  for (const field of ['major', 'minor', 'patch'] as const) {
+    if (current[field] !== latest[field]) {
+      return current[field] - latest[field]
+    }
+  }
+
+  return compareVersionSuffix(current.suffix, latest.suffix)
+}
+
+export function isNewerDatakitVersionAvailable(version: string, latestVersions: ILatestDatakitVersions): boolean {
+  const latestVersion = getLatestDatakitVersion(version, latestVersions)
+  if (!latestVersion) {
+    return false
+  }
+  const comparison = compareDatakitVersions(version, latestVersion)
+  return comparison !== undefined && comparison < 0
+}
+
+export function isDatakitUpgradeable(dk: IDatakit, latestVersions: ILatestDatakitVersions): boolean {
   return isDatakitManagement(dk)
-    && dk.version !== latestDatakitVersion
+    && isNewerDatakitVersionAvailable(dk.version, latestVersions)
     && dk.status !== DCA_STATUS.OFFLINE
     && !isContainerMode(dk)
 }

@@ -136,7 +136,8 @@
       "not_running": "DataKit 不在线，仅 running 状态支持管理操作。",
       "container_reload": "该 DataKit 运行在容器中，暂不支持在 DCA 中重启。",
       "container_upgrade": "该 DataKit 运行在容器中，暂不支持在 DCA 中升级。",
-      "latest_version": "当前 DataKit 已是最新版本。"
+      "version_unavailable": "无法获取该 DataKit 版本线的最新版本信息。",
+      "latest_version": "当前 DataKit 已是最新版本或版本更高。"
     }
   },
   "run_info": {

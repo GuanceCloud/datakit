@@ -240,6 +240,10 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
+### 0.1.9 (2026/08/19) {#cl-0.1.9}
+
+- DataKit list now distinguishes the latest v1 and v2 versions to avoid incorrect cross-major upgrade status.
+
 ### 0.1.8 (2026/08/12) {#cl-0.1.8}
 
 - Improved DataKit list search debouncing to avoid duplicate queries and error notifications caused by canceled requests during rapid input.

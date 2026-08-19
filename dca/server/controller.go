@@ -356,35 +356,107 @@ func getNewWebsocketConn(datakit *ws.DataKit, action string) (*websocket.Conn, e
 
 func getLastDatakitVersionHandler(c *gin.Context) {
 	h := newHandler(c)
-
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/datakit/version", staticBaseURL), nil)
+	v, err := fetchDatakitVersion("/datakit/version")
 	if err != nil {
-		h.fatal(500, "failed to new request")
+		h.fatal(500, err.Error())
 		return
+	}
+	h.success(v)
+}
+
+type datakitVersions struct {
+	V1 *version.VerInfo `json:"v1,omitempty"`
+	V2 *version.VerInfo `json:"v2,omitempty"`
+}
+
+type datakitVersionResult struct {
+	line    string
+	version *version.VerInfo
+	err     error
+}
+
+func getLastDatakitVersionsHandler(c *gin.Context) {
+	h := newHandler(c)
+	results := make(chan datakitVersionResult, 2)
+
+	for line, path := range map[string]string{
+		"v1": "/datakit/version",
+		"v2": "/datakit-v2/version",
+	} {
+		go func(line, path string) {
+			v, err := fetchDatakitVersion(path)
+			results <- datakitVersionResult{line: line, version: v, err: err}
+		}(line, path)
+	}
+
+	versions := datakitVersions{}
+	errs := make([]string, 0, 2)
+	for i := 0; i < 2; i++ {
+		result := <-results
+		if result.err != nil {
+			l.Warnf("failed to get latest Datakit %s version: %s", result.line, result.err.Error())
+			errs = append(errs, fmt.Sprintf("%s: %s", result.line, result.err.Error()))
+			continue
+		}
+
+		switch result.line {
+		case "v1":
+			if result.version.GetMajor() != 1 {
+				errs = append(errs, fmt.Sprintf("v1: unexpected version %q", result.version.VersionString))
+				continue
+			}
+			versions.V1 = result.version
+		case "v2":
+			if result.version.GetMajor() != 2 {
+				errs = append(errs, fmt.Sprintf("v2: unexpected version %q", result.version.VersionString))
+				continue
+			}
+			versions.V2 = result.version
+		}
+	}
+
+	if versions.V1 == nil && versions.V2 == nil {
+		h.fatal(500, fmt.Sprintf("failed to get Datakit versions: %s", strings.Join(errs, "; ")))
+		return
+	}
+
+	h.success(versions)
+}
+
+func fetchDatakitVersion(path string) (*version.VerInfo, error) {
+	versionURL := strings.TrimRight(staticBaseURL, "/") + path
+
+	req, err := http.NewRequest(http.MethodGet, versionURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request for %s: %w", versionURL, err)
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	res, err := client.Do(req)
 	if err != nil {
-		h.fatal(500, err.Error())
-		return
+		return nil, fmt.Errorf("get %s: %w", versionURL, err)
 	}
 	defer res.Body.Close() //nolint:errcheck
 
-	if body, err := io.ReadAll(res.Body); err != nil {
-		l.Warnf("failed to read response body %s", err.Error())
-		h.fatal(500, fmt.Sprintf("read response body %s", err.Error()))
-		return
-	} else {
-		var v version.VerInfo
-		if err := json.Unmarshal(body, &v); err != nil {
-			l.Warnf("failed to unmarshal version info %s", err.Error())
-			h.fatal(500, fmt.Sprintf("unmarshal version info %s", err.Error()))
-			return
-		}
-		h.success(v)
+	if res.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("get %s: unexpected status %s", versionURL, res.Status)
 	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response body from %s: %w", versionURL, err)
+	}
+
+	var v version.VerInfo
+	if err := json.Unmarshal(body, &v); err != nil {
+		return nil, fmt.Errorf("unmarshal version info from %s: %w", versionURL, err)
+	}
+	if err := v.Parse(); err != nil {
+		return nil, fmt.Errorf("parse version info from %s: %w", versionURL, err)
+	}
+
+	return &v, nil
 }
 
 func websocketLogHandler(ctx *gin.Context) {

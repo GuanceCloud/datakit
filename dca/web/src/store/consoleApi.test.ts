@@ -68,7 +68,7 @@ describe('consoleApi endpoint definitions', () => {
       url: '/api/console/currentAccount',
     });
     expect(mockBuilder.query.mock.calls[4][0].query()).toEqual({
-      url: '/api/lastDatakitVersion',
+      url: '/api/lastDatakitVersions',
     });
     expect(mockBuilder.query.mock.calls[5][0].query()).toEqual({
       method: 'post',

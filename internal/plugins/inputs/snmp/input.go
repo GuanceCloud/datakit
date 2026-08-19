@@ -107,6 +107,7 @@ type Input struct {
 	PickingExtra        []string          `toml:"extra"`
 	ObjectInterval      time.Duration     `toml:"object_interval,omitempty"`
 	MetricInterval      time.Duration     `toml:"metric_interval,omitempty"`
+	CollectTopology     bool              `toml:"collect_topology"`
 	EnableLLDP          bool              `toml:"enable_lldp"`
 	LLDPInterval        time.Duration     `toml:"lldp_interval,omitempty"`
 
@@ -811,7 +812,7 @@ func (ipt *Input) doCollectCore(ip string,
 	fts *tagFields,
 	collectObject bool,
 ) {
-	deviceReachable, tags, values, checkErr, isErrClosed := device.getValuesAndTags()
+	deviceReachable, tags, values, checkErr, isErrClosed := device.getValuesAndTags(collectObject && ipt.CollectTopology)
 	if checkErr != nil {
 		if isErrClosed && len(device.Subnet) > 0 {
 			// used for ignore closed devices failed report
@@ -822,9 +823,11 @@ func (ipt *Input) doCollectCore(ip string,
 		}
 		l.Warnf("getValuesAndTags failed, ip=%s: %v", ip, checkErr)
 	}
+
 	for k, v := range ipt.Tags {
 		tags = append(tags, k+":"+v)
 	}
+	tags = append(tags, deviceNamespaceTagKey+":"+device.Namespace)
 	tags = append(tags, "ip:"+ip)
 	tags = append(tags, agentHostKey+":"+datakit.DKHost)
 	tags = append(tags, agentVersionKey+":"+git.Version)
@@ -1020,6 +1023,7 @@ func aggregateHash(metricData *snmputil.MetricDatas, mHash map[string]map[string
 // interfaces.
 type interfaceAttribute struct {
 	Interface      string                 `json:"interface"`
+	InterfaceIndex string                 `json:"interface_index,omitempty"`
 	InterfaceAlias string                 `json:"interface_alias"`
 	Fields         map[string]interface{} `json:"fields"`
 }
@@ -1038,6 +1042,9 @@ func mergeInterfacesByInterface(list []*interfaceAttribute) []*interfaceAttribut
 			for k, v := range iface.Fields {
 				existing.Fields[k] = v
 			}
+			if existing.InterfaceIndex == "" && iface.InterfaceIndex != "" {
+				existing.InterfaceIndex = iface.InterfaceIndex
+			}
 			if existing.InterfaceAlias == "" && iface.InterfaceAlias != "" {
 				existing.InterfaceAlias = iface.InterfaceAlias
 			}
@@ -1048,6 +1055,7 @@ func mergeInterfacesByInterface(list []*interfaceAttribute) []*interfaceAttribut
 			}
 			merged[iface.Interface] = &interfaceAttribute{
 				Interface:      iface.Interface,
+				InterfaceIndex: iface.InterfaceIndex,
 				InterfaceAlias: iface.InterfaceAlias,
 				Fields:         fields,
 			}
@@ -1086,6 +1094,7 @@ type cpuAttribute struct {
 }
 
 var reservedKeys = []string{
+	deviceNamespaceTagKey,
 	"device_vendor",
 	"host",
 	"ip",
@@ -1163,6 +1172,7 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 						case "interface":
 							objectFieldInterfaces = append(objectFieldInterfaces, &interfaceAttribute{
 								Interface:      tagV,
+								InterfaceIndex: tags["interface_index"],
 								InterfaceAlias: tags["interface_alias"],
 								Fields:         fields,
 							})
@@ -1239,10 +1249,8 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 		objectFields["mems"] = beJSON(objectFieldmems)
 		objectFields["mem_pool_names"] = beJSON(objectFieldMemPoolNames)
 		objectFields["cpus"] = beJSON(objectFieldcCPUs)
-		// objectFields["all"] = beJSON(objectFieldAll)
+		objectFields["links"] = beJSON(metaData.topologyLinks)
 
-		tags := make(map[string]string)
-		getDatakitStyleTags(origTags, tags)
 		objectTags["device_type"] = metaData.Type
 		objectTags["device_vendor"] = metaData.Vendor
 

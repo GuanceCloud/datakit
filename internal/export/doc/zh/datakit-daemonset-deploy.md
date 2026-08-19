@@ -368,6 +368,42 @@ spec:
 
     不管是主机类全局 tag 还是环境类全局 tag，如果原始数据中已经有对应 tag，则不会追加已存在的 tag，我们认为应该沿用原始数据中的 tag。
 
+#### `ENV_GLOBAL_HOST_TAGS` {#env-node-label}
+
+在 Kubernetes DaemonSet 部署中，可以通过 `ENV_GLOBAL_HOST_TAGS` 将当前 DataKit Pod 所在 Node 的 Label 值设置为全局主机 Tag。配置格式为：
+
+```text
+<tag-key>=__k8s_node_label:<node-label-key>
+```
+
+`<tag-key>` 是写入采集数据的 Tag 名，`<node-label-key>` 是要读取的 Kubernetes Node Label 名。
+
+例如，当前 Node 有 Label `cloud.google.com/gke-nodepool=pool-a`，希望在全局主机 Tag 中写入 `node_pool=pool-a`。
+
+直接使用官方 *datakit.yaml* 部署时，修改现有的 `ENV_GLOBAL_HOST_TAGS` 配置项：
+
+```yaml
+env:
+  - name: ENV_GLOBAL_HOST_TAGS
+    value: "host=__datakit_hostname,host_ip=__datakit_ip,node_pool=__k8s_node_label:cloud.google.com/gke-nodepool"
+```
+
+使用 Helm 部署时，在 *values.yaml* 中添加：
+
+```yaml
+extraEnvs:
+  - name: ENV_GLOBAL_HOST_TAGS
+    value: "host=__datakit_hostname,host_ip=__datakit_ip,node_pool=__k8s_node_label:cloud.google.com/gke-nodepool"
+```
+
+`ENV_GLOBAL_HOST_TAGS` 的优先级高于 Helm Chart 中默认的已弃用变量 `ENV_GLOBAL_TAGS`。
+
+DataKit 启动时会根据 `ENV_K8S_NODE_NAME` 查询当前 Node，并将上述配置解析为全局主机 Tag `node_pool=pool-a`。`__k8s_node_label` 解析的是全局主机 Tag，不能在 `ENV_GLOBAL_ELECTION_TAGS` 中使用。
+
+官方 *datakit.yaml* 和 Helm Chart 已默认注入 `ENV_K8S_NODE_NAME`，并为 DataKit ServiceAccount 授予 Node 读取权限。使用自定义部署文件时，需要同时满足这两个条件。
+
+该占位符只在 DataKit 启动时解析。Node Label 变化后需要重启 DataKit。如果 Label 不存在、值为空或 Node 查询失败，DataKit 会忽略由该占位符生成的 Tag，并记录告警日志。
+
 ???+ note "关于禁用保护模式（ENV_DISABLE_PROTECT_MODE）"
 
     保护模式一旦被禁用，即可以设置一些危险的配置参数，DataKit 将接受任何配置参数。这些参数可能会导致 DataKit 一些功能异常，或者影响采集器的采集功能。比如 HTTP 发送 Body 设置太小，会影响数据上传功能；某些采集器的采集频率过高，可能影响被采集的实体。

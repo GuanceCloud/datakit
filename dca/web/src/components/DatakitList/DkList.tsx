@@ -5,7 +5,7 @@ import moment from 'moment';
 import { App, Avatar, Button, Checkbox, Input, Modal, Select, Space, Spin, Table, TableColumnsType, Tooltip, Typography, message } from 'antd'
 import { connect, ConnectedProps } from 'react-redux';
 
-import { alertError, isContainerMode, isDatakitManagement, isDatakitUpgradeable, isLoadingStatus, runJob } from 'src/helper/helper';
+import { alertError, getLatestDatakitVersion, isContainerMode, isDatakitManagement, isDatakitUpgradeable, isLoadingStatus, isNewerDatakitVersionAvailable, runJob } from 'src/helper/helper';
 import styles from './DkList.module.scss'
 import { IDatakit, ISearchValue, IWorkspace, PageInfo, PageQuery } from 'src/store/type'
 import { update } from '../../store/datakit/datakit';
@@ -83,7 +83,7 @@ function DatakitList({ updateDatakits }: Props) {
   const datakits = useAppSelector((state) => state.datakit.value)
   const navigate = useNavigate()
 
-  const { currentWorkspace, latestDatakitVersion } = useContext(DashboardContext)
+  const { currentWorkspace, latestDatakitVersions } = useContext(DashboardContext)
 
   const [queryDatakitList, { currentData: datakitListResponse, isFetching: isFetchingDatakitList, isError: isErrorDatakitList }] = useLazyGetDatakitListQuery()
   const [reloadDatakit] = useLazyReloadDatakitQuery()
@@ -217,7 +217,7 @@ function DatakitList({ updateDatakits }: Props) {
 
     for (let k of selectedRowKeys) {
       let dk = datakits.find((d) => d.id === k)
-      if (dk && isDatakitUpgradeable(dk, latestDatakitVersion)) {
+      if (dk && isDatakitUpgradeable(dk, latestDatakitVersions)) {
         upgradeDatakits.push(dk)
       }
     }
@@ -264,15 +264,14 @@ function DatakitList({ updateDatakits }: Props) {
       if (!dk) {
         return alertError(t("select_datakit"))
       }
-      const isLatest = dk.version === latestDatakitVersion
       modal.confirm({
         title: t("upgrade_datakit"),
-        content: `${isLatest ? t("version_is_latest") + ", " : ""}${t("confirm_upgrade_datakit")}`,
+        content: t("confirm_upgrade_datakit"),
         onOk: () => {
           upgradeSingleDatakit(dk)
         }
       })
-    }, [latestDatakitVersion, modal, t, upgradeSingleDatakit])
+    }, [modal, t, upgradeSingleDatakit])
 
   const reloadSingleDatakit = useCallback(async (dk: IDatakit) => {
     setLoadingDatakits((state) => {
@@ -369,11 +368,14 @@ function DatakitList({ updateDatakits }: Props) {
     if (isContainerMode(dk)) {
       return t("datakit.operation_disabled.container_upgrade")
     }
-    if (dk.version === latestDatakitVersion) {
+    if (!getLatestDatakitVersion(dk.version, latestDatakitVersions)) {
+      return t("datakit.operation_disabled.version_unavailable")
+    }
+    if (!isNewerDatakitVersionAvailable(dk.version, latestDatakitVersions)) {
       return t("datakit.operation_disabled.latest_version")
     }
     return ""
-  }, [latestDatakitVersion, t])
+  }, [latestDatakitVersions, t])
 
   const renderActionButton = (button: React.ReactNode, disabledReason: string) => {
     if (!disabledReason) {
@@ -466,7 +468,7 @@ function DatakitList({ updateDatakits }: Props) {
         return (
           <span>
             {record.version}
-            {record.version !== latestDatakitVersion &&
+            {isNewerDatakitVersionAvailable(record.version, latestDatakitVersions) &&
               <span style={{ color: "#19be6b" }} className="fth-iconfont-Update"></span>
             }
           </span>
@@ -498,7 +500,7 @@ function DatakitList({ updateDatakits }: Props) {
         )
       }
     }
-  ], [t, latestDatakitVersion, loadingDatakits, getReloadDisabledReason, getUpgradeDisabledReason, navigate, reload, upgrade]);
+  ], [t, latestDatakitVersions, loadingDatakits, getReloadDisabledReason, getUpgradeDisabledReason, navigate, reload, upgrade]);
 
 
   const handleRelationChange = (value) => {

@@ -303,6 +303,12 @@ export type IVersion = {
   go: string
 }
 
+export type IDatakitVersionLine = "v1" | "v2"
+
+export type IDatakitVersions = Partial<Record<IDatakitVersionLine, IVersion>>
+
+export type ILatestDatakitVersions = Partial<Record<IDatakitVersionLine, string>>
+
 export type IAccountInfo = {
   name: string
   email: string

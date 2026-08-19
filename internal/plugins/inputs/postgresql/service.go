@@ -30,6 +30,7 @@ var (
 	V130 = semver.New("13.0.0")
 	V140 = semver.New("14.0.0")
 	V160 = semver.New("16.0.0")
+	V170 = semver.New("17.0.0")
 )
 
 type SQLService struct {

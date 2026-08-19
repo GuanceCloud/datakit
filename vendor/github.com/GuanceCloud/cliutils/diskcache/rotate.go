@@ -28,6 +28,9 @@ func (c *DiskCache) Rotate() error {
 		return NewCacheError(OpRotate, ErrClosed, "cache_closed").WithPath(c.path)
 	}
 
+	c.wlock.Lock()
+	defer c.wlock.Unlock()
+
 	return c.rotate()
 }
 

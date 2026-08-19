@@ -95,6 +95,18 @@ func (di *deviceInfo) initialize() error {
 	return nil
 }
 
+// oidConfigForCollection keeps topology OIDs out of the frequent metric polls.
+// Topology collection uses a copy so the base device OID config remains unchanged.
+func (di *deviceInfo) oidConfigForCollection(includeTopology bool) snmputil.OidConfig {
+	if !includeTopology {
+		return di.OidConfig
+	}
+
+	oidConfig := di.OidConfig.Copy()
+	oidConfig.AddColumnOids(snmputil.TopologyColumnOIDs())
+	return oidConfig
+}
+
 // getValuesAndTags gets SNMP device metrics' values and tags.
 // Return values:
 //
@@ -102,7 +114,7 @@ func (di *deviceInfo) initialize() error {
 //	[]string:                   tags
 //	*snmputil.ResultValueStore: values
 //	bool:                       isErrClosed
-func (di *deviceInfo) getValuesAndTags() (bool, []string, *snmputil.ResultValueStore, error, bool) {
+func (di *deviceInfo) getValuesAndTags(collectTopology bool) (bool, []string, *snmputil.ResultValueStore, error, bool) {
 	var deviceReachable bool
 	var checkErrors, tags []string
 
@@ -135,8 +147,9 @@ func (di *deviceInfo) getValuesAndTags() (bool, []string, *snmputil.ResultValueS
 
 	tags = append(tags, di.ProfileTags...)
 
+	oidConfig := di.oidConfigForCollection(collectTopology)
 	valuesStore, err := snmputil.Fetch(di.Session, &snmputil.FetchOpts{
-		OidConfig:          di.OidConfig,
+		OidConfig:          oidConfig,
 		OidBatchSize:       di.Ipt.OIDBatchSize,
 		BulkMaxRepetitions: di.Ipt.BulkMaxRepetitions,
 	})
@@ -212,11 +225,12 @@ func (di *deviceInfo) doAutodetectProfile() error {
 }
 
 type deviceMetaData struct {
-	collectMeta bool // collect meta is needed when collecting object.
-	data        []string
-	Type        string  // device type, same as in device_meta
-	Vendor      string  // device vendor, same as in device_meta
-	Uptime      float64 // device uptime in seconds, same as in device_meta
+	collectMeta   bool // collect meta is needed when collecting object.
+	data          []string
+	Type          string  // device type, same as in device_meta
+	Vendor        string  // device vendor, same as in device_meta
+	Uptime        float64 // device uptime in seconds, same as in device_meta
+	topologyLinks []snmputil.TopologyLinkMetadata
 }
 
 func (dmd *deviceMetaData) Add(bys []byte) {
@@ -225,7 +239,7 @@ func (dmd *deviceMetaData) Add(bys []byte) {
 
 // nolint:lll
 // ReportNetworkDeviceMetadata reports device metadata.
-func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueStore,
+func (di *deviceInfo) ReportNetworkDeviceMetadata(values *snmputil.ResultValueStore,
 	origTags []string,
 	metadataConfigs snmputil.MetadataConfig,
 	collectTime time.Time,
@@ -233,16 +247,16 @@ func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueSto
 	outData *deviceMetaData,
 ) {
 	tags := snmputil.CopyStrings(origTags)
-	tags = snmputil.SortUniqInPlace(tags)
 
-	metadataStore := snmputil.BuildMetadataStore(metadataConfigs, store)
+	metadataStore := snmputil.BuildMetadataStore(metadataConfigs, values)
 
-	uptime := getUptime(store)
+	uptime := getUptime(values)
 	l.Debugf("snmp uptime: %f", uptime)
 
 	deviceID := di.getDeviceID()
 	deviceIDTags := snmputil.SortUniqInPlace(di.getDeviceIDTags())
 	tags = append(tags, deviceIDTags...)
+	tags = snmputil.SortUniqInPlace(tags)
 
 	device := di.buildNetworkDeviceMetadata(deviceID, deviceIDTags, metadataStore, tags, deviceStatus, uptime)
 
@@ -254,6 +268,10 @@ func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueSto
 	interfaces := snmputil.BuildNetworkInterfacesMetadata(deviceID, metadataStore)
 
 	ipAddresses := snmputil.BuildNetworkIPAddressesMetadata(deviceID, metadataStore)
+	outData.topologyLinks = make([]snmputil.TopologyLinkMetadata, 0)
+	if di.Ipt != nil && di.Ipt.CollectTopology {
+		outData.topologyLinks = snmputil.BuildNetworkTopologyMetadata(deviceID, values, interfaces)
+	}
 
 	metadataPayloads := snmputil.BatchPayloads(di.Namespace,
 		di.Subnet,

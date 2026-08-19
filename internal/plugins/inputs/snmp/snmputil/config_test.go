@@ -150,6 +150,13 @@ func Test_getProfileForSysObjectID(t *testing.T) {
 
 // config_metric
 
+func TestTopologyColumnOIDs(t *testing.T) {
+	topologyOIDs := TopologyColumnOIDs()
+	assert.Len(t, topologyOIDs, 20)
+	assert.Contains(t, topologyOIDs, "1.0.8802.1.1.2.1.4.1.1.5")
+	assert.Contains(t, topologyOIDs, "1.3.6.1.4.1.9.9.23.1.2.1.1.6")
+}
+
 // go test -v -timeout 30s -run ^Test_refreshWithProfile$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil
 func Test_normalizeRegexReplaceValue(t *testing.T) {
 	tests := []struct {

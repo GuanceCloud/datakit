@@ -3,9 +3,13 @@ import {
   aesEncrypt,
   alertError,
   isContainerMode,
+  compareDatakitVersions,
+  getDatakitVersionLine,
+  getLatestDatakitVersion,
   isDatakitManagement,
   isDatakitUpgradeable,
   isLoadingStatus,
+  isNewerDatakitVersionAvailable,
   isPhoneNumber,
   isValidIP,
   runJob,
@@ -79,11 +83,27 @@ describe('helper utilities', () => {
 
     expect(isDatakitManagement(running)).toBe(true);
     expect(isLoadingStatus(restarting)).toBe(true);
-    expect(isDatakitUpgradeable(running, '2.0.0')).toBe(true);
-    expect(isDatakitUpgradeable(offline, '2.0.0')).toBe(false);
-    expect(isDatakitUpgradeable(inContainer, '2.0.0')).toBe(false);
+    const latestVersions = { v1: '1.1.0', v2: '2.0.0' };
+    expect(isDatakitUpgradeable(running, latestVersions)).toBe(true);
+    expect(isDatakitUpgradeable(offline, latestVersions)).toBe(false);
+    expect(isDatakitUpgradeable(inContainer, latestVersions)).toBe(false);
     expect(isContainerMode(inContainer)).toBe(true);
     expect(isContainerMode()).toBe(false);
+  });
+
+  it('selects and compares versions within the same release line', () => {
+    const latestVersions = { v1: '1.94.1', v2: '2.9.0' };
+
+    expect(getDatakitVersionLine('v1.93.0')).toBe('v1');
+    expect(getDatakitVersionLine('2.8.0')).toBe('v2');
+    expect(getDatakitVersionLine('3.0.0')).toBeUndefined();
+    expect(getLatestDatakitVersion('1.93.0', latestVersions)).toBe('1.94.1');
+    expect(getLatestDatakitVersion('2.8.0', latestVersions)).toBe('2.9.0');
+    expect(isNewerDatakitVersionAvailable('1.93.0', latestVersions)).toBe(true);
+    expect(isNewerDatakitVersionAvailable('2.9.0', latestVersions)).toBe(false);
+    expect(isNewerDatakitVersionAvailable('2.10.0', latestVersions)).toBe(false);
+    expect(compareDatakitVersions('2.9.0-rc1', '2.9.0')).toBeLessThan(0);
+    expect(compareDatakitVersions('invalid', '2.9.0')).toBeUndefined();
   });
 
   it('runs jobs with concurrency control', async () => {

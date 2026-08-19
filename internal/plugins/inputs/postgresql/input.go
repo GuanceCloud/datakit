@@ -665,6 +665,21 @@ func (ipt *Input) getBgwMetrics() error {
 		query := `
 		select * FROM pg_stat_bgwriter
 	`
+		if !ipt.version.LessThan(*V170) {
+			query = `
+		SELECT
+			cp.num_timed       AS checkpoints_timed,
+			cp.num_requested   AS checkpoints_req,
+			cp.buffers_written AS buffers_checkpoint,
+			bg.buffers_clean,
+			bg.maxwritten_clean,
+			bg.buffers_alloc,
+			cp.write_time      AS checkpoint_write_time,
+			cp.sync_time       AS checkpoint_sync_time
+		FROM pg_stat_bgwriter AS bg
+		CROSS JOIN pg_stat_checkpointer AS cp
+	`
+		}
 		cache = &queryCacheItem{
 			q:               query,
 			measurementInfo: bgwriterMeasurement{}.Info(),

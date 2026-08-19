@@ -76,3 +76,36 @@ type IPAddressMetadata struct {
 	IPAddress   string `json:"ip_address"`
 	Prefixlen   int32  `json:"prefixlen,omitempty"`
 }
+
+// TopologyLinkDevice contains device link data.
+type TopologyLinkDevice struct {
+	ResolvedID  string `json:"resolved_id,omitempty"`
+	ID          string `json:"id,omitempty"`
+	IDType      string `json:"id_type,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	IPAddress   string `json:"ip_address,omitempty"`
+}
+
+// TopologyLinkInterface contains interface link data.
+type TopologyLinkInterface struct {
+	ResolvedID  string `json:"resolved_id,omitempty"`
+	ID          string `json:"id"`
+	IDType      string `json:"id_type,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// TopologyLinkSide contains data for the remote or local side of a link.
+type TopologyLinkSide struct {
+	Device    *TopologyLinkDevice    `json:"device,omitempty"`
+	Interface *TopologyLinkInterface `json:"interface,omitempty"`
+}
+
+// TopologyLinkMetadata contains topology interface-to-interface link metadata.
+type TopologyLinkMetadata struct {
+	ID          string            `json:"id"`
+	SourceType  string            `json:"source_type"`
+	Integration string            `json:"integration,omitempty"`
+	Local       *TopologyLinkSide `json:"local"`
+	Remote      *TopologyLinkSide `json:"remote"`
+}

@@ -169,6 +169,74 @@ func TestConsoleRedirectAndLastVersion(t *testing.T) {
 	server.Close()
 }
 
+func TestLastDatakitVersions(t *testing.T) {
+	oldStaticBaseURL := staticBaseURL
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/datakit/version":
+			_, _ = w.Write([]byte(`{"version":"1.94.1","commit":"v1-commit"}`))
+		case "/datakit-v2/version":
+			_, _ = w.Write([]byte(`{"version":"2.9.0","commit":"v2-commit"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	staticBaseURL = server.URL + "/"
+	t.Cleanup(func() {
+		staticBaseURL = oldStaticBaseURL
+		server.Close()
+	})
+
+	ctx, rec := newGinTestContext(http.MethodGet, "/api/lastDatakitVersions", nil)
+	getLastDatakitVersionsHandler(ctx)
+	resp := decodeDCAResponse(t, rec.Body.String())
+	require.True(t, resp.Success)
+	content, ok := resp.Content.(map[string]interface{})
+	require.True(t, ok)
+	require.Equal(t, "1.94.1", content["v1"].(map[string]interface{})["version"])
+	require.Equal(t, "2.9.0", content["v2"].(map[string]interface{})["version"])
+}
+
+func TestLastDatakitVersionsAllowsPartialResponse(t *testing.T) {
+	oldStaticBaseURL := staticBaseURL
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/datakit-v2/version" {
+			_, _ = w.Write([]byte(`{"version":"2.9.0","commit":"v2-commit"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	staticBaseURL = server.URL
+	t.Cleanup(func() {
+		staticBaseURL = oldStaticBaseURL
+		server.Close()
+	})
+
+	ctx, rec := newGinTestContext(http.MethodGet, "/api/lastDatakitVersions", nil)
+	getLastDatakitVersionsHandler(ctx)
+	resp := decodeDCAResponse(t, rec.Body.String())
+	require.True(t, resp.Success)
+	content, ok := resp.Content.(map[string]interface{})
+	require.True(t, ok)
+	require.NotContains(t, content, "v1")
+	require.Equal(t, "2.9.0", content["v2"].(map[string]interface{})["version"])
+}
+
+func TestLastDatakitVersionsFailsWhenNoVersionIsAvailable(t *testing.T) {
+	oldStaticBaseURL := staticBaseURL
+	server := httptest.NewServer(http.NotFoundHandler())
+	staticBaseURL = server.URL
+	t.Cleanup(func() {
+		staticBaseURL = oldStaticBaseURL
+		server.Close()
+	})
+
+	ctx, rec := newGinTestContext(http.MethodGet, "/api/lastDatakitVersions", nil)
+	getLastDatakitVersionsHandler(ctx)
+	resp := decodeDCAResponse(t, rec.Body.String())
+	require.False(t, resp.Success)
+}
+
 func TestStartReturnsDBInitError(t *testing.T) {
 	oldDBPath := dbPath
 	oldDatakitDB := datakitDB

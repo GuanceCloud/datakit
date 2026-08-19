@@ -93,19 +93,20 @@ func (c *DiskCache) doGet(buf []byte, fn Fn, bfn BufFunc) error {
 	}()
 
 	// wakeup sleeping write file, rotate it for succession reading!
-	if time.Since(c.wfdLastWrite) > c.wakeup && c.curBatchSize > 0 {
-		wakeupVec.WithLabelValues(c.path).Inc()
-
-		if err = func() error {
-			c.wlock.Lock()
-			defer c.wlock.Unlock()
-
-			return c.rotate()
-		}(); err != nil {
+	// A held write lock means the write file is active, not sleeping.
+	if c.wlock.TryLock() {
+		idleTime := time.Since(c.wfdLastWrite)
+		batchSize := c.curBatchSize
+		if idleTime > c.wakeup && batchSize > 0 {
+			wakeupVec.WithLabelValues(c.path).Inc()
+			err = c.rotate()
+		}
+		c.wlock.Unlock()
+		if err != nil {
 			return NewCacheError(OpGet, err, "failed_to_wakeup_sleeping_write_file").
 				WithPath(c.path).
 				WithDetails(fmt.Sprintf("idle_time=%v, batch_size=%d",
-					time.Since(c.wfdLastWrite), c.curBatchSize))
+					idleTime, batchSize))
 		}
 	}
 

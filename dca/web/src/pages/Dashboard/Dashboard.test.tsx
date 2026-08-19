@@ -47,7 +47,8 @@ let mockCurrentWorkspace: any = {
 let mockDatakitVersionData: any = {
   code: 200,
   content: {
-    version: '1.2.3',
+    v1: { version: '1.94.1' },
+    v2: { version: '2.9.0' },
   },
 };
 
@@ -193,7 +194,10 @@ describe('Dashboard', () => {
     };
     mockDatakitVersionData = {
       code: 200,
-      content: { version: '1.2.3' },
+      content: {
+        v1: { version: '1.94.1' },
+        v2: { version: '2.9.0' },
+      },
     };
   });
 

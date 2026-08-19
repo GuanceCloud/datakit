@@ -881,6 +881,14 @@ func (x *WhereCondition) Eval(data KVs) bool {
 	return true
 }
 
+// Conds returns the expression list inside this condition (AND-combined).
+func (x *WhereCondition) Conds() []Node {
+	if x == nil {
+		return nil
+	}
+	return x.conditions
+}
+
 func (x *WhereCondition) String() string {
 	arr := []string{}
 	for _, f := range x.conditions {

@@ -61,10 +61,12 @@ jest.mock('react-redux', () => ({
 
 jest.mock('src/helper/helper', () => ({
   alertError: (...args) => mockAlertError(...args),
+  getLatestDatakitVersion: (version, latestVersions) => latestVersions[`v${version.split('.')[0]}`],
   isContainerMode: (dk) => !!dk?.run_in_container,
   isDatakitManagement: (dk) => dk?.status === 'running',
-  isDatakitUpgradeable: (dk, latestVersion) => dk?.status === 'running' && dk?.version !== latestVersion && !dk?.run_in_container,
+  isDatakitUpgradeable: (dk, latestVersions) => dk?.status === 'running' && dk?.version !== latestVersions[`v${dk?.version.split('.')[0]}`] && !dk?.run_in_container,
   isLoadingStatus: (dk) => ['upgrading', 'restarting'].includes(dk?.status),
+  isNewerDatakitVersionAvailable: (version, latestVersions) => version !== latestVersions[`v${version.split('.')[0]}`],
   runJob: jest.fn((_limit, arr, fn) => Promise.all(arr.map(fn))),
 }));
 
@@ -77,7 +79,7 @@ jest.mock('src/pages/Dashboard/Dashboard', () => {
   return {
     DashboardContext: React.createContext({
       currentWorkspace: { uuid: 'ws-1' },
-      latestDatakitVersion: '2.0.0',
+      latestDatakitVersions: { v1: '1.1.0', v2: '2.0.0' },
     }),
     getOSIcon: () => 'linux.png',
   };

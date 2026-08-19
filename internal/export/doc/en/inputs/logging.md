@@ -79,14 +79,39 @@ This document focuses on local disk log collection and Socket log collection:
 
 ### JSON Fields Mode {#json-as-fields}
 
-`json_as_fields` defaults to `false`. When enabled, DataKit converts the JSON root object of each complete log entry after character decoding, ANSI removal, and multiline aggregation, then runs Pipeline:
+When each log entry is a JSON object, set `json_as_fields` to `true` to convert its top-level properties directly into log fields. The option defaults to `false`.
 
-- Top-level strings, booleans, `int64` integers, and `float64` decimals keep their types. Objects and arrays become compact JSON strings. `null` and numbers outside the supported ranges are ignored.
-- A successful conversion does not retain the original JSON. A JSON-provided `message` is retained. Invalid JSON, a non-object root, or an object without usable fields falls back to the original `message`.
-- Field names are truncated to 256 bytes, then `.` is replaced with `_`, trailing backslashes are removed, and newlines are replaced with spaces. Fields whose names become empty are ignored. When multiple original names produce the same name, an unchanged name wins; otherwise, the lexically first original name wins. A name that becomes reserved after conversion is still renamed by the reserved-field rule below.
-- Each Point retains at most 1024 fields, excluding tags. Existing collector fields take priority, and the remaining capacity is filled in lexical order of the converted JSON field names.
-- JSON fields replace collector tags or fields with the same name and are not filtered by `field_white_list`.
-- `time`, `source`, `date`, and `storage_index` are renamed to `json_time`, `json_source`, `json_date`, and `json_storage_index`. If the target exists, `_N` is appended. These JSON fields do not override log time, collector semantics, or the configured storage index.
+```toml
+[[inputs.logging]]
+  json_as_fields = true
+```
+
+In addition to local files and TCP/UDP logs, [container log collection](container-log.md#logging-stdout), [Log Streaming](logstreaming.md#json-as-fields) for the default text type, and [logfwd](logfwd.md) support this option. `json_as_fields` is not currently supported when log collection is configured through a `ClusterLoggingConfig` CRD.
+
+For example, given this raw log:
+
+```json
+{"message":"request completed","status":200,"success":true,"client":{"ip":"192.0.2.1"},"roles":["reader","writer"],"empty":null}
+```
+
+The converted log fields are equivalent to:
+
+```json
+{
+  "message": "request completed",
+  "status": 200,
+  "success": true,
+  "client": "{\"ip\":\"192.0.2.1\"}",
+  "roles": "[\"reader\",\"writer\"]"
+}
+```
+
+Strings, booleans, and numbers keep their types; objects and arrays become compact JSON strings, and `null` is ignored. Also note:
+
+- Conversion runs after character decoding, ANSI removal, and multiline aggregation, but before Pipeline.
+- Only a valid JSON root object is converted. Invalid JSON, a non-object root such as an array, or an object without usable fields remains in the original `message`. After a successful conversion, the complete raw JSON is not retained separately.
+- Field names are normalized to Point rules, and each Point retains at most 1024 fields. JSON fields replace collector tags or fields with the same name and are not filtered by `field_white_list`.
+- Reserved names such as `time`, `source`, `date`, and `storage_index` become `json_time`, `json_source`, `json_date`, and `json_storage_index`, respectively. A numeric suffix is appended when the target field already exists.
 
 ---
 

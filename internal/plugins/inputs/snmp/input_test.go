@@ -6,6 +6,7 @@
 package snmp
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -14,7 +15,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils"
+	"github.com/gosnmp/gosnmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -23,7 +26,210 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/traps"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
+
+func TestCollectTopologyConfig(t *testing.T) {
+	ipt := &Input{}
+	assert.False(t, ipt.CollectTopology)
+
+	_, err := toml.Decode("collect_topology = true", ipt)
+	require.NoError(t, err)
+	assert.True(t, ipt.CollectTopology)
+	assert.Contains(t, ipt.SampleConfig(), "collect_topology = false")
+}
+
+func TestObjectCollectionReportsEmptyTopologyLinks(t *testing.T) {
+	session := snmputil.CreateFakeSession()
+	session.SetTime("1.3.6.1.2.1.1.3.0", 100)
+
+	ipt := &Input{
+		CollectTopology:    true,
+		DeviceNamespace:    "prod",
+		OIDBatchSize:       5,
+		BulkMaxRepetitions: 10,
+		Tagger:             testutils.NewTaggerHost(),
+		Metrics:            []snmputil.MetricsConfig{snmputil.UptimeMetricConfig},
+	}
+	ipt.Metadata = snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil)
+	ipt.OidConfig.AddScalarOids(snmputil.ParseScalarOids(ipt.Metrics, nil, ipt.Metadata, true))
+	ipt.OidConfig.AddColumnOids(snmputil.ParseColumnOids(ipt.Metrics, ipt.Metadata, true))
+	device := NewDeviceInfo(ipt, "192.0.2.12", "prod", "", session)
+
+	points := ipt.CollectingMeasurements("192.0.2.12", device, true)
+	require.Len(t, points, 1)
+	assert.Equal(t, "[]", points[0].Get("links"))
+	assert.Equal(t, "prod", points[0].GetTag(deviceNamespaceTagKey))
+}
+
+func TestCustomTagsCannotOverrideDeviceNamespace(t *testing.T) {
+	session := snmputil.CreateFakeSession()
+	session.SetTime("1.3.6.1.2.1.1.3.0", 100)
+
+	ipt := &Input{
+		DeviceNamespace:    "prod",
+		OIDBatchSize:       5,
+		BulkMaxRepetitions: 10,
+		Tagger:             testutils.NewTaggerHost(),
+		Metrics:            []snmputil.MetricsConfig{snmputil.UptimeMetricConfig},
+		Tags:               map[string]string{deviceNamespaceTagKey: "custom"},
+		ptsTime:            time.Now(),
+	}
+	ipt.Metadata = snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil)
+	ipt.OidConfig.AddScalarOids(snmputil.ParseScalarOids(ipt.Metrics, nil, ipt.Metadata, true))
+	ipt.OidConfig.AddColumnOids(snmputil.ParseColumnOids(ipt.Metrics, ipt.Metadata, true))
+	device := NewDeviceInfo(ipt, "192.0.2.12", "prod", "", session)
+
+	points := ipt.CollectingMeasurements("192.0.2.12", device, false)
+	require.Len(t, points, 1)
+	assert.Equal(t, "prod", points[0].GetTag(deviceNamespaceTagKey))
+}
+
+func TestObjectCollectionReportsTopologyLinks(t *testing.T) {
+	session := snmputil.CreateFakeSession()
+	session.SetTime("1.3.6.1.2.1.1.3.0", 100)
+
+	// IF-MIB metadata for the resolved local interface.
+	session.SetStr("1.3.6.1.2.1.31.1.1.1.1.12", "Ethernet1/12")
+	session.SetStr("1.3.6.1.2.1.2.2.1.2.12", "Ethernet1/12")
+	session.SetStr("1.3.6.1.2.1.31.1.1.1.18.12", "uplink")
+	session.SetByte("1.3.6.1.2.1.2.2.1.6.12", []byte{0x82, 0xa5, 0x6e, 0xa5, 0xc9, 0x01})
+	session.SetInt("1.3.6.1.2.1.2.2.1.3.12", 6)
+	session.SetInt("1.3.6.1.2.1.2.2.1.7.12", 1)
+	session.SetInt("1.3.6.1.2.1.2.2.1.8.12", 1)
+
+	// LLDP local port 7 resolves to IF-MIB interface 12 by MAC address.
+	session.SetInt("1.0.8802.1.1.2.1.3.7.1.2.7", 3)
+	session.SetByte("1.0.8802.1.1.2.1.3.7.1.3.7", []byte{0x82, 0xa5, 0x6e, 0xa5, 0xc9, 0x01})
+
+	// LLDP remote entry index: timeMark.localPortNum.remIndex = 0.7.1.
+	session.SetInt("1.0.8802.1.1.2.1.4.1.1.4.0.7.1", 4)
+	session.SetByte("1.0.8802.1.1.2.1.4.1.1.5.0.7.1", []byte{0x01, 0x00, 0x00, 0x00, 0x01, 0x02})
+	session.SetInt("1.0.8802.1.1.2.1.4.1.1.6.0.7.1", 5)
+	session.SetStr("1.0.8802.1.1.2.1.4.1.1.7.0.7.1", "Ethernet1/7")
+	session.SetStr("1.0.8802.1.1.2.1.4.1.1.8.0.7.1", "remote uplink")
+	session.SetStr("1.0.8802.1.1.2.1.4.1.1.9.0.7.1", "switch-b")
+	session.SetStr("1.0.8802.1.1.2.1.4.1.1.10.0.7.1", "remote switch")
+	// The management address is encoded in the lldpRemManAddrEntry index.
+	session.SetInt("1.0.8802.1.1.2.1.4.2.1.3.0.7.1.1.4.10.250.0.6", 2)
+	// CDP is also present, but LLDP must take precedence.
+	session.SetStr("1.3.6.1.4.1.9.9.23.1.2.1.1.6.12.1", "ignored-cdp-device")
+	session.SetStr("1.3.6.1.4.1.9.9.23.1.2.1.1.7.12.1", "Ethernet1/1")
+
+	ipt := &Input{
+		CollectTopology:    true,
+		DeviceNamespace:    "prod",
+		OIDBatchSize:       5,
+		BulkMaxRepetitions: 10,
+		Tagger:             testutils.NewTaggerHost(),
+		Metrics:            []snmputil.MetricsConfig{snmputil.UptimeMetricConfig},
+	}
+	ipt.Metadata = snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil)
+	ipt.OidConfig.AddScalarOids(snmputil.ParseScalarOids(ipt.Metrics, nil, ipt.Metadata, true))
+	ipt.OidConfig.AddColumnOids(snmputil.ParseColumnOids(ipt.Metrics, ipt.Metadata, true))
+	device := NewDeviceInfo(ipt, "192.0.2.10", "prod", "", session)
+
+	points := ipt.CollectingMeasurements("192.0.2.10", device, true)
+	require.Len(t, points, 1)
+
+	linksValue, ok := points[0].Get("links").(string)
+	require.True(t, ok)
+	var links []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(linksValue), &links))
+	require.Len(t, links, 1)
+	require.JSONEq(t, `{
+		"id":"prod:192.0.2.10:7.1",
+		"source_type":"lldp",
+		"integration":"snmp",
+		"local":{
+			"device":{"resolved_id":"prod:192.0.2.10"},
+			"interface":{"resolved_id":"prod:192.0.2.10:12","id":"82:a5:6e:a5:c9:01","id_type":"mac_address"}
+		},
+		"remote":{
+			"device":{"id":"01:00:00:00:01:02","id_type":"mac_address","name":"switch-b","description":"remote switch","ip_address":"10.250.0.6"},
+			"interface":{"id":"Ethernet1/7","id_type":"interface_name","description":"remote uplink"}
+		}
+	}`, mustJSON(t, links[0]))
+	deviceMeta, ok := points[0].Get("device_meta").(string)
+	require.True(t, ok)
+	assert.NotContains(t, deviceMeta, `"links"`)
+	assert.Equal(t, gosnmp.Version2c, session.GetVersion())
+}
+
+func TestObjectCollectionReportsCDPTopologyLinksWhenLLDPIsUnavailable(t *testing.T) {
+	session := snmputil.CreateFakeSession()
+	session.SetTime("1.3.6.1.2.1.1.3.0", 100)
+
+	// CDP cache entry index: cdpCacheIfIndex.cdpCacheDeviceIndex = 12.3.
+	session.SetStr("1.3.6.1.4.1.9.9.23.1.2.1.1.5.12.3", "Cisco IOS")
+	session.SetStr("1.3.6.1.4.1.9.9.23.1.2.1.1.6.12.3", "switch-c-device-id")
+	session.SetStr("1.3.6.1.4.1.9.9.23.1.2.1.1.7.12.3", "Ethernet1/1")
+	session.SetStr("1.3.6.1.4.1.9.9.23.1.2.1.1.17.12.3", "switch-c")
+	session.SetInt("1.3.6.1.4.1.9.9.23.1.2.1.1.19.12.3", 1)
+	session.SetByte("1.3.6.1.4.1.9.9.23.1.2.1.1.20.12.3", []byte{10, 251, 0, 7})
+
+	ipt := &Input{
+		CollectTopology:    true,
+		DeviceNamespace:    "prod",
+		OIDBatchSize:       5,
+		BulkMaxRepetitions: 10,
+		Tagger:             testutils.NewTaggerHost(),
+		Metrics:            []snmputil.MetricsConfig{snmputil.UptimeMetricConfig},
+	}
+	ipt.Metadata = snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil)
+	ipt.OidConfig.AddScalarOids(snmputil.ParseScalarOids(ipt.Metrics, nil, ipt.Metadata, true))
+	ipt.OidConfig.AddColumnOids(snmputil.ParseColumnOids(ipt.Metrics, ipt.Metadata, true))
+	device := NewDeviceInfo(ipt, "192.0.2.11", "prod", "", session)
+
+	points := ipt.CollectingMeasurements("192.0.2.11", device, true)
+	require.Len(t, points, 1)
+
+	linksValue, ok := points[0].Get("links").(string)
+	require.True(t, ok)
+	var links []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(linksValue), &links))
+	require.Len(t, links, 1)
+	require.JSONEq(t, `{
+		"id":"prod:192.0.2.11:12.3",
+		"source_type":"cdp",
+		"integration":"snmp",
+		"local":{
+			"device":{"resolved_id":"prod:192.0.2.11"},
+			"interface":{"resolved_id":"prod:192.0.2.11:12","id":""}
+		},
+		"remote":{
+			"device":{"id":"switch-c-device-id","name":"switch-c","description":"Cisco IOS","ip_address":"10.251.0.7"},
+			"interface":{"id":"Ethernet1/1","id_type":"interface_name"}
+		}
+	}`, mustJSON(t, links[0]))
+}
+
+func mustJSON(t *testing.T, value interface{}) string {
+	t.Helper()
+	data, err := json.Marshal(value)
+	require.NoError(t, err)
+	return string(data)
+}
+
+func TestMergeInterfacesByInterfacePreservesIndex(t *testing.T) {
+	interfaces := []*interfaceAttribute{
+		{
+			Interface: "Ethernet1/12",
+			Fields:    map[string]interface{}{"ifHCInOctets": float64(100)},
+		},
+		{
+			Interface:      "Ethernet1/12",
+			InterfaceIndex: "12",
+			Fields:         map[string]interface{}{"ifHCOutOctets": float64(200)},
+		},
+	}
+
+	merged := mergeInterfacesByInterface(interfaces)
+	require.Len(t, merged, 1)
+	assert.Equal(t, "12", merged[0].InterfaceIndex)
+	assert.Equal(t, float64(100), merged[0].Fields["ifHCInOctets"])
+	assert.Equal(t, float64(200), merged[0].Fields["ifHCOutOctets"])
+}
 
 // go test -v -timeout 30s -run ^Test_AvailableArchs$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
 func Test_AvailableArchs(t *testing.T) {

@@ -368,6 +368,42 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
     
     Whether it is a host class global tag or an environment class global tag, if there is already a corresponding tag in the original data, the existing tag will not be appended, and we think that the tag in the original data should be used.
 
+#### `ENV_GLOBAL_HOST_TAGS` {#env-node-label}
+
+In a Kubernetes DaemonSet deployment, use `ENV_GLOBAL_HOST_TAGS` to set a global host tag from a label on the Node that runs the DataKit Pod. Use the following format:
+
+```text
+<tag-key>=__k8s_node_label:<node-label-key>
+```
+
+`<tag-key>` is the tag name written to collected data, and `<node-label-key>` is the Kubernetes Node label to read.
+
+For example, suppose the current Node has the label `cloud.google.com/gke-nodepool=pool-a`, and you want to add the global host tag `node_pool=pool-a`.
+
+When deploying with the official *datakit.yaml*, update the existing `ENV_GLOBAL_HOST_TAGS` entry:
+
+```yaml
+env:
+  - name: ENV_GLOBAL_HOST_TAGS
+    value: "host=__datakit_hostname,host_ip=__datakit_ip,node_pool=__k8s_node_label:cloud.google.com/gke-nodepool"
+```
+
+When deploying with Helm, add the following to *values.yaml*:
+
+```yaml
+extraEnvs:
+  - name: ENV_GLOBAL_HOST_TAGS
+    value: "host=__datakit_hostname,host_ip=__datakit_ip,node_pool=__k8s_node_label:cloud.google.com/gke-nodepool"
+```
+
+`ENV_GLOBAL_HOST_TAGS` takes precedence over the deprecated `ENV_GLOBAL_TAGS` variable emitted by the Helm chart.
+
+At startup, DataKit queries the Node identified by `ENV_K8S_NODE_NAME` and resolves the configuration above to the global host tag `node_pool=pool-a`. `__k8s_node_label` resolves global host tags and cannot be used in `ENV_GLOBAL_ELECTION_TAGS`.
+
+The official *datakit.yaml* and Helm chart already inject `ENV_K8S_NODE_NAME` and grant the DataKit ServiceAccount permission to read Nodes. Custom deployment manifests must provide both.
+
+The placeholder is resolved only when DataKit starts. Restart DataKit after the Node label changes. If the label is missing or empty, or if DataKit cannot query the Node, DataKit omits the tag derived from the placeholder and writes a warning to the log.
+
 ???+ note "About Protect Mode(`ENV_DISABLE_PROTECT_MODE`)"
 
     Once protected mode is disabled, some dangerous configuration parameters can be set, and DataKit will accept any configuration parameters. These parameters may cause some DataKit functions to be abnormal or affect the collection function of the collector. For example, if the HTTP sending body is too small, the data upload function will be affected. And the collection frequency of some collectors set too high, which may affect the entities(for example MySQL) to be collected.

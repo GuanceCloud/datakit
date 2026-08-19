@@ -41,9 +41,10 @@ jest.mock('src/store/datakitApi', () => ({
 
 jest.mock('src/helper/helper', () => ({
   alertError: jest.fn(),
+  getLatestDatakitVersion: jest.fn((version, latestVersions) => latestVersions[`v${version.split('.')[0]}`]),
   isContainerMode: jest.fn((dk) => !!dk?.run_in_container),
   isDatakitManagement: jest.fn((dk) => dk?.status === 'running'),
-  isDatakitUpgradeable: jest.fn((dk, latestVersion) => dk?.status === 'running' && dk?.version !== latestVersion && !dk?.run_in_container),
+  isNewerDatakitVersionAvailable: jest.fn((version, latestVersions) => version !== latestVersions[`v${version.split('.')[0]}`]),
 }));
 
 jest.mock('../DatakitInfoNav/DatakitInfoNav', () => ({
@@ -53,7 +54,7 @@ jest.mock('../DatakitInfoNav/DatakitInfoNav', () => ({
 jest.mock('src/pages/Dashboard/Dashboard', () => {
   const React = require('react');
   return {
-    DashboardContext: React.createContext({ latestDatakitVersion: '1.0.0' }),
+    DashboardContext: React.createContext({ latestDatakitVersions: { v1: '1.0.0', v2: '2.0.0' } }),
     getOSIcon: jest.fn(() => ''),
   };
 });

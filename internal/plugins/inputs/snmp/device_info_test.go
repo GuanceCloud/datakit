@@ -12,8 +12,27 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
 )
+
+func TestOIDConfigForCollection(t *testing.T) {
+	metadata := snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil)
+
+	baseOIDConfig := snmputil.OidConfig{}
+	baseOIDConfig.AddColumnOids(snmputil.ParseColumnOids(nil, metadata, true))
+	di := &deviceInfo{
+		OidConfig: baseOIDConfig,
+	}
+
+	metricOIDConfig := di.oidConfigForCollection(false)
+	require.NotEmpty(t, metricOIDConfig.ColumnOids)
+	assert.Same(t, &di.OidConfig.ColumnOids[0], &metricOIDConfig.ColumnOids[0])
+
+	topologyOIDConfig := di.oidConfigForCollection(true)
+	assert.Contains(t, topologyOIDConfig.ColumnOids, "1.0.8802.1.1.2.1.4.1.1.5")
+	assert.NotContains(t, di.OidConfig.ColumnOids, "1.0.8802.1.1.2.1.4.1.1.5")
+}
 
 // go test -v -timeout 30s -run ^Test_refreshWithProfile$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
 func Test_refreshWithProfile(t *testing.T) {
@@ -161,14 +180,24 @@ func Test_refreshWithProfile(t *testing.T) {
 // go test -v -timeout 30s -run ^Test_ReportNetworkDeviceMetadata$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
 func Test_ReportNetworkDeviceMetadata(t *testing.T) {
 	cases := []struct {
-		name    string
-		di      *deviceInfo
-		outTags []string
+		name     string
+		di       *deviceInfo
+		origTags []string
+		outTags  []string
 	}{
 		{
-			name:    "normal",
-			di:      &deviceInfo{},
-			outTags: []string{"tag1", "tag2", "device_namespace:", "snmp_device:"},
+			name: "deduplicate device identity tags",
+			di: &deviceInfo{
+				Namespace: "default",
+				IP:        "192.168.1.220",
+			},
+			origTags: []string{"tag1", "device_namespace:default", "tag2"},
+			outTags: []string{
+				"device_namespace:default",
+				"snmp_device:192.168.1.220",
+				"tag1",
+				"tag2",
+			},
 		},
 	}
 
@@ -190,7 +219,7 @@ func Test_ReportNetworkDeviceMetadata(t *testing.T) {
 			out := deviceMetaData{}
 
 			di := tc.di
-			di.ReportNetworkDeviceMetadata(emptyMetadataStore, []string{"tag1", "tag2"}, emptyMetadataConfigs, collectTime, 1, &out)
+			di.ReportNetworkDeviceMetadata(emptyMetadataStore, tc.origTags, emptyMetadataConfigs, collectTime, 1, &out)
 
 			for k, v := range out.data {
 				data := dataStruct{}

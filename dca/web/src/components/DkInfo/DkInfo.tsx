@@ -13,7 +13,7 @@ import { IDatakit, IDatakitStat } from 'src/store/type';
 import { useLazyGetDatakitStatQuery, useLazyReloadDatakitQuery, useLazyUpgradeDatakitQuery } from 'src/store/datakitApi';
 import { DatakitInfoNav } from '../DatakitInfoNav/DatakitInfoNav';
 import { useAppSelector } from 'src/hooks';
-import { alertError, isContainerMode, isDatakitManagement } from 'src/helper/helper';
+import { alertError, getLatestDatakitVersion, isContainerMode, isDatakitManagement, isNewerDatakitVersionAvailable } from 'src/helper/helper';
 import { DashboardContext, getOSIcon } from 'src/pages/Dashboard/Dashboard';
 import { useTranslation } from 'react-i18next';
 
@@ -73,7 +73,7 @@ function DkInfo() {
   const [datakitsOptions, setDatakitsOptions] = useState<SelectProps["options"]>([])
 
   const datakits = useAppSelector((state) => state.datakit.value)
-  const { latestDatakitVersion } = useContext(DashboardContext)
+  const { latestDatakitVersions } = useContext(DashboardContext)
 
   const [getDatakitStat, {
     data: datakitStatResponse,
@@ -191,11 +191,14 @@ function DkInfo() {
     if (isContainerMode(dk)) {
       return t("datakit.operation_disabled.container_upgrade")
     }
-    if (dk.version === latestDatakitVersion) {
+    if (!getLatestDatakitVersion(dk.version, latestDatakitVersions)) {
+      return t("datakit.operation_disabled.version_unavailable")
+    }
+    if (!isNewerDatakitVersionAvailable(dk.version, latestDatakitVersions)) {
       return t("datakit.operation_disabled.latest_version")
     }
     return ""
-  }, [latestDatakitVersion, t])
+  }, [latestDatakitVersions, t])
 
   const renderActionButton = (button: ReactNode, disabledReason: string) => {
     if (!disabledReason) {

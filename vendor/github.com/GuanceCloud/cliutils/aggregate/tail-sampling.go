@@ -83,6 +83,34 @@ func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *Da
 		return false, nil
 	}
 
+	// Fast path: when pipeline conditions can be covered by span predicates
+	// (or are match-all probabilistic samplers), the decision needs no payload
+	// decompression; otherwise it falls back to the decompressed walk, keeping
+	// behavior identical to the legacy logic. Packets with all-zero predicates
+	// (legacy data / hand-crafted) or an empty payload also fall back.
+	if len(td.PointsPayload) > 0 && packetHasSpanPredicates(td) {
+		// An uncompressed payload must have a decodable first point: in the legacy
+		// logic a corrupted first point stops the walk and yields no match
+		// (see TestTailSamplingBusinessBranches). Compressed payloads are protected
+		// by the zstd frame itself (a corrupted frame fails to decompress), so no
+		// pre-check is needed.
+		if td.PayloadCompression == PayloadCompressionNone && !payloadHasDecodablePoint(td.PointsPayload) {
+			return false, nil
+		}
+
+		if exprs, ok := compilePipelinesFast(pipelines); ok {
+			for idx, expr := range exprs {
+				if expr == nil {
+					continue
+				}
+				if expr(td) {
+					return true, pipelineMatchedPacket(td, pipelines[idx])
+				}
+			}
+			return false, nil
+		}
+	}
+
 	ptw := &ptWrap{}
 	matchedPipelines := make([]bool, len(pipelines))
 
@@ -116,6 +144,38 @@ func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *Da
 	}
 
 	return false, nil
+}
+
+// compilePipelinesFast compiles predicate decisions for all pipelines.
+// It returns false overall (falling back to the decompressed walk) when any
+// pipeline cannot be covered.
+func compilePipelinesFast(pipelines []*SamplingPipeline) ([]spanPredicateExpr, bool) {
+	exprs := make([]spanPredicateExpr, len(pipelines))
+	for idx, pipeline := range pipelines {
+		expr, ok := compilePipelinePredicate(pipeline)
+		if !ok {
+			return nil, false
+		}
+		exprs[idx] = expr
+	}
+	return exprs, true
+}
+
+// payloadHasDecodablePoint checks whether the first point in the payload is decodable.
+// It matches the first-point semantics of the original walk (a corrupted first
+// point stops the traversal immediately).
+func payloadHasDecodablePoint(payload []byte) bool {
+	var pb point.PBPoint
+	found := false
+	_ = point.WalkPBPointsPayload(payload, func(raw []byte) bool {
+		pb.Reset()
+		if err := pb.Unmarshal(raw); err != nil {
+			return false
+		}
+		found = true
+		return false
+	})
+	return found
 }
 
 func (sp *SamplingPipeline) isMatchAllSampling() bool {
@@ -224,9 +284,19 @@ func PickTrace(source string, pts []*point.Point, version int64) map[uint64]*Dat
 		if traceData.TraceEndTimeUnixNano < start+duration {
 			traceData.TraceEndTimeUnixNano = start + duration
 		}
+
+		applySpanPredicates(traceData, pt)
 	}
 
+	compressGroupedPackets(traceDatas)
+
 	return traceDatas
+}
+
+func compressGroupedPackets(packets map[uint64]*DataPacket) {
+	for _, packet := range packets {
+		compressPacketPayload(packet)
+	}
 }
 
 type TraceTailSampling struct {
@@ -483,9 +553,179 @@ func pickByGroupKey(groupKey string, source string, pts []*point.Point, category
 		if status == "error" {
 			traceData.HasError = true
 		}
+
+		applySpanPredicates(traceData, pt)
 	}
 
+	compressGroupedPackets(traceDatas)
+
 	return traceDatas, passedThrough
+}
+
+func compressPacketPayload(packet *DataPacket) {
+	if packet == nil {
+		return
+	}
+
+	compressed, compression, err := CompressPointsPayload(packet.PointsPayload)
+	if err != nil {
+		l.Errorf("compress points payload failed: %v", err)
+		return
+	}
+
+	packet.PointsPayload = compressed
+	packet.PayloadCompression = compression
+}
+
+// applySpanPredicates extracts the span predicate summary of seen spans into
+// a DataPacket. Predicate semantics strictly match cliutils/filter condition
+// evaluation (missing fields never match), enabling decompression-free dataway
+// decisions; across DataKits the Ingest merge path OR-aggregates the summary.
+func applySpanPredicates(packet *DataPacket, pt *point.Point) {
+	if packet == nil || pt == nil {
+		return
+	}
+
+	applySpanPredicatesWith(packet, func(key string) (any, bool) {
+		v := pt.Get(key)
+		if v == nil {
+			return nil, false
+		}
+		return v, true
+	})
+}
+
+// applySpanPredicatesWith extracts the span predicate summary via a field
+// getter, shared by the Point path (grouping) and the PBPoint path
+// (dataway backfill).
+func applySpanPredicatesWith(packet *DataPacket, get func(string) (any, bool)) {
+	if packet == nil || get == nil {
+		return
+	}
+
+	if v, ok := get("status"); ok {
+		if s, ok := v.(string); ok && s == "error" {
+			packet.PredError = true
+		}
+	}
+
+	if v, ok := get("http_status_code"); ok {
+		if s, ok := v.(string); ok && isHTTPErrorStatus(s) {
+			packet.PredHttpError = true
+		}
+	}
+
+	if v, ok := get("body_code"); ok {
+		if s, ok := v.(string); ok && s != "0" && s != "200" {
+			packet.PredBizError = true
+		}
+	}
+
+	if v, ok := get("trace_keep"); ok {
+		if b, ok := v.(bool); ok && b {
+			packet.PredTraceKeep = true
+		}
+	}
+
+	var duration int64
+	switch v, ok := get("duration"); {
+	case !ok:
+		return
+	case v == nil:
+		return
+	default:
+		switch d := v.(type) {
+		case int64:
+			duration = d
+		case float64:
+			duration = int64(d)
+		default:
+			return
+		}
+	}
+	if duration > packet.MaxSpanDurationUs {
+		packet.MaxSpanDurationUs = duration
+	}
+
+	if v, ok := get("parent_id"); ok {
+		pid, ok := v.(string)
+		if !ok {
+			return
+		}
+
+		switch pid {
+		case "0":
+			if duration > packet.RootDurationUs {
+				packet.RootDurationUs = duration
+			}
+		default:
+			if duration > packet.MaxNonrootDurationUs {
+				packet.MaxNonrootDurationUs = duration
+			}
+		}
+	}
+}
+
+// ComputeSpanPredicates backfills span predicates for DataPackets missing the
+// summary. It runs at dataway ingestion for legacy DataKit data (no predicates),
+// so the decision fast path works for any client version and removes the
+// datakit/dataway version coupling. It is a no-op when predicates already exist
+// (non-zero); when the payload is empty or any span fails to decode it returns
+// an error without writing partial predicates (the caller keeps the
+// all-zero → decompressed-walk fallback semantics).
+func ComputeSpanPredicates(packet *DataPacket) error {
+	if packet == nil || packetHasSpanPredicates(packet) {
+		return nil
+	}
+
+	payload, err := DecompressPointsPayload(packet.PointsPayload, packet.PayloadCompression)
+	if err != nil {
+		return err
+	}
+
+	// Compute into a temporary struct first: any span decode failure fails the
+	// whole computation, preventing partial predicates from being trusted by the
+	// fast path.
+	tmp := &DataPacket{}
+	ptw := &ptWrap{}
+	var decodeErr error
+	walkErr := point.WalkPBPointsPayload(payload, func(raw []byte) bool {
+		if err := ptw.Reset(raw); err != nil {
+			decodeErr = err
+			return false
+		}
+		applySpanPredicatesWith(tmp, ptw.Get)
+		return true
+	})
+	if walkErr != nil {
+		return walkErr
+	}
+	if decodeErr != nil {
+		return decodeErr
+	}
+
+	packet.PredError = tmp.PredError
+	packet.PredHttpError = tmp.PredHttpError
+	packet.PredBizError = tmp.PredBizError
+	packet.PredTraceKeep = tmp.PredTraceKeep
+	packet.MaxSpanDurationUs = tmp.MaxSpanDurationUs
+	packet.RootDurationUs = tmp.RootDurationUs
+	packet.MaxNonrootDurationUs = tmp.MaxNonrootDurationUs
+
+	return nil
+}
+
+// isHTTPErrorStatus reports whether http_status_code is 4xx/5xx.
+func isHTTPErrorStatus(code string) bool {
+	if len(code) != 3 {
+		return false
+	}
+	switch code[0] {
+	case '4', '5':
+		return code[1] >= '0' && code[1] <= '9' && code[2] >= '0' && code[2] <= '9'
+	default:
+		return false
+	}
 }
 
 // RUMTailSampling holds the RUM tail-sampling configuration.

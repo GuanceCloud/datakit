@@ -582,6 +582,15 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 		return emitOriginal()
 	}
 
+	// PickTrace 组包后 payload 可能已 zstd 压缩：拆分前先解压，
+	// 拆分段在发送前重新压缩（zstd 帧不能从中间切开）。
+	rawPayload, decompressErr := aggregate.DecompressPointsPayload(pkg.PointsPayload, pkg.PayloadCompression)
+	if decompressErr != nil {
+		log.Warnf("split tail sampling packet failed to decompress payload: group_id=%s err=%v",
+			pkg.RawGroupId, decompressErr)
+		return emitOriginal()
+	}
+
 	base := cloneDataPacketMeta(pkg)
 	base.PointsPayload = nil
 	base.PointCount = 0
@@ -596,7 +605,7 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 	// Validate before emitting because emit may send immediately. Discovering a
 	// malformed point after an earlier split was sent would make fallback send
 	// duplicate points.
-	pointTimes, walkErr, decodeErr := validatePBPointsPayload(ctx, pkg.PointsPayload)
+	pointTimes, walkErr, decodeErr := validatePBPointsPayload(ctx, rawPayload)
 	if err := ctx.Err(); err != nil {
 		return 0, context.Cause(ctx)
 	}
@@ -609,7 +618,7 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 		return emitOriginal()
 	}
 
-	partPayloadCapacity := minInt(len(pkg.PointsPayload), maxRawBodySize-baseSize)
+	partPayloadCapacity := minInt(len(rawPayload), maxRawBodySize-baseSize)
 	newPart := func() *aggregate.DataPacket {
 		part := cloneDataPacketMeta(pkg)
 		part.PointsPayload = make([]byte, 0, partPayloadCapacity)
@@ -623,7 +632,7 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 	pointIndex := 0
 	var emitErr error
 
-	walkErr = point.WalkPBPointsPayload(pkg.PointsPayload, func(raw []byte) bool {
+	walkErr = point.WalkPBPointsPayload(rawPayload, func(raw []byte) bool {
 		if err := ctx.Err(); err != nil {
 			emitErr = context.Cause(ctx)
 			return false
@@ -824,6 +833,13 @@ func cloneDataPacketMeta(pkg *aggregate.DataPacket) *aggregate.DataPacket {
 		TraceEndTimeUnixNano:   pkg.TraceEndTimeUnixNano,
 		PointsPayload:          pkg.PointsPayload,
 		MaxPointTimeUnixNano:   pkg.MaxPointTimeUnixNano,
+		PredError:              pkg.PredError,
+		PredHttpError:          pkg.PredHttpError,
+		PredBizError:           pkg.PredBizError,
+		PredTraceKeep:          pkg.PredTraceKeep,
+		MaxSpanDurationUs:      pkg.MaxSpanDurationUs,
+		RootDurationUs:         pkg.RootDurationUs,
+		MaxNonrootDurationUs:   pkg.MaxNonrootDurationUs,
 	}
 }
 

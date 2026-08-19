@@ -775,16 +775,92 @@ LLDP 是一个标准化的链路层协议，允许网络设备（如交换机、
 
 ### 启用 LLDP 采集 {#enable-lldp}
 
-在 DataKit 的 SNMP 配置中启用 LLDP 采集：
+推荐将 LLDP 邻居作为链路元数据附加到 `snmp_object` 对象：
 
 ```toml
 [[inputs.snmp]]
-  ## 启用 LLDP 拓扑采集
-  enable_lldp = true
+  ## 随对象采集 LLDP 邻居，并将拓扑链路写入 snmp_object 的 links 字段
+  collect_topology = true
+```
 
-  ## LLDP 采集间隔（可选，默认 10 分钟）
+`collect_topology` 默认关闭。启用后，DataKit 在对象采集周期内额外查询 LLDP/CDP MIB，并将本地设备、接口以及对端设备、接口等链路元数据编码为 JSON 数组，写入 `snmp_object` 的 `links` 字段。存在 LLDP 链路时优先使用 LLDP；仅在没有 LLDP 链路时回退到 CDP。
+
+该配置仅适用于上报 `snmp_object` 的内置 Profile 采集模式，不适用于用户 Profile 生成的 `snmp_<class>` 自定义对象。
+
+#### `links` 字段 {#topology-links-field}
+
+下面是 `links` 字段解码后的 LLDP 链路示例，`//` 表示字段说明注释：
+
+```jsonc
+[
+  {
+    // 本地设备上的拓扑邻居记录 ID。
+    // LLDP 格式为 <device_namespace>:<管理 IP>:<lldpRemLocalPortNum>.<lldpRemIndex>；
+    // CDP 格式为 <device_namespace>:<管理 IP>:<cdpCacheIfIndex>.<cdpCacheDeviceIndex>。
+    "id": "default:192.0.2.10:7.1",
+    // 邻居数据来源，取值为 lldp 或 cdp。
+    "source_type": "lldp",
+    // 采集集成名称，当前固定为 snmp。
+    "integration": "snmp",
+    // 被 DataKit 直接采集的本地链路端点。
+    "local": {
+      // 本地设备。
+      "device": {
+        // 已解析的本地设备 ID，格式为 <device_namespace>:<管理 IP>。
+        "resolved_id": "default:192.0.2.10"
+      },
+      // 本地接口。
+      "interface": {
+        // 已解析的本地接口 ID，格式为 <local.device.resolved_id>:<ifIndex>。
+        // LLDP 本地端口无法关联到 IF-MIB 接口时可能缺失。
+        "resolved_id": "default:192.0.2.10:12",
+        // LLDP 的 lldpLocPortId；CDP 链路当前为空字符串。
+        "id": "82:a5:6e:a5:c9:01",
+        // 由 lldpLocPortIdSubtype 转换的本地端口标识类型；CDP 链路中通常缺失。
+        "id_type": "mac_address"
+      }
+    },
+    // 邻居协议发现的对端链路端点，不代表该设备一定已被 DataKit 直接采集。
+    "remote": {
+      // 对端设备。
+      "device": {
+        // LLDP 的 lldpRemChassisId 或 CDP 的 cdpCacheDeviceId。
+        "id": "01:00:00:00:01:02",
+        // 由 lldpRemChassisIdSubtype 转换的 LLDP Chassis ID 类型；CDP 链路中通常缺失。
+        "id_type": "mac_address",
+        // LLDP 的 lldpRemSysName 或 CDP 的 cdpCacheSysName。
+        "name": "switch-b",
+        // LLDP 的 lldpRemSysDesc 或 CDP 的 cdpCacheVersion。
+        "description": "remote switch",
+        // 对端管理 IP。LLDP 从远端管理地址表索引解析；
+        // CDP 依次尝试主、备用和缓存管理地址。设备未上报时缺失。
+        "ip_address": "10.250.0.6"
+      },
+      // 对端接口。
+      "interface": {
+        // LLDP 的 lldpRemPortId 或 CDP 的 cdpCacheDevicePort。
+        "id": "Ethernet1/7",
+        // LLDP 远端端口标识类型；CDP 固定为 interface_name。
+        "id_type": "interface_name",
+        // LLDP 的 lldpRemPortDesc；CDP 链路中通常缺失。
+        "description": "remote uplink"
+      }
+    }
+  }
+]
+```
+
+LLDP 的设备和端口标识类型可能包括 `mac_address`、`network_address`、`interface_name`、`interface_alias`、`port_component` 和 `local` 等。除结构必需字段外，名称、描述、管理 IP 以及未成功解析的对象 ID 都可能不出现在结果中。
+
+现有的 `enable_lldp` 是独立的 LLDP 采集入口，按 `lldp_interval` 运行并上报 `snmp_lldp` 日志数据，保留用于兼容已有配置：
+
+```toml
+[[inputs.snmp]]
+  enable_lldp = true
   lldp_interval = "10m"
 ```
+
+两个开关相互独立且默认均为 `false`。通常只需启用一种输出；若同时启用，DataKit 会在各自周期内分别查询 LLDP 数据，并同时产生对象链路和日志两种输出。
 
 ### 被采集设备配置要求 {#lldp-device-config}
 

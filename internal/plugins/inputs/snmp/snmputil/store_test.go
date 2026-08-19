@@ -73,6 +73,20 @@ func TestStore_Column(t *testing.T) {
 	assert.Equal(t, []string(nil), store.GetColumnIndexes("interface.does_not_exist"))
 }
 
+func TestStore_GetColumnAsByteArrayAndIPString(t *testing.T) {
+	store := NewMetadataStore()
+	store.AddColumnValue("raw.mac", "1", ResultValue{Value: []byte{0, 1, 2, 3, 4, 5}})
+	store.AddColumnValue("ip.bytes", "1", ResultValue{Value: []byte{199, 47, 37, 5}})
+	store.AddColumnValue("ip.string", "1", ResultValue{Value: "2001:db8::1"})
+	store.AddColumnValue("ip.invalid", "1", ResultValue{Value: []byte{1, 2, 3}})
+
+	assert.Equal(t, []byte{0, 1, 2, 3, 4, 5}, store.GetColumnAsByteArray("raw.mac", "1"))
+	assert.Nil(t, store.GetColumnAsByteArray("raw.mac", "2"))
+	assert.Equal(t, "199.47.37.5", store.GetColumnAsIPString("ip.bytes", "1"))
+	assert.Equal(t, "2001:db8::1", store.GetColumnAsIPString("ip.string", "1"))
+	assert.Empty(t, store.GetColumnAsIPString("ip.invalid", "1"))
+}
+
 func TestStore_IDTags(t *testing.T) {
 	store := NewMetadataStore()
 	store.AddIDTags("interface", "1", []string{"aa"})

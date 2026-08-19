@@ -88,7 +88,14 @@ const sampleCfg = `
   ## Collect object interval, default is 5m. (optional)
   # object_interval = "5m"
 
-  ## Enable LLDP topology collection. Default is false. (optional)
+  ## Collect LLDP/CDP topology links in snmp_object. Default is false. (optional)
+  ## Built-in Profiles only; follows object_interval and is independent of enable_lldp.
+  ## LLDP is preferred, with CDP used as a fallback.
+  # collect_topology = false
+
+  ## Enable standalone LLDP neighbor collection and report snmp_lldp logging data.
+  ## Default is false. (optional)
+  ## Avoid enabling this together with collect_topology unless both outputs are needed.
   # enable_lldp = false
 
   ## LLDP collection interval, default is 10m. (optional)
@@ -102,7 +109,7 @@ const sampleCfg = `
   ## Set true to enable election
   # election = true
 
-  ## Device Namespace. Default is "default".
+  ## Device Namespace. Default is "default". It is an identity tag and cannot be overridden by custom tags.
   # device_namespace = "default"
 
   ## Picking the metric data only contains the field's names below.

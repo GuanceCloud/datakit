@@ -9,7 +9,7 @@ import styles from './Dashboard.module.scss'
 import { clearStore, RootState } from 'src/store';
 import { alertError } from 'src/helper/helper';
 import { useChangeWorkspaceMutation, useLazyGetCurrentAccountQuery, useLazyGetCurrentWorkspaceQuery, useLazyGetWorkspaceListQuery, useLazyLogoutQuery } from 'src/store/consoleApi';
-import { IWorkspace } from 'src/store/type';
+import { ILatestDatakitVersions, IWorkspace } from 'src/store/type';
 import { useLazyGetDatakitVersionQuery } from 'src/store/consoleApi';
 import { set, User } from 'src/store/user/user';
 import linuxIcon from "src/assets/linux.png"
@@ -31,11 +31,11 @@ const osIcons = {
 
 type DashboardContextType = {
   currentWorkspace: IWorkspace | undefined
-  latestDatakitVersion: string
+  latestDatakitVersions: ILatestDatakitVersions
 }
 const defaultDashboardContext: DashboardContextType = {
   currentWorkspace: undefined,
-  latestDatakitVersion: "",
+  latestDatakitVersions: {},
 }
 export const DashboardContext = createContext<DashboardContextType>(defaultDashboardContext)
 
@@ -47,7 +47,7 @@ function Dashboard({ user, setUserInfo }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [visible, setVisible] = useState<Boolean>(false)
-  const [latestDatakitVersion, setLatestDatakitVersion] = useState("")
+  const [latestDatakitVersions, setLatestDatakitVersions] = useState<ILatestDatakitVersions>({})
   const [workspaces, setWorkspaces] = useState<IWorkspace[]>([])
   const [workspaceKeyword, setWorkspaceKeyword] = useState("")
   const [selectedWorkspace, setSelectedWorkspace] = useState<IWorkspace | undefined>()
@@ -62,7 +62,10 @@ function Dashboard({ user, setUserInfo }: Props) {
 
   useEffect(() => {
     if (dataDatakitVersion?.code === 200) {
-      setLatestDatakitVersion(dataDatakitVersion?.content?.version)
+      setLatestDatakitVersions({
+        v1: dataDatakitVersion.content?.v1?.version,
+        v2: dataDatakitVersion.content?.v2?.version,
+      })
     }
   }, [dataDatakitVersion])
 
@@ -318,7 +321,7 @@ function Dashboard({ user, setUserInfo }: Props) {
         <div className={styles.info}>
           <DashboardContext.Provider value={{
             currentWorkspace: selectedWorkspace,
-            latestDatakitVersion,
+            latestDatakitVersions,
           }}>
             <Outlet />
           </DashboardContext.Provider>

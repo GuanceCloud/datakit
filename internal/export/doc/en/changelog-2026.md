@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.10.0(2026/08/19) {#cl-2.10.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.10.0-new}
+
+- The SNMP collector now discovers LLDP/CDP topology links and reports them in `snmp_object`; it also adds the `device_namespace` tag and `interface_index` field (#3197)
+- The PostgreSQL collector now supports checkpoint metrics on PostgreSQL 17 and later while preserving the existing `postgresql_bgwriter` metric fields (#3200)
+
+### Improvements {#cl-2.10.0-opt}
+
+- DCA 0.1.9 now distinguishes the latest DataKit v1 and v2 versions to avoid incorrect cross-major upgrade status (#3195)
+- Improved tail-sampling packet compression, predicate-summary propagation, and oversized-packet splitting; this requires a compatible DataWay release (!4133)
+- Clarified the Kubernetes Node Label global host-tag and log `json_as_fields` configuration documentation (!4136, !4143)
+
+---
+
 ## 2.9.0(2026/08/12) {#cl-2.9.0}
 
 This release is an iterative release, with the following main updates:

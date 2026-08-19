@@ -104,6 +104,7 @@ func setupRouter(router *gin.Engine) error {
 	apiRouter := router.Group("/api")
 	apiRouter.Use(collectRequestMetricsHandler())
 	apiRouter.GET("/lastDatakitVersion", getLastDatakitVersionHandler)
+	apiRouter.GET("/lastDatakitVersions", getLastDatakitVersionsHandler)
 	consoleRouter := apiRouter.Group("/console")
 	datakitRouter := apiRouter.Group("/datakit")
 

@@ -6,6 +6,8 @@
 
 package snmputil
 
+import "net"
+
 // Store MetadataStore stores metadata scalarValues.
 type Store struct {
 	// map[<FIELD>]ResultValue
@@ -56,6 +58,49 @@ func (s Store) GetColumnAsString(field string, index string) string {
 		return ""
 	}
 	return strVal
+}
+
+// GetColumnAsByteArray gets a column value as []byte.
+func (s Store) GetColumnAsByteArray(field string, index string) []byte {
+	column, ok := s.columnValues[field]
+	if !ok {
+		return nil
+	}
+	value, ok := column[index]
+	if !ok {
+		return nil
+	}
+	bytes, ok := value.Value.([]byte)
+	if !ok {
+		return nil
+	}
+	return bytes
+}
+
+// GetColumnAsIPString gets a column value formatted as an IP address string.
+func (s Store) GetColumnAsIPString(field string, index string) string {
+	column, ok := s.columnValues[field]
+	if !ok {
+		return ""
+	}
+	value, ok := column[index]
+	if !ok {
+		return ""
+	}
+	switch val := value.Value.(type) {
+	case []byte:
+		ip := net.IP(val)
+		if len(ip) != net.IPv4len && len(ip) != net.IPv6len {
+			l.Debugf("unexpected IP byte length for field `%s` index `%s`: %d", field, index, len(ip))
+			return ""
+		}
+		return ip.String()
+	case string:
+		if ip := net.ParseIP(val); ip != nil {
+			return ip.String()
+		}
+	}
+	return ""
 }
 
 // GetColumnAsFloat get column value as float.

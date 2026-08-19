@@ -1,5 +1,5 @@
 import { baseApi } from "./baseApi"
-import type { IAccountInfo, IAccountPermission, IVersion, IWorkspace, PageInfo } from "./type"
+import type { IAccountInfo, IAccountPermission, IDatakitVersions, IWorkspace, PageInfo } from "./type"
 
 
 
@@ -77,10 +77,10 @@ const consoleApi = baseApi.injectEndpoints({
           }
         },
       }),
-      getDatakitVersion: builder.query<ConsoleResponse<IVersion>, any>({
+      getDatakitVersion: builder.query<ConsoleResponse<IDatakitVersions>, any>({
         query: () => {
           return {
-            url: "/api/lastDatakitVersion"
+            url: "/api/lastDatakitVersions"
           }
         }
       }),

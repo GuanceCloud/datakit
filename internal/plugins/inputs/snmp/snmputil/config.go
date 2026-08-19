@@ -239,6 +239,86 @@ var LegacyMetadataConfig = MetadataConfig{
 	},
 }
 
+// topologyMetadataConfig represents the metadata needed for topology.
+var topologyMetadataConfig = MetadataConfig{
+	"lldp_remote": {
+		Fields: map[string]MetadataField{
+			"chassis_id_type": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.1.1.4", Name: "lldpRemChassisIdSubtype"},
+			},
+			"chassis_id": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.1.1.5", Name: "lldpRemChassisId"},
+			},
+			"interface_id_type": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.1.1.6", Name: "lldpRemPortIdSubtype"},
+			},
+			"interface_id": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.1.1.7", Name: "lldpRemPortId"},
+			},
+			"interface_desc": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.1.1.8", Name: "lldpRemPortDesc"},
+			},
+			"device_name": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.1.1.9", Name: "lldpRemSysName"},
+			},
+			"device_desc": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.1.1.10", Name: "lldpRemSysDesc"},
+			},
+		},
+	},
+	"lldp_remote_management": {
+		Fields: map[string]MetadataField{
+			"interface_id_type": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.4.2.1.3", Name: "lldpRemManAddrIfSubtype"},
+			},
+		},
+	},
+	"lldp_local": {
+		Fields: map[string]MetadataField{
+			"interface_id_type": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.3.7.1.2", Name: "lldpLocPortIdSubtype"},
+			},
+			"interface_id": {
+				Symbol: SymbolConfig{OID: "1.0.8802.1.1.2.1.3.7.1.3", Name: "lldpLocPortID"},
+			},
+		},
+	},
+	"cdp_remote": {
+		Fields: map[string]MetadataField{
+			"device_desc": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.5", Name: "cdpCacheVersion"},
+			},
+			"device_id": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.6", Name: "cdpCacheDeviceId"},
+			},
+			"interface_id": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.7", Name: "cdpCacheDevicePort"},
+			},
+			"device_name": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.17", Name: "cdpCacheSysName"},
+			},
+			"device_address_type": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.19", Name: "cdpCachePrimaryMgmtAddrType"},
+			},
+			"device_address": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.20", Name: "cdpCachePrimaryMgmtAddr"},
+			},
+			"device_secondary_address_type": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.21", Name: "cdpCacheSecondaryMgmtAddrType"},
+			},
+			"device_secondary_address": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.22", Name: "cdpCacheSecondaryMgmtAddr"},
+			},
+			"device_cache_address_type": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.3", Name: "cdpCacheAddressType"},
+			},
+			"device_cache_address": {
+				Symbol: SymbolConfig{OID: "1.3.6.1.4.1.9.9.23.1.2.1.1.4", Name: "cdpCacheAddress"},
+			},
+		},
+	},
+}
+
 // MetadataConfig holds configs per resource type.
 type MetadataConfig map[string]MetadataResourceConfig
 

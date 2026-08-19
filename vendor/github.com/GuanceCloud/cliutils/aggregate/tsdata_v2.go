@@ -17,5 +17,10 @@ func (packet *DataPacket) WalkRawPBPoints(fn func([]byte) bool) error {
 		return nil
 	}
 
-	return point.WalkPBPointsPayload(packet.PointsPayload, fn)
+	payload, err := DecompressPointsPayload(packet.PointsPayload, packet.PayloadCompression)
+	if err != nil {
+		return err
+	}
+
+	return point.WalkPBPointsPayload(payload, fn)
 }

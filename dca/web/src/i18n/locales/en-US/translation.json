@@ -136,7 +136,8 @@
       "not_running": "DataKit is not online. Management operations are available only when it is running.",
       "container_reload": "This DataKit is running in a container. Reload is not supported here.",
       "container_upgrade": "This DataKit is running in a container. Upgrade is not supported here.",
-      "latest_version": "This DataKit is already on the latest version."
+      "version_unavailable": "Latest version information is unavailable for this DataKit release line.",
+      "latest_version": "This DataKit is already on the latest or a newer version."
     }
   },
   "run_info": {

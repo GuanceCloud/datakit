@@ -226,6 +226,62 @@ func TestDatabaseQueriesDoNotExcludeDefaultDatabaseByDefault(t *testing.T) {
 	assert.Contains(t, input.metricQueryCache[DBMetric].q, "AND psd.datname IN ('postgres')")
 }
 
+func TestBgwriterQueryByVersion(t *testing.T) {
+	tests := []struct {
+		name        string
+		version     *semver.Version
+		contains    []string
+		notContains []string
+	}{
+		{
+			name:    "postgresql-15",
+			version: semver.New("15.3.0"),
+			contains: []string{
+				"select * FROM pg_stat_bgwriter",
+			},
+			notContains: []string{"pg_stat_checkpointer"},
+		},
+		{
+			name:    "postgresql-17",
+			version: semver.New("17.0.0"),
+			contains: []string{
+				"cp.num_timed       AS checkpoints_timed",
+				"cp.num_requested   AS checkpoints_req",
+				"cp.buffers_written AS buffers_checkpoint",
+				"bg.buffers_clean",
+				"bg.maxwritten_clean",
+				"bg.buffers_alloc",
+				"cp.write_time      AS checkpoint_write_time",
+				"cp.sync_time       AS checkpoint_sync_time",
+				"CROSS JOIN pg_stat_checkpointer AS cp",
+			},
+			notContains: []string{
+				"buffers_backend",
+				"buffers_backend_fsync",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := defaultInput()
+			input.version = tt.version
+			input.service = &MockCollectService{}
+			input.metricQueryCache = map[string]*queryCacheItem{}
+			input.collectCache = map[point.Category][]*point.Point{}
+
+			assert.NoError(t, input.getBgwMetrics())
+			query := input.metricQueryCache[BgwriterMetric].q
+			for _, expected := range tt.contains {
+				assert.Contains(t, query, expected)
+			}
+			for _, unexpected := range tt.notContains {
+				assert.NotContains(t, query, unexpected)
+			}
+		})
+	}
+}
+
 func TestParseUrl(t *testing.T) {
 	uri := "postgres://postgres@localhost/test?sslmode=disable"
 	parsedUri, err := parseURL(uri)

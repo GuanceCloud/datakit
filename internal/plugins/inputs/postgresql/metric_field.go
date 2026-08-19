@@ -604,20 +604,20 @@ type bgwriterMeasurement struct {
 func (m bgwriterMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "postgresql_bgwriter",
-		Desc:   "PostgreSQL background writer and checkpoint metrics collected from pg_stat_bgwriter.",
-		DescZh: "从 pg_stat_bgwriter 采集的 PostgreSQL 后台写入器与检查点指标。",
+		Desc:   "PostgreSQL background writer and checkpoint metrics collected from pg_stat_bgwriter and, on PostgreSQL 17+, pg_stat_checkpointer.",
+		DescZh: "从 pg_stat_bgwriter 以及 PostgreSQL 17 及以上版本的 pg_stat_checkpointer 采集的后台写入器与检查点指标。",
 		Cat:    point.Metric,
 		Fields: map[string]interface{}{
-			"checkpoints_timed":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of scheduled checkpoints that were performed."},
+			"checkpoints_timed":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of scheduled checkpoints. On PostgreSQL 17+, this includes completed and skipped scheduled checkpoints."},
 			"checkpoints_req":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of requested checkpoints that were performed."},
-			"buffers_checkpoint":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written during checkpoints."},
+			"buffers_checkpoint":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written during checkpoints and, on PostgreSQL 17+, restartpoints."},
 			"buffers_clean":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written by the background writer."},
 			"maxwritten_clean":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of times the background writer stopped a cleaning scan due to writing too many buffers."},
-			"buffers_backend":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written directly by a backend."},
+			"buffers_backend":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written directly by a backend. Available on PostgreSQL versions earlier than 17."},
 			"buffers_alloc":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers allocated"},
-			"buffers_backend_fsync": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The of times a backend had to execute its own fsync call instead of the background writer."},
-			"checkpoint_write_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total amount of checkpoint processing time spent writing files to disk."},
-			"checkpoint_sync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total amount of checkpoint processing time spent synchronizing files to disk."},
+			"buffers_backend_fsync": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of times a backend had to execute its own fsync call instead of the background writer. Available on PostgreSQL versions earlier than 17."},
+			"checkpoint_write_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total time spent writing files during checkpoints and, on PostgreSQL 17+, restartpoints."},
+			"checkpoint_sync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total time spent synchronizing files during checkpoints and, on PostgreSQL 17+, restartpoints."},
 		},
 		Tags: map[string]interface{}{
 			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),

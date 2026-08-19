@@ -23,6 +23,26 @@ message DataPacket {
 
   bytes points_payload = 12;
   int64 max_point_time_unix_nano = 13;
+
+  // Compression method of points_payload: 0=raw PBPoints encoding, 1=zstd.
+  // Backward compatible: old data / old readers treat it as 0.
+  int32 payload_compression = 14;
+
+  // ---- Span predicate summary of seen spans (OR-aggregated across DataKits
+  // by the dataway Ingest merge path) ----
+  // Semantics: features of the spans seen when this DataPacket was grouped,
+  // evaluated without decompression at dataway decision time; only "seen"
+  // data is counted, and after cross-DataKit merging it is the union of all
+  // seen DataKits.
+
+  bool pred_error = 15; // any seen span: status="error"
+  bool pred_http_error = 16; // any seen span: http_status_code matches 4xx/5xx
+  bool pred_biz_error = 17; // any seen span: body_code business error (not "0"/"200")
+  bool pred_trace_keep = 18; // any seen span: trace_keep=true
+
+  int64 max_span_duration_us = 19; // max duration (us) of seen spans
+  int64 root_duration_us = 20; // duration (us) of the seen root span (parent_id="0"); 0=not seen
+  int64 max_nonroot_duration_us = 21; // max duration (us) of seen non-root spans
 }
 
 // batch packages
