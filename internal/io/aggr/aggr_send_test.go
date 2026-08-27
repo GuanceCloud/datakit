@@ -109,6 +109,34 @@ func TestSplitDataPacketBySize(t *testing.T) {
 	assert.Equal(t, pkg.PointsPayload, reassembledPayload)
 }
 
+func TestSplitCompressedDataPacketPreservesCompressionAndSummaryVersion(t *testing.T) {
+	pkg := buildTailSamplingDataPacket(20, 512)
+	rawPayload := append([]byte(nil), pkg.PointsPayload...)
+	compressed, compression, err := aggregate.CompressPointsPayload(rawPayload)
+	require.NoError(t, err)
+	require.Equal(t, aggregate.PayloadCompressionZstd, compression)
+	pkg.PointsPayload = compressed
+	pkg.PayloadCompression = compression
+	pkg.PredicateSummaryVersion = aggregate.CurrentPredicateSummaryVersion
+
+	parts := splitDataPacketBySize(pkg, pkg.Size()-1)
+	require.Greater(t, len(parts), 1)
+
+	var reassembled []byte
+	var totalPoints int32
+	for _, part := range parts {
+		assert.Equal(t, aggregate.CurrentPredicateSummaryVersion, part.PredicateSummaryVersion)
+		assert.LessOrEqual(t, part.Size(), pkg.Size()-1)
+		decoded, decodeErr := aggregate.DecompressPointsPayload(part.PointsPayload, part.PayloadCompression)
+		require.NoError(t, decodeErr)
+		assert.Equal(t, int(part.PointCount), countPBPointsPayload(t, decoded))
+		reassembled = append(reassembled, decoded...)
+		totalPoints += part.PointCount
+	}
+	assert.Equal(t, pkg.PointCount, totalPoints)
+	assert.Equal(t, rawPayload, reassembled)
+}
+
 func TestSplitDataPacketBySizeSinglePointOversize(t *testing.T) {
 	pkg := buildTailSamplingDataPacket(2, 2048)
 
@@ -256,6 +284,128 @@ func TestSendTailSamplingPackageHeaders(t *testing.T) {
 	assert.Equal(t, identityContentEncoding, gotEncoding)
 	assert.Equal(t, "11", gotPickKey)
 	assert.Equal(t, strconv.Itoa(bodySize), gotPayloadSize)
+}
+
+func TestSendTailSamplingPackageFallsBackFromZstdV2(t *testing.T) {
+	type receivedRequest struct {
+		path        string
+		token       string
+		compression string
+		packet      *aggregate.DataPacket
+	}
+
+	received := make(chan receivedRequest, 3)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		packet := &aggregate.DataPacket{}
+		require.NoError(t, packet.Unmarshal(body))
+		received <- receivedRequest{
+			path:        r.URL.Path,
+			token:       r.URL.Query().Get("token"),
+			compression: r.Header.Get(aggregate.TailSamplingPayloadCompressionHeader),
+			packet:      packet,
+		}
+
+		if r.URL.Path == datakit.TailSamplingV2 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ag := &Aggregator{Endpoints: []string{ts.URL + "?token=tkn_trace"}}
+	ag.initHTTP()
+
+	packet := buildTailSamplingDataPacket(8, 256)
+	require.NoError(t, aggregate.SetDataPacketPayloadCompression(packet, aggregate.PayloadCompressionZstd))
+	require.Equal(t, aggregate.PayloadCompressionZstd, packet.PayloadCompression)
+
+	require.NoError(t, ag.sendTailSamplingPackageContext(context.Background(), 11, packet))
+	require.NoError(t, ag.sendTailSamplingPackageContext(context.Background(), 11, packet))
+
+	first := <-received
+	assert.Equal(t, datakit.TailSamplingV2, first.path)
+	assert.Equal(t, "tkn_trace", first.token)
+	assert.Equal(t, aggregate.TailSamplingPayloadCompressionZstd, first.compression)
+	assert.Equal(t, aggregate.PayloadCompressionZstd, first.packet.PayloadCompression)
+
+	for range 2 {
+		fallback := <-received
+		assert.Equal(t, datakit.TailSampling, fallback.path)
+		assert.Equal(t, "tkn_trace", fallback.token)
+		assert.Empty(t, fallback.compression)
+		assert.Equal(t, aggregate.PayloadCompressionNone, fallback.packet.PayloadCompression)
+		assert.Equal(t, int(packet.PointCount), countPBPointsPayload(t, fallback.packet.PointsPayload))
+	}
+	assert.Len(t, received, 0, "unsupported endpoint capability should be cached")
+}
+
+func TestSendTailSamplingPackageFallsBackOnUnsupportedMediaType(t *testing.T) {
+	receivedPaths := make(chan string, 2)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedPaths <- r.URL.Path
+		if r.URL.Path == datakit.TailSamplingV2 {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ag := &Aggregator{Endpoints: []string{ts.URL + "?token=tkn_trace"}}
+	ag.initHTTP()
+
+	packet := buildTailSamplingDataPacket(8, 256)
+	require.NoError(t, aggregate.SetDataPacketPayloadCompression(packet, aggregate.PayloadCompressionZstd))
+	require.NoError(t, ag.sendTailSamplingPackageContext(context.Background(), 11, packet))
+
+	assert.Equal(t, datakit.TailSamplingV2, <-receivedPaths)
+	assert.Equal(t, datakit.TailSampling, <-receivedPaths)
+}
+
+func TestSendTailSamplingPackagesSplitsDecodedPayloadBeforeLegacyFallback(t *testing.T) {
+	const maxRawBodySize = 32 << 10
+
+	var (
+		legacyRequests int32
+		receivedPoints int32
+		oversized      int32
+	)
+	ag := newTailSamplingTestAggregator(t, maxRawBodySize, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		if r.URL.Path == datakit.TailSamplingV2 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		require.Equal(t, datakit.TailSampling, r.URL.Path)
+		atomic.AddInt32(&legacyRequests, 1)
+		if len(body) > maxRawBodySize {
+			atomic.StoreInt32(&oversized, 1)
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+			return
+		}
+
+		packet := &aggregate.DataPacket{}
+		require.NoError(t, packet.Unmarshal(body))
+		atomic.AddInt32(&receivedPoints, int32(countPBPointsPayload(t, packet.PointsPayload)))
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	packet := buildTailSamplingDataPacket(48, 16<<10)
+	rawSize := packet.Size()
+	require.NoError(t, aggregate.SetDataPacketPayloadCompression(packet, aggregate.PayloadCompressionZstd))
+	require.Less(t, packet.Size(), maxRawBodySize, "fixture must fit on the compressed V2 wire path")
+	require.Greater(t, rawSize, maxRawBodySize, "fixture must require splitting on the legacy raw path")
+
+	err := ag.SendTailSamplingPackages(map[uint64]*aggregate.DataPacket{1: packet})
+	require.NoError(t, err)
+	assert.Zero(t, atomic.LoadInt32(&oversized))
+	assert.Greater(t, atomic.LoadInt32(&legacyRequests), int32(1))
+	assert.Equal(t, packet.PointCount, atomic.LoadInt32(&receivedPoints))
 }
 
 func TestSendMetricBatchHeaders(t *testing.T) {

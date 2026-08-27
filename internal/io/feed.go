@@ -440,8 +440,29 @@ func (x *dkIO) doFeed(fd *feedData) error {
 		}
 	}
 
+	beforeFeedPoints := len(fd.pts)
+	after, plCreate, offl, err := x.beforeFeed(fd)
+	if err != nil {
+		return err
+	}
+
+	filtered := beforeFeedPoints - len(after) - offl
+
+	fd.pts = after
+	log.Debugf("after filtered, fd.pts len=%d", len(fd.pts))
+
+	if filtered >= 0 {
+		inputsFilteredPtsVec.WithLabelValues(
+			fd.input,
+			fd.cat.String(),
+		).Add(float64(filtered))
+	} else {
+		log.Errorf("invalid filtered: pts: %d, after: %d, offl: %d", beforeFeedPoints, len(after), offl)
+	}
+
+	consumed := false
 	if x.Aggr != nil {
-		origPts := fd.pts
+		processedPts := fd.pts
 		processStart := time.Now()
 		result, err := x.Aggr.Process(fd.cat, fd.input, fd.pts)
 		aggrProcessCostVec.WithLabelValues(fd.input, fd.cat.String()).Observe(time.Since(processStart).Seconds())
@@ -460,32 +481,12 @@ func (x *dkIO) doFeed(fd *feedData) error {
 
 			fd.pts = result.Points
 			if result.Consumed {
-				fd.pts = origPts
+				fd.pts = processedPts
 				defIO.recordPoints(fd)
 				log.Debugf("aggr process consumed points, input=%s cat=%s", fd.input, fd.cat)
-				putFeedData(fd)
-				return nil
+				consumed = true
 			}
 		}
-	}
-
-	after, plCreate, offl, err := x.beforeFeed(fd)
-	if err != nil {
-		return err
-	}
-
-	filtered := len(fd.pts) - len(after) - offl
-
-	fd.pts = after
-	log.Debugf("after filtered, fd.pts len=%s", len(fd.pts))
-
-	if filtered >= 0 {
-		inputsFilteredPtsVec.WithLabelValues(
-			fd.input,
-			fd.cat.String(),
-		).Add(float64(filtered))
-	} else {
-		log.Errorf("invalid filtered: pts: %d, after: %d, offl: %d", len(fd.pts), len(after), offl)
 	}
 
 	// Maybe all points been filtered, but we still send the feeding into io.
@@ -512,7 +513,16 @@ func (x *dkIO) doFeed(fd *feedData) error {
 			}
 		}
 
+		if consumed {
+			putFeedData(fd)
+			return nil
+		}
+
 		return x.foDataway.Write(fd)
+	}
+	if consumed {
+		putFeedData(fd)
+		return nil
 	}
 	log.Warnf("feed output not set, ignored")
 	return nil

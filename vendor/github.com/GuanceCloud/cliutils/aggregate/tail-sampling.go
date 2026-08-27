@@ -79,40 +79,84 @@ func (sp *SamplingPipeline) DoAction(td *DataPacket) (bool, *DataPacket) {
 }
 
 func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *DataPacket) {
-	if td == nil || len(pipelines) == 0 {
-		return false, nil
+	matched, _, packet := evaluateDecisionPlan(td, newCompiledDecisionPlan(pipelines))
+	return matched, packet
+}
+
+type compiledDecisionPlan struct {
+	pipelines    []*SamplingPipeline
+	predicates   []spanPredicateExpr
+	matchedRules []TailSamplingMatchedRule
+	fast         bool
+}
+
+func newCompiledDecisionPlan(pipelines []*SamplingPipeline) *compiledDecisionPlan {
+	if len(pipelines) == 0 {
+		return nil
+	}
+
+	predicates, fast := compilePipelinesFast(pipelines)
+	matchedRules := make([]TailSamplingMatchedRule, len(pipelines))
+	for index, pipeline := range pipelines {
+		if pipeline == nil {
+			continue
+		}
+		name := pipeline.Name
+		if name == "" {
+			name = fmt.Sprintf("unnamed_%d", index+1)
+		}
+		matchedRules[index] = TailSamplingMatchedRule{
+			Index:  index + 1,
+			Name:   name,
+			Type:   pipeline.Type,
+			Action: pipeline.Action,
+		}
+	}
+	return &compiledDecisionPlan{
+		pipelines:    pipelines,
+		predicates:   predicates,
+		matchedRules: matchedRules,
+		fast:         fast,
+	}
+}
+
+// evaluateDecisionPlan evaluates an immutable plan and returns the matched
+// pipeline index together with its packet result. The index is zero-based and
+// is -1 when no pipeline matched.
+func evaluateDecisionPlan(td *DataPacket, plan *compiledDecisionPlan) (bool, int, *DataPacket) {
+	if td == nil || len(td.PointsPayload) == 0 || plan == nil || len(plan.pipelines) == 0 {
+		return false, -1, nil
 	}
 
 	// Fast path: when pipeline conditions can be covered by span predicates
 	// (or are match-all probabilistic samplers), the decision needs no payload
 	// decompression; otherwise it falls back to the decompressed walk, keeping
-	// behavior identical to the legacy logic. Packets with all-zero predicates
-	// (legacy data / hand-crafted) or an empty payload also fall back.
-	if len(td.PointsPayload) > 0 && packetHasSpanPredicates(td) {
+	// behavior identical to the legacy logic. Legacy packets with an all-zero
+	// summary fall back; a current-version all-zero summary is trusted.
+	if plan.fast && packetHasSpanPredicates(td) {
 		// An uncompressed payload must have a decodable first point: in the legacy
 		// logic a corrupted first point stops the walk and yields no match
 		// (see TestTailSamplingBusinessBranches). Compressed payloads are protected
 		// by the zstd frame itself (a corrupted frame fails to decompress), so no
 		// pre-check is needed.
-		if td.PayloadCompression == PayloadCompressionNone && !payloadHasDecodablePoint(td.PointsPayload) {
-			return false, nil
+		if len(td.PointsPayload) > 0 && td.PayloadCompression == PayloadCompressionNone &&
+			!payloadHasDecodablePoint(td.PointsPayload) {
+			return false, -1, nil
 		}
 
-		if exprs, ok := compilePipelinesFast(pipelines); ok {
-			for idx, expr := range exprs {
-				if expr == nil {
-					continue
-				}
-				if expr(td) {
-					return true, pipelineMatchedPacket(td, pipelines[idx])
-				}
+		for idx, expr := range plan.predicates {
+			if expr == nil {
+				continue
 			}
-			return false, nil
+			if expr(td) {
+				return true, idx, pipelineMatchedPacket(td, plan.pipelines[idx])
+			}
 		}
+		return false, -1, nil
 	}
 
 	ptw := &ptWrap{}
-	matchedPipelines := make([]bool, len(pipelines))
+	matchedPipelines := make([]bool, len(plan.pipelines))
 
 	walkErr := td.WalkRawPBPoints(func(raw []byte) bool {
 		if err := ptw.Reset(raw); err != nil {
@@ -120,7 +164,7 @@ func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *Da
 			return false
 		}
 
-		for idx, pipeline := range pipelines {
+		for idx, pipeline := range plan.pipelines {
 			if matchedPipelines[idx] {
 				continue
 			}
@@ -132,7 +176,7 @@ func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *Da
 	})
 	if walkErr != nil {
 		l.Errorf("walk datapacket payload failed: %v", walkErr)
-		return false, nil
+		return false, -1, nil
 	}
 
 	for idx, matched := range matchedPipelines {
@@ -140,10 +184,10 @@ func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *Da
 			continue
 		}
 
-		return true, pipelineMatchedPacket(td, pipelines[idx])
+		return true, idx, pipelineMatchedPacket(td, plan.pipelines[idx])
 	}
 
-	return false, nil
+	return false, -1, nil
 }
 
 // compilePipelinesFast compiles predicate decisions for all pipelines.
@@ -307,6 +351,8 @@ type TraceTailSampling struct {
 	Version        int64               `toml:"version" json:"version"`
 
 	GroupKey string `toml:"group_key" json:"group_key"` // 链路固定为 "trace_id"
+
+	decisionPlan *compiledDecisionPlan
 }
 
 type TailSamplingConfigs struct {
@@ -440,7 +486,32 @@ func (t *TailSamplingConfigs) Init() error {
 		return fmt.Errorf("%s", strings.Join(errs, "; "))
 	}
 
+	t.compileDecisionPlans()
+
 	return nil
+}
+
+func (t *TailSamplingConfigs) compileDecisionPlans() {
+	if t == nil {
+		return
+	}
+	if t.Tracing != nil {
+		t.Tracing.decisionPlan = newCompiledDecisionPlan(t.Tracing.Pipelines)
+	}
+	if t.Logging != nil {
+		for _, group := range t.Logging.GroupDimensions {
+			if group != nil {
+				group.decisionPlan = newCompiledDecisionPlan(group.Pipelines)
+			}
+		}
+	}
+	if t.RUM != nil {
+		for _, group := range t.RUM.GroupDimensions {
+			if group != nil {
+				group.decisionPlan = newCompiledDecisionPlan(group.Pipelines)
+			}
+		}
+	}
 }
 
 func normalizeSamplingPipelines(pipelines []*SamplingPipeline) []*SamplingPipeline {
@@ -509,6 +580,8 @@ type LoggingGroupDimension struct {
 
 	// 该分组特有的派生指标
 	DerivedMetrics []*DerivedMetric `toml:"derived_metrics" json:"derived_metrics"`
+
+	decisionPlan *compiledDecisionPlan
 }
 
 func (logGroup *LoggingGroupDimension) PickLogging(source string, pts []*point.Point) (map[uint64]*DataPacket, []*point.Point) {
@@ -602,6 +675,7 @@ func applySpanPredicatesWith(packet *DataPacket, get func(string) (any, bool)) {
 	if packet == nil || get == nil {
 		return
 	}
+	packet.PredicateSummaryVersion = CurrentPredicateSummaryVersion
 
 	if v, ok := get("status"); ok {
 		if s, ok := v.(string); ok && s == "error" {
@@ -669,15 +743,27 @@ func applySpanPredicatesWith(packet *DataPacket, get func(string) (any, bool)) {
 // ComputeSpanPredicates backfills span predicates for DataPackets missing the
 // summary. It runs at dataway ingestion for legacy DataKit data (no predicates),
 // so the decision fast path works for any client version and removes the
-// datakit/dataway version coupling. It is a no-op when predicates already exist
-// (non-zero); when the payload is empty or any span fails to decode it returns
-// an error without writing partial predicates (the caller keeps the
-// all-zero → decompressed-walk fallback semantics).
+// datakit/dataway version coupling. Current summaries and unversioned legacy
+// summaries with known values avoid another payload walk. Unknown versions are
+// recomputed. An empty or undecodable payload returns an error without writing
+// partial predicates.
 func ComputeSpanPredicates(packet *DataPacket) error {
-	if packet == nil || packetHasSpanPredicates(packet) {
+	if packet == nil {
 		return nil
 	}
-
+	if len(packet.PointsPayload) == 0 {
+		return ErrPayloadEmpty
+	}
+	if packet.PredicateSummaryVersion == CurrentPredicateSummaryVersion {
+		return nil
+	}
+	// Predicate fields emitted by the previous protocol revision were complete,
+	// but did not carry an explicit version. Mark them without another payload
+	// walk so rolling upgrades keep the existing fast path.
+	if packet.PredicateSummaryVersion == 0 && packetHasLegacySpanPredicateValues(packet) {
+		packet.PredicateSummaryVersion = CurrentPredicateSummaryVersion
+		return nil
+	}
 	payload, err := DecompressPointsPayload(packet.PointsPayload, packet.PayloadCompression)
 	if err != nil {
 		return err
@@ -688,12 +774,14 @@ func ComputeSpanPredicates(packet *DataPacket) error {
 	// fast path.
 	tmp := &DataPacket{}
 	ptw := &ptWrap{}
+	seenPoint := false
 	var decodeErr error
 	walkErr := point.WalkPBPointsPayload(payload, func(raw []byte) bool {
 		if err := ptw.Reset(raw); err != nil {
 			decodeErr = err
 			return false
 		}
+		seenPoint = true
 		applySpanPredicatesWith(tmp, ptw.Get)
 		return true
 	})
@@ -703,6 +791,9 @@ func ComputeSpanPredicates(packet *DataPacket) error {
 	if decodeErr != nil {
 		return decodeErr
 	}
+	if !seenPoint {
+		return nil
+	}
 
 	packet.PredError = tmp.PredError
 	packet.PredHttpError = tmp.PredHttpError
@@ -711,6 +802,7 @@ func ComputeSpanPredicates(packet *DataPacket) error {
 	packet.MaxSpanDurationUs = tmp.MaxSpanDurationUs
 	packet.RootDurationUs = tmp.RootDurationUs
 	packet.MaxNonrootDurationUs = tmp.MaxNonrootDurationUs
+	packet.PredicateSummaryVersion = CurrentPredicateSummaryVersion
 
 	return nil
 }
@@ -743,6 +835,8 @@ type RUMGroupDimension struct {
 	GroupKey       string              `toml:"group_key" json:"group_key"` // session_id, user_id, page_id
 	Pipelines      []*SamplingPipeline `toml:"pipelines" json:"pipelines"`
 	DerivedMetrics []*DerivedMetric    `toml:"derived_metrics" json:"derived_metrics"`
+
+	decisionPlan *compiledDecisionPlan
 }
 
 func (rumGroup *RUMGroupDimension) PickRUM(source string, pts []*point.Point) (map[uint64]*DataPacket, []*point.Point) {

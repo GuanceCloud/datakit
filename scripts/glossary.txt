@@ -285,11 +285,13 @@ LoongSuite
 # 缩写
 ##############################################
 CNCF
+COLLSCAN
 CUDA
 DCGM
 DNAT
 GWLB
 JDBC
+IXSCAN
 LLDP
 NVMe
 OTEL

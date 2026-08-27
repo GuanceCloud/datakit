@@ -29,7 +29,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20260813072822-11feb2994ca1
+# github.com/GuanceCloud/cliutils v1.1.22-0.20260826073647-39604b666ac5
 ## explicit; go 1.25.0
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/aggregate

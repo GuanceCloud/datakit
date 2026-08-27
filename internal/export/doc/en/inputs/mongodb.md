@@ -1,6 +1,6 @@
 ---
 title     : 'MongoDB'
-summary   : 'Collect MongoDB metrics, objects, and logs'
+summary   : 'Collect MongoDB metrics, objects, queries, and logs'
 tags:
   - 'DATABASE'
 __int_icon      : 'icon/mongodb'
@@ -77,6 +77,87 @@ After done with commands above, filling the `user` and `pwd` to DataKit configur
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable MD046 -->
+
+### Database Monitoring {#dbm}
+
+MongoDB Database Monitoring (DBM) contains Query Metrics, Activity, and Slow Operations collection. `dbm.enabled` is the parent switch, and `databases` is the database filter shared by all three collectors. An empty list collects all databases except `admin`.
+
+```toml
+[[inputs.mongodb]]
+  # ... MongoDB connection settings
+
+  [inputs.mongodb.dbm]
+    enabled = true
+    databases = []
+
+  [inputs.mongodb.dbm.query_metrics]
+    enabled = true
+    interval = "60s"
+    limit = 10000
+    query_text_max_bytes = 512
+
+  [inputs.mongodb.dbm.activity]
+    enabled = true
+    interval = "10s"
+
+  [inputs.mongodb.dbm.slow_operations]
+    enabled = false
+    interval = "10s"
+    max_operations = 1000
+```
+
+Query Metrics and Activity are enabled by default when DBM is enabled. Slow Operations is disabled by default and must be enabled explicitly. All three collectors use the first MongoDB server that initializes successfully.
+
+#### Query Metrics {#dbm-queries}
+
+Query Metrics uses `$queryStats` to collect execution counts, durations, and scan statistics grouped by query shape.
+
+##### Prerequisites {#dbm-queries-requirements}
+
+- MongoDB 8.0 or later is required.
+- On self-hosted MongoDB, set `internalQueryStatsRateLimit` to a positive integer. The default value `0` disables Query Stats recording. For example:
+
+```yaml
+setParameter:
+  internalQueryStatsRateLimit: 100
+```
+
+The parameter can also be changed dynamically with `setParameter`. A value of `-1` removes the recording rate limit.
+
+##### Configuration {#dbm-queries-config}
+
+- `enabled`: Query Metrics is enabled by default when DBM is enabled. Set it to `false` to disable Query Metrics independently.
+- `interval`: Collection interval. The default is `60s`.
+- `limit`: Maximum number of Query Stats entries processed per collection interval. The default is `10000`.
+- `query_text_max_bytes`: Maximum number of obfuscated query bytes stored in the `query_text` tag. The default is `512` and the maximum is `1024`. Truncation preserves complete UTF-8 characters and sets `query_truncated` to `true`.
+
+The first collection establishes the delta baseline. Later collections report:
+
+- `mongodb_dbm_metric`: Cumulative values and per-interval deltas prefixed with `delta_`.
+- `db_query`: Obfuscated query commands, reported at most once every 24 hours for each `query_signature`.
+
+#### Activity {#dbm-activity}
+
+Activity uses `$currentOp` to collect currently running operations.
+
+- `enabled`: Activity is enabled by default when DBM is enabled. Set it to `false` to disable Activity independently.
+- `interval`: Collection interval. The default is `10s`.
+
+Each visible operation produces an obfuscated `mongodb_dbm_activity` log. The same snapshot also produces `mongodb_dbm_operation` metrics: `active_operation_count` counts active operations and `waiting_for_lock_count` counts operations waiting for a lock. These metrics do not represent all MongoDB connections.
+
+#### Slow Operations {#dbm-slow-operations}
+
+Slow Operations incrementally collects completed slow operations from each database's `system.profile` collection. Enable the MongoDB Profiler in each monitored database, for example:
+
+```javascript
+db.setProfilingLevel(1, { slowms: 100 })
+```
+
+- `enabled`: Disabled by default. Enable it explicitly together with `dbm.enabled`.
+- `interval`: Collection interval. The default is `10s`.
+- `max_operations`: Maximum number of slow operations reported per collection interval. The default is `1000`.
+
+Each slow operation produces one `mongodb_dbm_slow_query` log. The log timestamp comes from `system.profile.ts`, the complete obfuscated command is stored in the `message` field, and tags such as `operation`, `command_type`, and `plan_summary` can be used to aggregate operation counts and durations.
 
 ### TLS config (self-signed) {#tls}
 
@@ -215,11 +296,10 @@ For all of the following data collections, the global election tags will added a
 {{$m.Desc}}
 
 {{$m.MarkdownTable}}
-{{end}}
 
-{{ end }}
+{{if eq $m.Name "database"}}
 
-### `message` Metric Field Structure {#message-struct}
+#### `message` Metric Field Structure {#message-struct}
 
 The `message` field contains MongoDB startup/configuration settings collected from the `parsed` section of the `getCmdLineOpts` admin command. It does not include command-line `argv`, connection counters, or database statistics. The exact keys depend on the MongoDB startup options and configuration file. Its basic structure is as follows:
 
@@ -242,7 +322,27 @@ The `message` field contains MongoDB startup/configuration settings collected fr
 }
 ```
 
-## Mongod Log Collection {#logging}
+{{end}}
+{{end}}
+
+{{ end }}
+
+## Logging {#logging}
+
+The following DBM Activity measurement is collected as logs:
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+{{ end }}
+
+### Mongod Log Collection {#mongod-logging}
 
 Annotate the configuration file `# enable_mongod_log = false` and change `false` to `true`. Other configuration options for mongod log are in `[inputs.mongodb.log]`, and the commented configuration is very default. If the path correspondence is correct, no configuration is needed. After starting DataKit, you will see a collection measurement named `mongod_log`.
 

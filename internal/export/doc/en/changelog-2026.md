@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.11.0(2026/08/27) {#cl-2.11.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.11.0-new}
+
+- Added the Windows `winnetflow` collector, which uses ETW to collect process-level TCP/UDP network-flow metrics and HTTP.sys request metrics (#3190)
+- The MongoDB collector now provides Database Monitoring (DBM) with Query Metrics, Activity, and Slow Operations, plus database filtering, command obfuscation, and configurable collection limits (#3201)
+
+### Bug Fixes {#cl-2.11.0-fix}
+
+- Fixed compressed tail-sampling payloads being split before decompression and split payloads losing predicate summaries; this is compatible with DataWay 1.19.0 (!4147)
+
+### Improvements {#cl-2.11.0-opt}
+
+- Reordered Pipeline and Aggregator processing so metric pre-aggregation and tail sampling consume Pipeline-processed data; points dropped by Pipeline or filters no longer enter the aggregation path (#3202)
+
+---
+
 ## 2.10.0(2026/08/19) {#cl-2.10.0}
 
 This release is an iterative release, with the following main updates:

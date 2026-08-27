@@ -86,6 +86,7 @@ var (
 		datakit.Aggregate,
 		datakit.TailSamplingConfig,
 		datakit.TailSampling,
+		datakit.TailSamplingV2,
 	}
 
 	AvailableDataways          = []string{}

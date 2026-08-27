@@ -227,7 +227,7 @@ func TestProcessTracingConsumed(t *testing.T) {
 		switch r.URL.Path {
 		case datakit.Aggregate:
 			atomic.AddInt32(&metricReqs, 1)
-		case datakit.TailSampling:
+		case datakit.TailSampling, datakit.TailSamplingV2:
 			atomic.AddInt32(&tsReqs, 1)
 		}
 		w.WriteHeader(http.StatusOK)
@@ -268,7 +268,7 @@ func TestProcessTracingOnlySinksMetricAggregate(t *testing.T) {
 			mu.Lock()
 			metricHeaders = append(metricHeaders, r.Header.Get(dataway.HeaderXGlobalTags))
 			mu.Unlock()
-		case datakit.TailSampling:
+		case datakit.TailSampling, datakit.TailSamplingV2:
 			mu.Lock()
 			tsHeaders = append(tsHeaders, r.Header.Get(dataway.HeaderXGlobalTags))
 			mu.Unlock()
@@ -352,7 +352,7 @@ func TestProcessLoggingReturnsPassthrough(t *testing.T) {
 		switch r.URL.Path {
 		case datakit.Aggregate:
 			atomic.AddInt32(&metricReqs, 1)
-		case datakit.TailSampling:
+		case datakit.TailSampling, datakit.TailSamplingV2:
 			atomic.AddInt32(&tsReqs, 1)
 		}
 		w.WriteHeader(http.StatusOK)
@@ -384,7 +384,7 @@ func TestProcessLoggingReturnsPassthrough(t *testing.T) {
 func TestProcessRUMReturnsPassthrough(t *testing.T) {
 	var tsReqs int32
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == datakit.TailSampling {
+		if r.URL.Path == datakit.TailSampling || r.URL.Path == datakit.TailSamplingV2 {
 			atomic.AddInt32(&tsReqs, 1)
 		}
 		w.WriteHeader(http.StatusOK)
@@ -415,7 +415,7 @@ func TestSendTailSamplingPackagesSplit(t *testing.T) {
 		reqLens []int
 	)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != datakit.TailSampling {
+		if r.URL.Path != datakit.TailSampling && r.URL.Path != datakit.TailSamplingV2 {
 			w.WriteHeader(http.StatusOK)
 			return
 		}

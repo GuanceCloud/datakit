@@ -1,6 +1,6 @@
 ---
 title     : 'MongoDB'
-summary   : '采集 MongoDB 的指标、对象和日志数据'
+summary   : '采集 MongoDB 的指标、对象、查询和日志数据'
 tags:
   - '数据库'
 __int_icon      : 'icon/mongodb'
@@ -77,6 +77,87 @@ $ mongo
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable MD046 -->
+
+### 数据库监控 {#dbm}
+
+MongoDB 数据库监控（DBM）包含 Query Metrics、Activity 和 Slow Operations。`dbm.enabled` 是总开关，`databases` 是三类采集共用的数据库过滤配置；空列表表示采集除 `admin` 外的所有数据库。
+
+```toml
+[[inputs.mongodb]]
+  # ... MongoDB 连接配置
+
+  [inputs.mongodb.dbm]
+    enabled = true
+    databases = []
+
+  [inputs.mongodb.dbm.query_metrics]
+    enabled = true
+    interval = "60s"
+    limit = 10000
+    query_text_max_bytes = 512
+
+  [inputs.mongodb.dbm.activity]
+    enabled = true
+    interval = "10s"
+
+  [inputs.mongodb.dbm.slow_operations]
+    enabled = false
+    interval = "10s"
+    max_operations = 1000
+```
+
+Query Metrics 和 Activity 在开启 DBM 后默认启用；Slow Operations 默认关闭，需要单独开启。三类采集均使用 MongoDB 配置中第一个成功初始化的 server。
+
+#### Query Metrics {#dbm-queries}
+
+Query Metrics 通过 `$queryStats` 采集按查询形态聚合的执行次数、耗时和扫描量。
+
+##### 前置条件 {#dbm-queries-requirements}
+
+- MongoDB 需要 8.0 及以上版本。
+- 自建 MongoDB 需要将 `internalQueryStatsRateLimit` 设置为正整数；默认值 `0` 不记录 Query Stats。例如：
+
+```yaml
+setParameter:
+  internalQueryStatsRateLimit: 100
+```
+
+也可以通过 `setParameter` 动态修改；`-1` 表示不限制记录速率。
+
+##### 配置 {#dbm-queries-config}
+
+- `enabled`：开启 DBM 后 Query Metrics 默认启用，可设置为 `false` 单独关闭。
+- `interval`：采集周期，默认 `60s`。
+- `limit`：每个采集周期最多处理的 Query Stats 条目数，默认 `10000`。
+- `query_text_max_bytes`：`query_text` tag 保存的脱敏查询文本最大字节数，默认 `512`，最大 `1024`。截断时保证 UTF-8 字符完整，并将 `query_truncated` 标记为 `true`。
+
+首次采集用于建立增量基线，后续采集会上报：
+
+- `mongodb_dbm_metric`：累计值以及以 `delta_` 开头的周期增量。
+- `db_query`：脱敏后的查询命令，同一 `query_signature` 每 24 小时最多上报一次。
+
+#### Activity {#dbm-activity}
+
+Activity 通过 `$currentOp` 采集当前正在执行的操作。
+
+- `enabled`：开启 DBM 后 Activity 默认启用，可设置为 `false` 单独关闭 Activity。
+- `interval`：采集周期，默认 `10s`。
+
+每个可见操作生成一条脱敏后的 `mongodb_dbm_activity` 日志；同时聚合生成 `mongodb_dbm_operation` 指标，其中 `active_operation_count` 表示活跃操作数，`waiting_for_lock_count` 表示等待锁的操作数。该指标不表示 MongoDB 的全部连接数。
+
+#### Slow Operations {#dbm-slow-operations}
+
+Slow Operations 从各数据库的 `system.profile` 集合增量采集已完成的慢操作。需要在要监控的数据库中启用 MongoDB Profiler，例如：
+
+```javascript
+db.setProfilingLevel(1, { slowms: 100 })
+```
+
+- `enabled`：默认关闭，需要同时开启 `dbm.enabled` 后显式启用。
+- `interval`：采集周期，默认 `10s`。
+- `max_operations`：每个采集周期最多上报的慢操作数，默认 `1000`。
+
+每条慢操作生成一条 `mongodb_dbm_slow_query` 日志。日志时间取自 `system.profile.ts`，完整脱敏命令保存在 `message` 字段中；`operation`、`command_type` 和 `plan_summary` 等标签可用于聚合慢操作数量和执行耗时。
 
 ### TLS 配置 (self-signed) {#tls}
 
@@ -218,11 +299,10 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 {{$m.Desc}}
 
 {{$m.MarkdownTable}}
-{{end}}
 
-{{ end }}
+{{if eq $m.Name "database"}}
 
-### `message` 指标字段结构 {#message-struct}
+#### `message` 指标字段结构 {#message-struct}
 
 `message` 字段存放 MongoDB 启动/配置相关设置，数据来自 `getCmdLineOpts` admin 命令返回结果中的 `parsed` 部分。该字段不会包含命令行 `argv`、连接数或数据库统计信息。实际包含的 key 取决于 MongoDB 启动参数和配置文件。基本结构如下：
 
@@ -245,7 +325,27 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 }
 ```
 
-## 日志采集 {#logging}
+{{end}}
+{{end}}
+
+{{ end }}
+
+## 日志 {#logging}
+
+以下 DBM Activity 指标集以日志形式采集：
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
+### `{{$m.Name}}`
+
+{{$m.DescZh}}
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+{{ end }}
+
+### Mongod 日志采集 {#mongod-logging}
 
 去注释配置文件中 `# enable_mongod_log = false` 然后将 `false` 改为 `true`，其他关于 mongod log 配置选项在 `[inputs.mongodb.log]` 中，注释掉的配置极为默认配置，如果路径对应正确将无需任何配置启动 DataKit 后将会看到指标名为 `mongod_log` 的采集指标集。
 

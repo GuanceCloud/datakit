@@ -96,6 +96,7 @@ const (
 	EnvVariable        = "/v1/env_variable"
 	Aggregate          = "/v1/aggregate"
 	TailSampling       = "/v1/tail_sampling"
+	TailSamplingV2     = "/v2/tail_sampling"
 	TailSamplingConfig = "/v1/tail_sampling_config"
 
 	StrGitRepos           = "gitrepos"

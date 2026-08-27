@@ -44,7 +44,7 @@ func (svr *MongodbServer) getDefaultTags() map[string]string {
 	return tags
 }
 
-func (svr *MongodbServer) initDatabaseInstance() {
+func (svr *MongodbServer) initDatabaseInstance(ctx context.Context) {
 	if databaseInstance := strings.TrimSpace(svr.ipt.Tags["database_instance"]); databaseInstance != "" {
 		svr.databaseInstance = databaseInstance
 	} else {
@@ -56,7 +56,7 @@ func (svr *MongodbServer) initDatabaseInstance() {
 			Host string `bson:"host"`
 		}
 
-		rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"serverStatus": 1})
+		rslt := svr.cli.Database("admin").RunCommand(ctx, bson.M{"serverStatus": 1})
 		if err := rslt.Err(); err != nil {
 			log.Warnf("failed to get mongodb serverStatus for database_instance: %s", err.Error())
 			return

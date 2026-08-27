@@ -60,6 +60,7 @@ func (ag *Aggregator) newCustomEndpoint(rawURL string) (*endpoint.EndPoint, erro
 	apis := []string{
 		datakit.Aggregate,
 		datakit.TailSampling,
+		datakit.TailSamplingV2,
 		datakit.TailSamplingConfig,
 	}
 
@@ -93,6 +94,9 @@ func (ag *Aggregator) newCustomEndpoint(rawURL string) (*endpoint.EndPoint, erro
 
 func (ag *Aggregator) initHTTP() {
 	ag.eps = ag.eps[:0]
+	ag.tsProtocolMu.Lock()
+	ag.tsLegacyUntil = nil
+	ag.tsProtocolMu.Unlock()
 
 	if len(ag.Endpoints) > 0 {
 		for _, rawURL := range ag.Endpoints {

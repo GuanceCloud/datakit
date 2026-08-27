@@ -24,9 +24,10 @@ import (
 )
 
 const (
-	maxAsyncSendWorkers = 8
-	maxPooledBodySize   = 8 * dataway.DefaultMaxRawBodySize
-	pbPointsArrayTag    = byte(1<<3 | 2)
+	maxAsyncSendWorkers           = 8
+	maxPooledBodySize             = 8 * dataway.DefaultMaxRawBodySize
+	pbPointsArrayTag              = byte(1<<3 | 2)
+	tailSamplingLegacyProtocolTTL = 10 * time.Minute
 
 	aggregatePayloadContentType = "application/x-protobuf"
 	identityContentEncoding     = "identity"
@@ -221,6 +222,32 @@ func (ag *Aggregator) sendTailSamplingPackageContext(ctx context.Context,
 	}
 	defer putMarshalBody(body)
 
+	var rawBody *pooledMarshalBody
+	defer func() {
+		if rawBody != nil {
+			putMarshalBody(rawBody)
+		}
+	}()
+	getRawBody := func() (*pooledMarshalBody, error) {
+		if pkg.PayloadCompression == aggregate.PayloadCompressionNone {
+			return body, nil
+		}
+		if rawBody != nil {
+			return rawBody, nil
+		}
+
+		rawPacket := *pkg
+		if err := aggregate.SetDataPacketPayloadCompression(&rawPacket, aggregate.PayloadCompressionNone); err != nil {
+			return nil, err
+		}
+		marshaled, marshalErr := marshalDataPacketWithPool(&rawPacket)
+		if marshalErr != nil {
+			return nil, marshalErr
+		}
+		rawBody = marshaled
+		return rawBody, nil
+	}
+
 	eps := ag.endpointsForPickKey(pickKey)
 	if len(eps) == 0 {
 		err := fmt.Errorf("tail sampling endpoint is empty")
@@ -239,20 +266,34 @@ func (ag *Aggregator) sendTailSamplingPackageContext(ctx context.Context,
 		}
 		attempted = true
 
-		resp, _, err := ep.WriteAggrData(&endpoint.AggrData{
-			Context:         ctx,
-			API:             datakit.TailSampling,
-			Category:        category,
-			ContentType:     aggregatePayloadContentType,
-			ContentEncoding: identityContentEncoding,
-			Body:            body.buf,
-			RawLen:          len(body.buf),
-			Points:          pointsCount,
-			Headers: map[string]string{
-				aggregate.GuancePickKey: strconv.FormatUint(pickKey, 10),
-				payloadSizeHeader:       strconv.Itoa(len(body.buf)),
-			},
-		})
+		var resp *http.Response
+		if pkg.PayloadCompression == aggregate.PayloadCompressionZstd && !ag.tailSamplingUsesLegacyProtocol(ep, time.Now()) {
+			resp, err = writeTailSamplingPacket(ctx, ep, datakit.TailSamplingV2, category,
+				pickKey, pointsCount, body, aggregate.TailSamplingPayloadCompressionZstd)
+			if resp != nil && (resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusUnsupportedMediaType) {
+				fallbackBody, fallbackErr := getRawBody()
+				if fallbackErr != nil {
+					err = fallbackErr
+					resp = nil
+				} else {
+					ag.markTailSamplingLegacyProtocol(ep, time.Now())
+					log.Infof("tail sampling endpoint does not support zstd payloads, retry with legacy protocol: endpoint=%s status=%d",
+						ep.Host, resp.StatusCode)
+					resp, err = writeTailSamplingPacket(ctx, ep, datakit.TailSampling, category,
+						pickKey, pointsCount, fallbackBody, "")
+				}
+			} else if resp != nil && (resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPreconditionFailed) {
+				ag.markTailSamplingZstdProtocol(ep)
+			}
+		} else {
+			legacyBody, legacyErr := getRawBody()
+			if legacyErr != nil {
+				err = legacyErr
+			} else {
+				resp, err = writeTailSamplingPacket(ctx, ep, datakit.TailSampling, category,
+					pickKey, pointsCount, legacyBody, "")
+			}
+		}
 		if resp == nil {
 			if err != nil {
 				log.Errorf("send tail sampling package failed: %v", err)
@@ -303,6 +344,65 @@ func (ag *Aggregator) sendTailSamplingPackageContext(ctx context.Context,
 	}
 
 	return firstErr
+}
+
+func writeTailSamplingPacket(ctx context.Context, ep *endpoint.EndPoint, api, category string,
+	pickKey uint64, pointsCount int, body *pooledMarshalBody, payloadCompression string,
+) (*http.Response, error) {
+	if body == nil {
+		return nil, fmt.Errorf("tail sampling request body is nil")
+	}
+
+	headers := map[string]string{
+		aggregate.GuancePickKey: strconv.FormatUint(pickKey, 10),
+		payloadSizeHeader:       strconv.Itoa(len(body.buf)),
+	}
+	if payloadCompression != "" {
+		headers[aggregate.TailSamplingPayloadCompressionHeader] = payloadCompression
+	}
+
+	resp, _, err := ep.WriteAggrData(&endpoint.AggrData{
+		Context:         ctx,
+		API:             api,
+		Category:        category,
+		ContentType:     aggregatePayloadContentType,
+		ContentEncoding: identityContentEncoding,
+		Body:            body.buf,
+		RawLen:          len(body.buf),
+		Points:          pointsCount,
+		Headers:         headers,
+	})
+	return resp, err
+}
+
+func (ag *Aggregator) tailSamplingUsesLegacyProtocol(ep *endpoint.EndPoint, now time.Time) bool {
+	ag.tsProtocolMu.Lock()
+	defer ag.tsProtocolMu.Unlock()
+
+	until, ok := ag.tsLegacyUntil[ep]
+	if !ok {
+		return false
+	}
+	if now.Before(until) {
+		return true
+	}
+	delete(ag.tsLegacyUntil, ep)
+	return false
+}
+
+func (ag *Aggregator) markTailSamplingLegacyProtocol(ep *endpoint.EndPoint, now time.Time) {
+	ag.tsProtocolMu.Lock()
+	defer ag.tsProtocolMu.Unlock()
+	if ag.tsLegacyUntil == nil {
+		ag.tsLegacyUntil = make(map[*endpoint.EndPoint]time.Time)
+	}
+	ag.tsLegacyUntil[ep] = now.Add(tailSamplingLegacyProtocolTTL)
+}
+
+func (ag *Aggregator) markTailSamplingZstdProtocol(ep *endpoint.EndPoint) {
+	ag.tsProtocolMu.Lock()
+	delete(ag.tsLegacyUntil, ep)
+	ag.tsProtocolMu.Unlock()
 }
 
 func (ag *Aggregator) SendMetricBatches(category string, batchMap map[uint64]*aggregate.Batchs) error {
@@ -577,8 +677,28 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 		}
 		return 1, nil
 	}
+	emitPart := func(part *aggregate.DataPacket) error {
+		if pkg.PayloadCompression == aggregate.PayloadCompressionZstd {
+			compressed, compression, err := aggregate.CompressPointsPayload(part.PointsPayload)
+			if err != nil {
+				return fmt.Errorf("compress split tail sampling payload: %w", err)
+			}
+			part.PointsPayload = compressed
+			part.PayloadCompression = compression
+		}
+		return emit(part)
+	}
 
-	if maxRawBodySize <= 0 || pkg.Size() <= maxRawBodySize || pkg.PointCount <= 1 {
+	if maxRawBodySize <= 0 || pkg.PointCount <= 1 {
+		return emitOriginal()
+	}
+	exceedsRawBodySize, sizeErr := dataPacketExceedsRawBodySize(pkg, maxRawBodySize)
+	if sizeErr != nil {
+		log.Warnf("inspect tail sampling decoded payload size failed: group_id=%s err=%v",
+			pkg.RawGroupId, sizeErr)
+		return emitOriginal()
+	}
+	if !exceedsRawBodySize {
 		return emitOriginal()
 	}
 
@@ -655,7 +775,7 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 		candidateSize := dataPacketPartSize(baseSize, len(part.PointsPayload)+pointSize,
 			int(part.PointCount)+1, maxPointTime)
 		if part.PointCount > 0 && candidateSize > maxRawBodySize {
-			if err := emit(part); err != nil {
+			if err := emitPart(part); err != nil {
 				emitErr = err
 				return false
 			}
@@ -674,7 +794,7 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 		if part.PointCount == 1 && candidateSize > maxRawBodySize {
 			log.Warnf("single tail sampling point exceeds max body size: size=%d limit=%d group_id=%s",
 				candidateSize, maxRawBodySize, pkg.RawGroupId)
-			if err := emit(part); err != nil {
+			if err := emitPart(part); err != nil {
 				emitErr = err
 				return false
 			}
@@ -691,7 +811,7 @@ func walkDataPacketPartsBySize(ctx context.Context, pkg *aggregate.DataPacket, m
 	}
 
 	if part.PointCount > 0 {
-		if err := emit(part); err != nil {
+		if err := emitPart(part); err != nil {
 			return emitted, err
 		}
 		emitted++
@@ -748,6 +868,33 @@ func dataPacketPartSize(baseSize, pointsPayloadSize, pointCount int, maxPointTim
 		size += 1 + uvarintSize(uint64(maxPointTimeUnixNano))
 	}
 	return size
+}
+
+func dataPacketExceedsRawBodySize(pkg *aggregate.DataPacket, maxRawBodySize int) (bool, error) {
+	if pkg == nil || maxRawBodySize <= 0 {
+		return false, nil
+	}
+	if pkg.Size() > maxRawBodySize {
+		return true, nil
+	}
+	if pkg.PayloadCompression != aggregate.PayloadCompressionZstd {
+		return false, nil
+	}
+
+	decodedBytes, err := aggregate.PointsPayloadDecodedSize(pkg.PointsPayload, pkg.PayloadCompression)
+	if err != nil {
+		return false, err
+	}
+	if decodedBytes > int64(maxRawBodySize) {
+		return true, nil
+	}
+
+	base := cloneDataPacketMeta(pkg)
+	base.PointsPayload = nil
+	base.PointCount = 0
+	base.MaxPointTimeUnixNano = 0
+	rawSize := dataPacketPartSize(base.Size(), int(decodedBytes), int(pkg.PointCount), pkg.MaxPointTimeUnixNano)
+	return rawSize > maxRawBodySize, nil
 }
 
 func splitBatchsBySize(batch *aggregate.Batchs, maxRawBodySize int) []*aggregate.Batchs {
@@ -820,26 +967,27 @@ func cloneDataPacketMeta(pkg *aggregate.DataPacket) *aggregate.DataPacket {
 	}
 
 	return &aggregate.DataPacket{
-		GroupIdHash:            pkg.GroupIdHash,
-		RawGroupId:             pkg.RawGroupId,
-		Token:                  pkg.Token,
-		Source:                 pkg.Source,
-		DataType:               pkg.DataType,
-		ConfigVersion:          pkg.ConfigVersion,
-		HasError:               pkg.HasError,
-		GroupKey:               pkg.GroupKey,
-		PointCount:             pkg.PointCount,
-		TraceStartTimeUnixNano: pkg.TraceStartTimeUnixNano,
-		TraceEndTimeUnixNano:   pkg.TraceEndTimeUnixNano,
-		PointsPayload:          pkg.PointsPayload,
-		MaxPointTimeUnixNano:   pkg.MaxPointTimeUnixNano,
-		PredError:              pkg.PredError,
-		PredHttpError:          pkg.PredHttpError,
-		PredBizError:           pkg.PredBizError,
-		PredTraceKeep:          pkg.PredTraceKeep,
-		MaxSpanDurationUs:      pkg.MaxSpanDurationUs,
-		RootDurationUs:         pkg.RootDurationUs,
-		MaxNonrootDurationUs:   pkg.MaxNonrootDurationUs,
+		GroupIdHash:             pkg.GroupIdHash,
+		RawGroupId:              pkg.RawGroupId,
+		Token:                   pkg.Token,
+		Source:                  pkg.Source,
+		DataType:                pkg.DataType,
+		ConfigVersion:           pkg.ConfigVersion,
+		HasError:                pkg.HasError,
+		GroupKey:                pkg.GroupKey,
+		PointCount:              pkg.PointCount,
+		TraceStartTimeUnixNano:  pkg.TraceStartTimeUnixNano,
+		TraceEndTimeUnixNano:    pkg.TraceEndTimeUnixNano,
+		PointsPayload:           pkg.PointsPayload,
+		MaxPointTimeUnixNano:    pkg.MaxPointTimeUnixNano,
+		PredError:               pkg.PredError,
+		PredHttpError:           pkg.PredHttpError,
+		PredBizError:            pkg.PredBizError,
+		PredTraceKeep:           pkg.PredTraceKeep,
+		MaxSpanDurationUs:       pkg.MaxSpanDurationUs,
+		RootDurationUs:          pkg.RootDurationUs,
+		MaxNonrootDurationUs:    pkg.MaxNonrootDurationUs,
+		PredicateSummaryVersion: pkg.PredicateSummaryVersion,
 	}
 }
 

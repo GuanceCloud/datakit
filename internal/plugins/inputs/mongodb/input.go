@@ -35,6 +35,7 @@ var _ inputs.ElectionInput = &Input{}
 var (
 	catalogName          = "db"
 	inputName            = "mongodb"
+	dbmFeedName          = dkio.FeedSource(inputName, "DBM")
 	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 	objectFeedName       = dkio.FeedSource(inputName, "O")
 	sampleConfig         = `
@@ -89,6 +90,34 @@ var (
   # cert_key = "/etc/ssl/certs/mongo.key.pem"
   # insecure_skip_verify = true
   # server_name = ""
+
+  ## Database Monitoring configuration.
+  [inputs.mongodb.dbm]
+    enabled = false
+    ## Databases whose Database Monitoring data are collected.
+    ## Empty means all databases except admin for Query Metrics and Activity.
+    ## Slow Operations auto-discovers at most 100 databases and refreshes the list every 10 minutes.
+    databases = []
+
+  ## Query metrics require MongoDB 8.0 or later.
+  [inputs.mongodb.dbm.query_metrics]
+    enabled = true
+    interval = "60s"
+    ## Maximum number of query statistic entries collected per interval.
+    limit = 10000
+    ## Maximum number of obfuscated query bytes stored in the query_text tag (default: 512, maximum: 1024).
+    query_text_max_bytes = 512
+
+  ## Activity captures currently running operations from the $currentOp aggregation stage.
+  [inputs.mongodb.dbm.activity]
+    enabled = true
+    interval = "10s"
+
+  ## Slow Operations collects completed operations recorded in each database's system.profile collection.
+  [inputs.mongodb.dbm.slow_operations]
+    enabled = false
+    interval = "10s"
+    max_operations = 1000
 
   ## collect mongodb object
   [inputs.mongodb.object]
@@ -155,6 +184,7 @@ type Input struct {
 	GatherPerColStats     bool                   `toml:"gather_per_col_stats"`
 	ColStatsDBs           []string               `toml:"col_stats_dbs"`
 	GatherTopStat         bool                   `toml:"gather_top_stat"`
+	Dbm                   *dbmConfig             `toml:"dbm"`
 	Object                mongodbObject          `toml:"object"`
 	Election              bool                   `toml:"election"`
 
@@ -174,6 +204,9 @@ type Input struct {
 	feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
 
+	queryMetricsState   *queryMetricsState
+	slowOperationsState *slowOperationsState
+
 	UpState int
 }
 
@@ -188,8 +221,13 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&mongodbColMeasurement{},
 		&mongodbShardMeasurement{},
 		&mongodbTopMeasurement{},
+		&mongodbDBMMetricMeasurement{},
+		&mongodbDBMOperationMeasurement{},
+		&mongodbDBMActivityMeasurement{},
+		&mongodbDBMSlowQueryMeasurement{},
 		&customerObjectMeasurement{},
 		&mongodbObjectMeasurement{},
+		&mongodbDBMQueryObjectMeasurement{},
 		&inputs.UpMeasurement{},
 	}
 }
@@ -321,7 +359,9 @@ func (ipt *Input) tryInitServers() {
 			cli:  mgocli,
 			ipt:  ipt,
 		}
-		svr.initDatabaseInstance()
+		ctx, cancel := context.WithTimeout(context.Background(), ipt.Interval.Duration)
+		svr.initDatabaseInstance(ctx)
+		cancel()
 		ipt.mgoSvrs = append(ipt.mgoSvrs, svr)
 	}
 }
@@ -345,12 +385,17 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 	start := ntp.Now()
+	dbmStarted := false
 
 	log.Infof("%s input started", inputName)
 
 	for {
 		if !ipt.pause.Load() {
 			ipt.tryInitServers()
+			if !dbmStarted && len(ipt.mgoSvrs) > 0 {
+				ipt.runDBMCollectors()
+				dbmStarted = true
+			}
 
 			ipt.setUpState()
 
@@ -473,6 +518,24 @@ func defaultInput() *Input {
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
 		Tagger:  datakit.DefaultGlobalTagger(),
+		Dbm: &dbmConfig{
+			Enabled: false,
+			QueryMetrics: &queryMetricsConfig{
+				Enabled:           true,
+				Interval:          datakit.Duration{Duration: defaultQueryMetricsInterval},
+				Limit:             defaultQueryMetricsLimit,
+				QueryTextMaxBytes: defaultQueryTextMaxBytes,
+			},
+			Activity: &activityConfig{
+				Enabled:  true,
+				Interval: datakit.Duration{Duration: defaultActivityInterval},
+			},
+			SlowOperations: &slowOperationsConfig{
+				Enabled:       false,
+				Interval:      datakit.Duration{Duration: defaultSlowOperationsInterval},
+				MaxOperations: defaultSlowOperationsLimit,
+			},
+		},
 		Object: mongodbObject{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: 600 * time.Second},

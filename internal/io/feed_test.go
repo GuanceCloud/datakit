@@ -6,13 +6,23 @@
 package io
 
 import (
+	stdio "io"
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	T "testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/aggregate"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/aggr"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -30,6 +40,88 @@ func (m *mockFeederOutputer) Write(fd *feedData) error {
 func (*mockFeederOutputer) WriteLastError(string, ...metrics.LastErrorOption) {}
 
 func (*mockFeederOutputer) Reader(point.Category) <-chan *feedData { return nil }
+
+func loadPipelineTestScript(t *T.T, namespace string, category point.Category, name, script string) {
+	t.Helper()
+	require.NoError(t, pipeline.InitPipeline(nil, nil, nil, ""))
+
+	manager, ok := plval.GetManager()
+	require.True(t, ok)
+	manager.LoadScripts(namespace,
+		map[point.Category]map[string]string{
+			category: {name: script},
+		}, nil)
+	t.Cleanup(func() {
+		manager.LoadScripts(namespace, map[point.Category]map[string]string{}, nil)
+	})
+}
+
+func startConfiguredTestAggregator(t *T.T, handler http.Handler) *aggr.Aggregator {
+	t.Helper()
+
+	var configReadyOnce sync.Once
+	configReady := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == datakit.TailSamplingConfig {
+			configReadyOnce.Do(func() { close(configReady) })
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if handler != nil {
+			handler.ServeHTTP(w, req)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	aggregator := &aggr.Aggregator{
+		Endpoints:                   []string{server.URL + "?token=test-token"},
+		UseLocalConfig:              true,
+		LocalConfigDir:              "aggr/testdata",
+		LocalMetricConfigFile:       "aggr.toml",
+		LocalTailSamplingConfigFile: "tail-sampling.toml",
+	}
+
+	oldExit := datakit.Exit
+	testExit := cliutils.NewSem()
+	datakit.Exit = testExit
+	aggrDone := make(chan struct{})
+	go func() {
+		aggregator.StartAggr()
+		close(aggrDone)
+	}()
+	t.Cleanup(func() {
+		testExit.Close()
+		select {
+		case <-aggrDone:
+		case <-time.After(3 * time.Second):
+			t.Error("aggregator did not stop")
+		}
+		datakit.Exit = oldExit
+	})
+
+	select {
+	case <-configReady:
+	case <-time.After(3 * time.Second):
+		t.Fatal("tail-sampling config was not loaded")
+	}
+
+	return aggregator
+}
+
+func installTestIO(t *T.T, aggregator *aggr.Aggregator) *mockFeederOutputer {
+	t.Helper()
+
+	oldDefIO := defIO
+	output := &mockFeederOutputer{}
+	defIO = getIO()
+	defIO.foDataway = output
+	defIO.Aggr = aggregator
+	t.Cleanup(func() { defIO = oldDefIO })
+
+	return output
+}
 
 type plcase struct {
 	name string
@@ -142,6 +234,229 @@ func TestRunpl(t *T.T) {
 			}
 		})
 	}
+}
+
+func TestFeedRunsPipelineBeforeLoggingTailSampling(t *T.T) {
+	loadPipelineTestScript(t, constants.NSRemote, point.Logging,
+		"extract-trace-id.p", "add_key('trace_id', 'trace-from-pipeline')")
+
+	packets := make(chan *aggregate.DataPacket, 1)
+	aggregator := startConfiguredTestAggregator(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == datakit.TailSampling || req.URL.Path == datakit.TailSamplingV2 {
+			body, err := stdio.ReadAll(req.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			packet := &aggregate.DataPacket{}
+			if err := packet.Unmarshal(body); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			packets <- packet
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	output := installTestIO(t, aggregator)
+
+	logPoint := point.NewPoint("test_log", point.KVs{}.
+		Add("message", "request completed"), point.DefaultLoggingOptions()...)
+	logPoint.SetTime(time.Now())
+
+	err := DefaultFeeder().Feed(point.Logging, []*point.Point{logPoint},
+		WithSource("logging"),
+		WithPipelineOption(&lang.LogOption{
+			ScriptMap: map[string]string{"test_log": "extract-trace-id.p"},
+		}))
+	require.NoError(t, err)
+
+	var packet *aggregate.DataPacket
+	select {
+	case packet = <-packets:
+	case <-time.After(3 * time.Second):
+		t.Fatal("pipeline-extracted trace_id did not enter tail sampling")
+	}
+
+	assert.Equal(t, "trace_id", packet.GroupKey)
+	assert.Equal(t, "trace-from-pipeline", packet.RawGroupId)
+
+	var tailPoint *point.Point
+	require.NoError(t, packet.WalkRawPBPoints(func(raw []byte) bool {
+		pb := &point.PBPoint{}
+		if err := pb.Unmarshal(raw); err != nil {
+			return false
+		}
+		tailPoint = point.FromPB(pb)
+		return false
+	}))
+	require.NotNil(t, tailPoint)
+	assert.Equal(t, "trace-from-pipeline", tailPoint.Get("trace_id"))
+
+	ordinaryPoints := 0
+	for _, feed := range output.feeds {
+		ordinaryPoints += len(feed.pts)
+	}
+	assert.Zero(t, ordinaryPoints)
+}
+
+func TestFeedRunsMetricAggregationAfterPipeline(t *T.T) {
+	loadPipelineTestScript(t, constants.NSRemote, point.Metric, "normalize-metric.p", `
+set_measurement("otel_service")
+add_key("jvm.buffer.memory.used", 100)
+set_tag("id", "id-1")
+set_tag("service_name", "svc-a")
+`)
+
+	aggregateRequests := make(chan struct{}, 1)
+	aggregator := startConfiguredTestAggregator(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == datakit.Aggregate {
+			aggregateRequests <- struct{}{}
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	installTestIO(t, aggregator)
+
+	metricPoint := point.NewPoint("raw_metric", point.KVs{}.
+		Add("raw_value", 1), point.DefaultMetricOptions()...)
+	metricPoint.SetTime(time.Now())
+
+	err := DefaultFeeder().Feed(point.Metric, []*point.Point{metricPoint},
+		WithSource("metric"),
+		WithPipelineOption(&lang.LogOption{
+			ScriptMap: map[string]string{"raw_metric": "normalize-metric.p"},
+		}))
+	require.NoError(t, err)
+
+	select {
+	case <-aggregateRequests:
+	case <-time.After(3 * time.Second):
+		t.Fatal("pipeline-normalized metric did not enter aggregation")
+	}
+	assert.Equal(t, "otel_service", metricPoint.Name())
+	assert.Equal(t, int64(100), metricPoint.Get("jvm.buffer.memory.used"))
+}
+
+func TestFeedWritesPipelineCreatedPointsWhenTracingIsConsumed(t *T.T) {
+	loadPipelineTestScript(t, constants.NSConfd, point.Tracing, "trace-create-point.p", `
+create_point("pipeline_metric", {"origin": "trace"}, {"value": 1}, 0, "M")
+`)
+
+	tailRequests := make(chan struct{}, 1)
+	aggregator := startConfiguredTestAggregator(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == datakit.TailSampling || req.URL.Path == datakit.TailSamplingV2 {
+			tailRequests <- struct{}{}
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	output := installTestIO(t, aggregator)
+
+	tracePoint := point.NewPoint("opentelemetry", point.KVs{}.
+		Add("trace_id", "trace-1").
+		Add("span_id", "span-1").
+		Add("parent_id", "0").
+		Add("service", "svc-a").
+		Add("resource", "/resource").
+		Add("duration", int64(1000)), point.CommonLoggingOptions()...)
+	tracePoint.SetTime(time.Now())
+
+	err := DefaultFeeder().Feed(point.Tracing, []*point.Point{tracePoint},
+		WithSource("tracing"),
+		WithPipelineOption(&lang.LogOption{
+			ScriptMap: map[string]string{"svc-a": "trace-create-point.p"},
+		}))
+	require.NoError(t, err)
+
+	select {
+	case <-tailRequests:
+	case <-time.After(3 * time.Second):
+		t.Fatal("processed trace did not enter tail sampling")
+	}
+
+	require.Len(t, output.feeds, 1)
+	require.Len(t, output.feeds[0].pts, 1)
+	created := output.feeds[0].pts[0]
+	assert.Equal(t, point.Metric, output.feeds[0].cat)
+	assert.Equal(t, "pipeline_metric", created.Name())
+	assert.Equal(t, int64(1), created.Get("value"))
+	assert.Equal(t, "trace", created.GetTag("origin"))
+}
+
+func TestFeedDoesNotTailSamplePointsDroppedByPipeline(t *T.T) {
+	loadPipelineTestScript(t, constants.NSRemote, point.Logging, "drop-log.p", "drop()")
+
+	tailRequests := make(chan struct{}, 1)
+	aggregator := startConfiguredTestAggregator(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == datakit.TailSampling || req.URL.Path == datakit.TailSamplingV2 {
+			tailRequests <- struct{}{}
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	output := installTestIO(t, aggregator)
+
+	logPoint := point.NewPoint("test_log", point.KVs{}.
+		Add("message", "blacklisted").
+		Add("trace_id", "trace-before-pipeline"), point.DefaultLoggingOptions()...)
+	logPoint.SetTime(time.Now())
+
+	err := DefaultFeeder().Feed(point.Logging, []*point.Point{logPoint},
+		WithSource("logging"),
+		WithPipelineOption(&lang.LogOption{
+			ScriptMap: map[string]string{"test_log": "drop-log.p"},
+		}))
+	require.NoError(t, err)
+
+	select {
+	case <-tailRequests:
+		t.Fatal("pipeline-dropped point entered tail sampling")
+	default:
+	}
+
+	ordinaryPoints := 0
+	for _, feed := range output.feeds {
+		ordinaryPoints += len(feed.pts)
+	}
+	assert.Zero(t, ordinaryPoints)
+}
+
+func TestFeedFallsBackWithProcessedPointsWhenTailSamplingFails(t *T.T) {
+	loadPipelineTestScript(t, constants.NSConfd, point.Logging, "prepare-tail-log.p", `
+add_key("trace_id", "trace-from-pipeline")
+create_point("pipeline_metric", {"origin": "logging"}, {"value": 1}, 0, "M")
+`)
+
+	var tailRequests int32
+	aggregator := startConfiguredTestAggregator(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == datakit.TailSampling || req.URL.Path == datakit.TailSamplingV2 {
+			atomic.AddInt32(&tailRequests, 1)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	output := installTestIO(t, aggregator)
+
+	logPoint := point.NewPoint("test_log", point.KVs{}.
+		Add("message", "request completed"), point.DefaultLoggingOptions()...)
+	logPoint.SetTime(time.Now())
+
+	err := DefaultFeeder().Feed(point.Logging, []*point.Point{logPoint},
+		WithSource("logging"),
+		WithPipelineOption(&lang.LogOption{
+			ScriptMap: map[string]string{"test_log": "prepare-tail-log.p"},
+		}))
+	require.NoError(t, err)
+	require.Greater(t, atomic.LoadInt32(&tailRequests), int32(0))
+
+	categoryPoints := map[point.Category][]*point.Point{}
+	for _, feed := range output.feeds {
+		categoryPoints[feed.cat] = append(categoryPoints[feed.cat], feed.pts...)
+	}
+
+	require.Len(t, categoryPoints[point.Logging], 1)
+	assert.Equal(t, "trace-from-pipeline", categoryPoints[point.Logging][0].Get("trace_id"))
+	require.Len(t, categoryPoints[point.Metric], 1)
+	assert.Equal(t, "pipeline_metric", categoryPoints[point.Metric][0].Name())
 }
 
 func Test_correctPointTime(t *T.T) {

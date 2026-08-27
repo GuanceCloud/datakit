@@ -44,6 +44,9 @@ type Aggregator struct {
 
 	stateMu        sync.RWMutex
 	tsConfigSendMu sync.Mutex
+
+	tsProtocolMu  sync.Mutex
+	tsLegacyUntil map[*endpoint.EndPoint]time.Time
 }
 
 type ProcessResult struct {

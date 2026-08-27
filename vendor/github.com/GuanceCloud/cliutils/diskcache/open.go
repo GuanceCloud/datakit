@@ -202,12 +202,20 @@ func (c *DiskCache) Close() error {
 	if c.closed {
 		return c.closeErr
 	}
+
+	var errs []error
+	// The active write file is intentionally excluded by Open until it is
+	// rotated. Finalize it before closing so data accepted immediately before a
+	// graceful shutdown is visible after the next Open.
+	if c.curBatchSize > 0 {
+		if err := c.rotate(); err != nil {
+			errs = append(errs, WrapCloseError(err, c.path, "rotate_current_batch"))
+		}
+	}
 	c.closed = true
 
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
-
-	var errs []error
 
 	if c.rfd != nil {
 		fd := c.rfd
