@@ -1,0 +1,22 @@
+x0 = seed
+x1 = x0
+x2 = x1
+x3 = x2
+x4 = x3
+x5 = x4
+x6 = x5
+x7 = x6
+x8 = x7
+x9 = x8
+x10 = x9
+x11 = x10
+x12 = x11
+x13 = x12
+x14 = x13
+x15 = x14
+x16 = x15
+x17 = x16
+x18 = x17
+x19 = x18
+x20 = x19
+add_key(result, x20)

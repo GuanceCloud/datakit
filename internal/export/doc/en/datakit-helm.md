@@ -263,6 +263,10 @@ helm install my-datakit datakit-gke/datakit-gke-autopilot \
       # When the election is enabled, it is enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
       enabled_election: true
 
+      # @param election_operator_url - string - optional - default: ""
+      # DataKit Operator URL used only for central election. Empty keeps the existing DataWay/Kodo provider.
+      election_operator_url: ""
+
       # @param log - string
       # Set logging verbosity, valid log levels are:
       # info, debug, stdout, warn, error, critical, and off

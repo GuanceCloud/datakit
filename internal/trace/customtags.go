@@ -14,15 +14,20 @@ import (
 )
 
 type CustomTags struct {
-	lock       sync.RWMutex
-	commonTags map[string]string
-	regs       []*regexp.Regexp
+	lock           sync.RWMutex
+	commonTags     map[string]string
+	configuredTags map[string]string
+	regs           []*regexp.Regexp
 }
 
 func NewCustomTags(configTags []string, publicTags map[string]string) *CustomTags {
+	if publicTags == nil {
+		publicTags = make(map[string]string, len(configTags))
+	}
 	c := &CustomTags{
-		commonTags: publicTags,
-		regs:       make([]*regexp.Regexp, 0),
+		commonTags:     publicTags,
+		configuredTags: make(map[string]string, len(configTags)),
+		regs:           make([]*regexp.Regexp, 0),
 	}
 
 	for _, key := range configTags {
@@ -34,7 +39,9 @@ func NewCustomTags(configTags []string, publicTags map[string]string) *CustomTag
 				c.regs = append(c.regs, re)
 			}
 		} else {
-			c.commonTags[key] = strings.ReplaceAll(key, ".", "_")
+			replaceKey := strings.ReplaceAll(key, ".", "_")
+			c.commonTags[key] = replaceKey
+			c.configuredTags[key] = replaceKey
 		}
 	}
 
@@ -69,6 +76,55 @@ func (c *CustomTags) OTELRegexKey(attrKey string, all bool) string {
 			return strings.ReplaceAll(attrKey, ".", "_")
 		}
 	}
+	return ""
+}
+
+// DDTraceMetricFields promotes DDTrace metrics matched by customer_tags to
+// point fields. Built-in DDTrace tags are intentionally excluded: metrics are
+// promoted only when the user explicitly selects them.
+func (c *CustomTags) DDTraceMetricFields(
+	metrics map[string]float64,
+	kvs point.KVs,
+	reservedKeys ...string,
+) (map[string]float64, point.KVs) {
+	if len(c.configuredTags) == 0 && len(c.regs) == 0 {
+		return metrics, kvs
+	}
+
+	for metricKey, value := range metrics {
+		fieldKey := c.ddTraceMetricKey(metricKey)
+		if fieldKey == "" || kvs.Has(fieldKey) || stringInSlice(fieldKey, reservedKeys) {
+			continue
+		}
+
+		kvs = kvs.Add(fieldKey, value)
+		delete(metrics, metricKey)
+	}
+
+	return metrics, kvs
+}
+
+func stringInSlice(target string, values []string) bool {
+	for _, value := range values {
+		if target == value {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c *CustomTags) ddTraceMetricKey(metricKey string) string {
+	if replaceKey, ok := c.configuredTags[metricKey]; ok {
+		return replaceKey
+	}
+
+	for _, reg := range c.regs {
+		if reg.MatchString(metricKey) {
+			return strings.ReplaceAll(metricKey, ".", "_")
+		}
+	}
+
 	return ""
 }
 

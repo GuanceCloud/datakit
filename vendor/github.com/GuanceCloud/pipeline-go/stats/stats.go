@@ -7,6 +7,7 @@
 package stats
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -33,12 +34,25 @@ const (
 var (
 	l = logger.DefaultSLogger("pl-stats")
 
-	_plstats Stats
-	_        Stats = (*RecStats)(nil)
+	statsState atomic.Pointer[statsHolder]
+	_          Stats = (*RecStats)(nil)
 )
 
+type statsHolder struct{ value Stats }
+
 func SetStats(st Stats) {
-	_plstats = st
+	if st == nil {
+		statsState.Store(nil)
+		return
+	}
+	statsState.Store(&statsHolder{value: st})
+}
+
+func currentStats() Stats {
+	if holder := statsState.Load(); holder != nil {
+		return holder.value
+	}
+	return nil
 }
 
 func InitLog() {
@@ -104,22 +118,25 @@ func (stats *RecStats) ReadEvents(events []*ChangeEvent) []*ChangeEvent {
 }
 
 func WriteEvent(event *ChangeEvent, tags map[string]string) {
-	if _plstats == nil {
+	stats := currentStats()
+	if stats == nil {
 		return
 	}
-	_plstats.WriteEvent(event, tags)
+	stats.WriteEvent(event, tags)
 }
 
 func WriteUpdateTime(tags map[string]string) {
-	if _plstats == nil {
+	stats := currentStats()
+	if stats == nil {
 		return
 	}
-	_plstats.WriteUpdateTime(tags)
+	stats.WriteUpdateTime(tags)
 }
 
 func WriteMetric(tags map[string]string, pt, ptDrop, ptError float64, cost time.Duration) {
-	if _plstats == nil {
+	stats := currentStats()
+	if stats == nil {
 		return
 	}
-	_plstats.WriteMetric(tags, pt, ptDrop, ptError, cost)
+	stats.WriteMetric(tags, pt, ptDrop, ptError, cost)
 }

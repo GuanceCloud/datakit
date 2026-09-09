@@ -8,6 +8,7 @@ package goroutine
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +20,23 @@ import (
 
 func TaskOk(ctx context.Context) error {
 	return nil
+}
+
+func TestNewGroupsConcurrent(t *testing.T) {
+	var wg sync.WaitGroup
+	errors := make(chan error, 32)
+	for range 32 {
+		wg.Go(func() {
+			g := NewGroup(Option{Name: "concurrent-construction"})
+			g.Go(TaskOk)
+			errors <- g.Wait()
+		})
+	}
+	wg.Wait()
+	close(errors)
+	for err := range errors {
+		require.NoError(t, err)
+	}
 }
 
 func TestNormal(t *testing.T) {

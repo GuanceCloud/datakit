@@ -14,7 +14,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	apiappsv1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
@@ -36,56 +35,32 @@ func init() {
 }
 
 type deployment struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newDeployment(client k8sClient, cfg *Config) resource {
-	return &deployment{client: client, cfg: cfg, counter: make(map[string]int)}
+func newDeployment(_ k8sClient, cfg *Config) resource {
+	return &deployment{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (d *deployment) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := d.client.GetDeployments(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := d.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apiappsv1.Deployment](ctx, d.cfg, "deployment", func(items []apiappsv1.Deployment) {
+		pts := d.buildMetricPoints(&apiappsv1.DeploymentList{Items: items}, timestamp)
 		feedMetric("k8s-deployment-metric", d.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(d.cfg, "deployment", d.counter, timestamp)
 }
 
 func (d *deployment) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := d.client.GetDeployments(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := d.buildObjectPoints(list)
+	cachedBatches[apiappsv1.Deployment](ctx, d.cfg, "deployment", func(items []apiappsv1.Deployment) {
+		pts := d.buildObjectPoints(&apiappsv1.DeploymentList{Items: items})
 		feedObject("k8s-deployment-object", d.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
 
-func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Apps().V1().Deployments()
+func (d *deployment) addChangeHandler(informer cache.SharedIndexInformer) {
 	if informer == nil {
 		klog.Warn("cannot get deployment informer")
 		return
@@ -94,10 +69,10 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 	addFunc := func(newObj interface{}) {
 		obj, ok := newObj.(*apiappsv1.Deployment)
 		if !ok {
-			klog.Warnf("converting to Deployment object failed, %v", newObj)
+			klog.Warnf("converting to Deployment object failed, %T", newObj)
 			return
 		}
-		if obj.CreationTimestamp.After(controllerStartTime) {
+		if obj.CreationTimestamp.After(d.cfg.resourceCache.startedAt) {
 			diffs := createNoChangedFieldDiffs(changes.DeploymentCreate, obj.Namespace, deploymentType, obj.Name)
 			objectChangeCountVec.WithLabelValues(deploymentType, "create").Inc()
 			processChange(d.cfg, deploymentObjectClass, deploymentObjectResourceKey, diffs, obj)
@@ -107,7 +82,7 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 	deleteFunc := func(oldObj interface{}) {
 		obj, ok := oldObj.(*apiappsv1.Deployment)
 		if !ok {
-			klog.Warnf("converting to Deployment object failed, %v", oldObj)
+			klog.Warnf("converting to Deployment object failed, %T", oldObj)
 			return
 		}
 
@@ -121,13 +96,13 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 
 		oldDeploymentObj, ok := oldObj.(*apiappsv1.Deployment)
 		if !ok {
-			klog.Warnf("converting to Deployment object failed, %v", oldObj)
+			klog.Warnf("converting to Deployment object failed, %T", oldObj)
 			return
 		}
 
 		newDeploymentObj, ok := newObj.(*apiappsv1.Deployment)
 		if !ok {
-			klog.Warnf("converting to Deployment object failed, %v", newObj)
+			klog.Warnf("converting to Deployment object failed, %T", newObj)
 			return
 		}
 
@@ -138,7 +113,7 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 		}
 	}
 
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	informer.AddEventHandler(d.cfg.resourceCache.changeHandler("deployment", cache.ResourceEventHandlerFuncs{
 		AddFunc: func(newObj interface{}) {
 			addFunc(newObj)
 		},
@@ -148,7 +123,7 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			updateFunc(oldObj, newObj)
 		},
-	})
+	}))
 }
 
 func (d *deployment) buildMetricPoints(list *apiappsv1.DeploymentList, timestamp int64) []*point.Point {

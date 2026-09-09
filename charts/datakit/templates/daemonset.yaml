@@ -83,6 +83,10 @@ spec:
               value: {{ .Values.datakit.default_enabled_inputs }}
             - name: ENV_ENABLE_ELECTION
               value: {{ .Values.datakit.enabled_election | quote }}
+            {{- with .Values.datakit.election_operator_url }}
+            - name: ENV_ELECTION_OPERATOR_URL
+              value: {{ . | quote }}
+            {{- end }}
             - name: ENV_LOG_LEVEL
               value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN

@@ -6,6 +6,7 @@
 package io
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -24,7 +25,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 var (
@@ -77,6 +77,7 @@ func putFeedData(fd *feedData) {
 	fd.cat = point.UnknownCategory
 	fd.postTimeout = 0
 	fd.plOption = nil
+	fd.pipelineContext = nil
 	fd.otelAggr = false
 	fd.election = false
 	fd.pts = nil
@@ -115,8 +116,9 @@ type feedData struct {
 	measurement,
 	version string
 
-	cat      point.Category
-	plOption *lang.LogOption
+	cat             point.Category
+	plOption        *lang.LogOption
+	pipelineContext context.Context
 
 	otelAggr,
 	noGlobalTags,
@@ -175,6 +177,13 @@ func WithPostTimeout(du time.Duration) FeedOption {
 
 func WithPipelineOption(po *lang.LogOption) FeedOption {
 	return func(fd *feedData) { fd.plOption = po }
+}
+
+// WithPipelineContext limits script execution, not delivery of already accepted
+// points. For queued feeds the context must live until the worker runs; do not
+// use a request context that is canceled immediately after enqueueing.
+func WithPipelineContext(ctx context.Context) FeedOption {
+	return func(fd *feedData) { fd.pipelineContext = ctx }
 }
 
 func WithInputVersion(v string) FeedOption { return func(fd *feedData) { fd.version = v } }
@@ -348,18 +357,23 @@ func (x *dkIO) beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*
 
 	after := opt.pts
 
-	if result, err := pipeline.RunPl(opt.cat, opt.pts, plopt); err != nil {
-		log.Warnf("pipeline.RunPl: %s, ignored", err)
-	} else {
+	ctx := opt.pipelineContext
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	result, err := pipeline.RunPlContext(ctx, opt.cat, opt.pts, plopt)
+	if err != nil {
+		log.Warnf("pipeline.RunPlContext: %s; retaining available results without replay", err)
+	}
+	if result != nil {
+		defer result.Release()
 		offloadCount = len(result.PtsOffload())
 
 		if offloadCount > 0 {
-			if offload, ok := plval.GetOffload(); ok && offload != nil {
-				err = offload.Send(opt.cat, result.PtsOffload())
-				if err != nil {
-					log.Errorf("offload failed, total %d pts dropped: %v",
-						offloadCount, err)
-				}
+			err = result.SendOffload(opt.cat)
+			if err != nil {
+				log.Errorf("offload failed, total %d pts dropped: %v",
+					offloadCount, err)
 			}
 		}
 

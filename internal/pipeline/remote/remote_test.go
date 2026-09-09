@@ -6,9 +6,13 @@
 package remote
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
+	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -58,6 +62,13 @@ type pipelineRemoteMockerTest struct {
 	pullPipelineUpdateTime int64
 	pullRelationUpdate     bool
 	pullRelationUpdateAt   int64
+	pullFiles              map[point.Category]map[string]string
+	pullRelation           map[point.Category]map[string]string
+	pullDefaults           map[point.Category]string
+	writeTarStarted        chan struct{}
+	writeTarOnce           sync.Once
+	writeTarCalls          int
+	files                  map[string][]byte
 
 	errMarshal                   error
 	errUnMarshal                 error
@@ -101,6 +112,10 @@ type FileDataStruct struct {
 }
 
 func (mock *pipelineRemoteMockerTest) FileExist(filename string) bool {
+	if mock.files != nil {
+		_, ok := mock.files[filename]
+		return ok
+	}
 	return mock.isFileExist
 }
 
@@ -125,6 +140,9 @@ func (mock *pipelineRemoteMockerTest) ReadFile(filename string) ([]byte, error) 
 		return nil, mock.errReadFile
 	}
 
+	if mock.files != nil {
+		return append([]byte(nil), mock.files[filename]...), nil
+	}
 	return mock.readFileData, nil
 }
 
@@ -136,6 +154,9 @@ func (mock *pipelineRemoteMockerTest) WriteFile(filename string, data []byte, pe
 	mock.writeFileData = &FileDataStruct{
 		FileName: filename,
 		Bytes:    data,
+	}
+	if mock.files != nil {
+		mock.files[filename] = append([]byte(nil), data...)
 	}
 	return nil
 }
@@ -155,19 +176,35 @@ func (mock *pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles
 		return nil, nil, nil, 0, 0, mock.errPullPipeline
 	}
 
-	return map[point.Category]map[string]string{
-			point.Logging: {
-				"123.p": "text123",
-				"456.p": "text456",
-			},
-		}, map[point.Category]map[string]string{
-			point.Logging: {
-				"123": "123.p",
-				"234": "123.p",
-			},
-		}, map[point.Category]string{
-			point.Logging: "123.p",
-		}, mock.pullPipelineUpdateTime, relationUpdateAt, nil
+	files := map[point.Category]map[string]string{
+		point.Logging: {
+			"123.p": "text123",
+			"456.p": "text456",
+		},
+	}
+	relation := map[point.Category]map[string]string{
+		point.Logging: {
+			"123": "123.p",
+			"234": "123.p",
+		},
+	}
+	defaults := map[point.Category]string{
+		point.Logging: "123.p",
+	}
+	if mock.pullFiles != nil {
+		files = mock.pullFiles
+	}
+	if mock.pullRelation != nil {
+		relation = mock.pullRelation
+	}
+	if mock.pullDefaults != nil {
+		defaults = mock.pullDefaults
+	}
+	relationUpdateAt = -1
+	if mock.pullRelationUpdate {
+		relationUpdateAt = mock.pullRelationUpdateAt
+	}
+	return files, relation, defaults, mock.pullPipelineUpdateTime, relationUpdateAt, nil
 }
 
 func (*pipelineRemoteMockerTest) GetTickerDurationAndBreak() time.Duration {
@@ -175,6 +212,9 @@ func (*pipelineRemoteMockerTest) GetTickerDurationAndBreak() time.Duration {
 }
 
 func (mock *pipelineRemoteMockerTest) Remove(name string) error {
+	if mock.errRemove == nil && mock.files != nil {
+		delete(mock.files, name)
+	}
 	return mock.errRemove
 }
 
@@ -189,6 +229,13 @@ func (mock *pipelineRemoteMockerTest) ReadTarToMap(srcFile string) (map[string]s
 }
 
 func (mock *pipelineRemoteMockerTest) WriteTarFromMap(data map[string]string, dest string) error {
+	mock.writeTarCalls++
+	if mock.files != nil {
+		mock.files[dest] = []byte("new archive")
+	}
+	if mock.writeTarStarted != nil {
+		mock.writeTarOnce.Do(func() { close(mock.writeTarStarted) })
+	}
 	return mock.errWriteTarFromMap
 }
 
@@ -316,8 +363,224 @@ func TestDoPull(t *testing.T) {
 			mock.errRemove = tc.failedRemove
 
 			err := doPull(tc.pathConfig, relationPath, tc.siteURL, mock)
-			assert.Equal(t, tc.expectError, err, "doPull found error: %v", err)
+			if tc.expectError == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tc.expectError, "doPull found error: %v", err)
+			}
 		})
+	}
+}
+
+func TestDoPullRejectsInvalidGenerationWithoutPublishingOrPersisting(t *testing.T) {
+	manager := plval.NewScriptManager(nil, nil)
+	initial, err := manager.PrepareRemoteUpdate(plval.RemoteManagerUpdate{
+		Scripts: map[point.Category]map[string]string{
+			point.Logging: {"old.p": "drop_key(old)\n"},
+		},
+		ReplaceScripts:  true,
+		Defaults:        map[point.Category]string{point.Logging: "old.p"},
+		ReplaceDefaults: true,
+		Relation: map[point.Category]map[string]string{
+			point.Logging: {"source": "old.p"},
+		},
+		RelationUpdateAt: 5,
+		ReplaceRelation:  true,
+	})
+	if err != nil {
+		t.Fatalf("prepare initial generation: %v", err)
+	}
+	initial.Commit()
+	plval.SetManager(manager)
+
+	mock := newPipelineRemoteMock()
+	mock.pullPipelineUpdateTime = 42
+	mock.pullRelationUpdate = true
+	mock.pullRelationUpdateAt = 9
+	mock.pullFiles = map[point.Category]map[string]string{
+		point.Logging: {"broken.p": "if"},
+	}
+	mock.pullDefaults = map[point.Category]string{point.Logging: "broken.p"}
+	mock.pullRelation = map[point.Category]map[string]string{
+		point.Logging: {"source": "broken.p"},
+	}
+	oldContentPath := pathContent
+	pathContent = filepath.Join(t.TempDir(), pipelineRemoteContentFile)
+	defer func() { pathContent = oldContentPath }()
+
+	err = doPull(filepath.Join(t.TempDir(), pipelineRemoteConfigFile),
+		filepath.Join(t.TempDir(), pipelineRemoteRelationDumpFile), "site", mock)
+	if err == nil {
+		t.Fatal("invalid remote generation was accepted")
+	}
+	if mock.writeTarCalls != 0 || mock.writeFileData != nil {
+		t.Fatalf("invalid generation changed disk: tar_calls=%d write=%#v", mock.writeTarCalls, mock.writeFileData)
+	}
+	if got := manager.RelationUpdateAt(); got != 5 {
+		t.Fatalf("relation update time advanced to %d", got)
+	}
+	lease, ok := manager.Acquire()
+	if !ok {
+		t.Fatal("acquire retained generation")
+	}
+	defer lease.Release()
+	if name, ok := lease.Relation().Query(point.Logging, "source"); !ok || name != "old.p" {
+		t.Fatalf("relation changed to %q", name)
+	}
+	if script, ok := lease.Manager().QueryScript(point.Logging, "missing"); !ok || script.Name() != "old.p" {
+		t.Fatalf("default changed after rejected update: %#v", script)
+	}
+}
+
+func TestDoPullPublishesScriptsDefaultsAndRelationAfterOldBatchDrains(t *testing.T) {
+	manager := plval.NewScriptManager(nil, nil)
+	initial, err := manager.PrepareRemoteUpdate(plval.RemoteManagerUpdate{
+		Scripts: map[point.Category]map[string]string{
+			point.Logging: {"old.p": "drop_key(old)\n"},
+		},
+		ReplaceScripts:  true,
+		Defaults:        map[point.Category]string{point.Logging: "old.p"},
+		ReplaceDefaults: true,
+		Relation: map[point.Category]map[string]string{
+			point.Logging: {"source": "old.p"},
+		},
+		RelationUpdateAt: 5,
+		ReplaceRelation:  true,
+	})
+	if err != nil {
+		t.Fatalf("prepare initial generation: %v", err)
+	}
+	initial.Commit()
+	plval.SetManager(manager)
+
+	oldLease, ok := manager.Acquire()
+	if !ok {
+		t.Fatal("acquire old batch")
+	}
+	mock := newPipelineRemoteMock()
+	mock.pullPipelineUpdateTime = 42
+	mock.pullRelationUpdate = true
+	mock.pullRelationUpdateAt = 9
+	mock.pullFiles = map[point.Category]map[string]string{
+		point.Logging: {"new.p": "drop_key(new)\n"},
+	}
+	mock.pullDefaults = map[point.Category]string{point.Logging: "new.p"}
+	mock.pullRelation = map[point.Category]map[string]string{
+		point.Logging: {"source": "new.p"},
+	}
+	mock.writeTarStarted = make(chan struct{})
+	oldContentPath := pathContent
+	pathContent = filepath.Join(t.TempDir(), pipelineRemoteContentFile)
+	defer func() { pathContent = oldContentPath }()
+	configPath := filepath.Join(t.TempDir(), pipelineRemoteConfigFile)
+	relationPath := filepath.Join(t.TempDir(), pipelineRemoteRelationDumpFile)
+
+	result := make(chan error, 1)
+	go func() {
+		result <- doPull(configPath, relationPath, "site", mock)
+	}()
+	select {
+	case <-mock.writeTarStarted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("remote candidate was not persisted")
+	}
+	select {
+	case err := <-result:
+		t.Fatalf("publication crossed old batch lease: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	if script, ok := oldLease.Manager().QueryScript(point.Logging, "missing"); !ok || script.Name() != "old.p" {
+		t.Fatalf("old batch default changed: %#v", script)
+	}
+	if name, ok := oldLease.Relation().Query(point.Logging, "source"); !ok || name != "old.p" {
+		t.Fatalf("old batch relation changed to %q", name)
+	}
+	oldLease.Release()
+	select {
+	case err := <-result:
+		if err != nil {
+			t.Fatalf("publish generation: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("publication did not finish after old batch drained")
+	}
+
+	lease, ok := manager.Acquire()
+	if !ok {
+		t.Fatal("acquire new batch")
+	}
+	defer lease.Release()
+	if script, ok := lease.Manager().QueryScript(point.Logging, "missing"); !ok || script.Name() != "new.p" {
+		t.Fatalf("new default was not published: %#v", script)
+	}
+	if name, ok := lease.Relation().Query(point.Logging, "source"); !ok || name != "new.p" {
+		t.Fatalf("new relation = %q", name)
+	}
+}
+
+func TestDoPullPersistenceFailureRollsBackFilesAndGeneration(t *testing.T) {
+	manager := plval.NewScriptManager(nil, nil)
+	initial, err := manager.PrepareRemoteUpdate(plval.RemoteManagerUpdate{
+		Scripts: map[point.Category]map[string]string{
+			point.Logging: {"old.p": "drop_key(old)\n"},
+		},
+		ReplaceScripts:  true,
+		Defaults:        map[point.Category]string{point.Logging: "old.p"},
+		ReplaceDefaults: true,
+		Relation: map[point.Category]map[string]string{
+			point.Logging: {"source": "old.p"},
+		},
+		RelationUpdateAt: 5,
+		ReplaceRelation:  true,
+	})
+	if err != nil {
+		t.Fatalf("prepare initial generation: %v", err)
+	}
+	initial.Commit()
+	plval.SetManager(manager)
+
+	temp := t.TempDir()
+	configPath := filepath.Join(temp, pipelineRemoteConfigFile)
+	relationPath := filepath.Join(temp, pipelineRemoteRelationDumpFile)
+	oldContentPath := pathContent
+	pathContent = filepath.Join(temp, pipelineRemoteContentFile)
+	defer func() { pathContent = oldContentPath }()
+	original := map[string][]byte{
+		configPath:   []byte(`{"SiteURL":"site","UpdateTime":5}`),
+		pathContent:  []byte("old archive"),
+		relationPath: []byte("old relation"),
+	}
+	mock := newPipelineRemoteMock()
+	mock.files = map[string][]byte{}
+	for path, data := range original {
+		mock.files[path] = append([]byte(nil), data...)
+	}
+	mock.pullPipelineUpdateTime = 42
+	mock.pullRelationUpdate = true
+	mock.pullRelationUpdateAt = 9
+	mock.pullFiles = map[point.Category]map[string]string{
+		point.Logging: {"new.p": "drop_key(new)\n"},
+	}
+	mock.pullDefaults = map[point.Category]string{point.Logging: "new.p"}
+	mock.pullRelation = map[point.Category]map[string]string{
+		point.Logging: {"source": "new.p"},
+	}
+	mock.errMarshal = errGeneral
+
+	err = doPull(configPath, relationPath, "site", mock)
+	if !errors.Is(err, errGeneral) {
+		t.Fatalf("persistence failure = %v", err)
+	}
+	for path, want := range original {
+		if got := mock.files[path]; !bytes.Equal(got, want) {
+			t.Fatalf("%s was not rolled back: got %q want %q", path, got, want)
+		}
+	}
+	if got := manager.RelationUpdateAt(); got != 5 {
+		t.Fatalf("failed persistence advanced relation to %d", got)
+	}
+	if _, ok := manager.QueryScript(point.Logging, "new.p", struct{}{}); ok {
+		t.Fatal("failed persistence published the candidate script")
 	}
 }
 

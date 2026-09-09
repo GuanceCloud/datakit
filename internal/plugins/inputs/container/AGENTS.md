@@ -28,13 +28,24 @@
 ## Kubernetes 元数据与 APIServer 约束
 
 - 普通 Kubernetes 节点模式必须通过带 `spec.nodeName=<local-node>` field selector 的共享 Pod informer 获取元数据。不得恢复成每次容器指标、对象或日志扫描都对每个 Pod 发起 API `Get`；这会随容器数放大 APIServer QPS。
-- informer 启动前的 RBAC 预检、初始 List 和持续 Watch 是预期请求。稳定运行时，runtime 扫描应读取本地 informer cache，而不是产生逐容器 APIServer 请求。
+- Pod informer 的初始 List 和持续 Watch 是预期请求；不再做一次性 RBAC 预检，权限错误由 reflector 退避重试，避免权限恢复后缓存仍永久不可用。稳定运行时，runtime 扫描应读取本地 informer cache，而不是产生逐容器 APIServer 请求。
 - `internal/kubernetes/client` 的 `LimitQPS=50`、`LimitBurst=50` 是每个 `Client` 各自的 token bucket，不是进程总额度。禁止在 scan、Pod 或 container 循环里新建 Client；这既绕过已有复用，也会按 Client 数放大全局 QPS。
 - 必须区分三种状态：`podLabels == nil` 表示元数据未知；非 nil 空 map 表示 Pod 已获取但确实没有 label；非空 map 表示已知 label。CRD label selector 和 tag 补全依赖该区别。
 - `not_synced`、`not_found` 和其他 cache error 都是暂时的元数据不可用，不等价于“Pod 没有 Annotation/CRD 配置”。已有日志任务遇到 `podMetadataUnavailable` 时必须保留上次成功的 `info`、有效配置和 tailer。
 - 新容器第一次 cache miss 时仍允许利用 runtime 元数据和 `DATAKIT_LOGS_CONFIG`；无其他有效配置时可先建立默认 stdout 任务，待后续 cache hit 再补充 Pod 元数据和 reconcile。
 - Pod 元数据缺失只影响 enrich/reconciliation，容器是否存活必须以成功的 runtime `ListContainers` 结果判断。runtime 列表失败时直接保留全部任务，绝不能用空 active set 清场。
 - cache miss 日志应限速，metrics label 必须保持有限集合；不要把 namespace、Pod、container ID 等高基数字段加入内部 Prometheus metric label。
+
+## Kubernetes 资源缓存生命周期
+
+- `kubernetes/resource_cache.go` 拥有资源缓存和请求取消；指标/对象每轮只读已同步的缓存，并按 100 个对象一批深拷贝，禁止将 informer 原对象交给 builder 或 feeder。
+- node-local Pod 缓存复用 `pod_watcher.go` 的 informer，其 Run/退出仍由 runtime watcher 单独负责；本节点容量使用 `metadata.name` 过滤的 Node informer。这两者不随选举切换重启。
+- 开启对象采集时，本地 Pod/Node 首次同步后触发一次对象采集并发布 Annotation Prometheus 候选，不等待下一个对象周期；同步等待可取消，不阻塞周期采集或选举处理。
+- 集群 informer 由 `Kube` 的采集循环串行创建和回收。`leaderGate.Subscribe` 同步传递当前选举状态，`SetLeader` 递增任期标识并立即将旧缓存置为不可用，再取消请求；状态通知可以合并，任期切换不能丢失。
+- 资源按各自 HasSynced 供数；依赖 Node 容量的 Pod 采集还要检查 Node 的同步状态。未同步时跳过，不发起 API LIST/GET 回退。已有变更 handler 在初次同步完成后处理通知，避免丢掉初始 LIST 期间创建的资源。
+- `cacheFeeder` 的提交准入与失效使用同一个锁；已准入 IO 无法撤回，因此旧任期退出时等待其完成后才启动新任期。不能持有准入锁执行 IO，否则背压会阻止及时处理 Pause。
+- Kubernetes Event WATCH 和非 node-local 的 Annotation Prometheus worker 也属于当前任期；本地 Annotation worker 属于 node-local 缓存。Prometheus manager 由所属缓存的 context 控制生命周期，不再维护独立启停状态。采集周期、measurement 和 Feed 来源/选举参数保持兼容。
+- informer 专用指标仅保留 `kubernetes_informer_starts_total`（启动次数，不重复统计共享 Pod informer）和 `kubernetes_informer_unsynced`（当前作用域尚未完成首次同步的 informer 数，失效后归零）。完整名称前缀为 `datakit_input_container_`；只带 `scope` 一个标签，值限定为 `node-local` / `cluster`，每进程最多 4 条序列。API 请求复用 `datakit_kubernetes_apiserver_requests_total`，不另设请求计数或同步耗时分位数。首次同步指标不代表 WATCH 连接健康。
 
 ## 日志发现调度
 

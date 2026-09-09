@@ -466,9 +466,9 @@ The placeholder is resolved only when DataKit starts. Restart DataKit after the 
 <!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
-???+ note "description on buffer and queue"
+???+ note "Buffer size"
 
-    `ENV_IO_MAX_CACHE_COUNT` is used to control the data sending policy, that is, when the number of (row protocol) points of the cache in memory exceeds this value, an attempt is made to send the number of points of the current cache in memory to the center. If the threshold of the cache is set too high, the data will accumulate in memory, causing memory to soar, but will improve the compression effect of GZip. If it is too small, it may affect the transmission throughput.
+    `ENV_IO_MAX_CACHE_COUNT` controls the number of data points buffered before sending a batch. Increasing it may improve throughput but increases memory usage and waiting time. Decreasing it reduces buffer memory usage but may reduce throughput.
 <!-- markdownlint-enable MD046 -->
 
 `ENV_IO_FILTERS` is a JSON string, as shown below:

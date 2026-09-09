@@ -1586,7 +1586,10 @@ The overall JSON structure is as follows:
       "status": "OK",
       "frequency": "1m",
       "schedule_type": "frequency",
-      "browser_config": "name: homepage\ntarget: https://example.com\ntimeout_ms: 30000\nsteps:\n  - name: open homepage\n    action: goto\n  - name: check title\n    action: assert_title\n    contains: Example\n"
+      "browser_config": "name: homepage\ntarget: https://example.com\ntimeout_ms: 30000\nsteps:\n  - name: open homepage\n    action: goto\n  - name: check title\n    action: assert_title\n    contains: Example\n",
+      "advance_options": {
+        "screenshot_on_failure": true
+      }
     }
   ]
 }
@@ -1608,7 +1611,7 @@ The overall JSON structure is as follows:
 
 ##### Screenshot Support {#browser-screenshot}
 
-The bundled Lightpanda build does not support screenshots. `advance_options.screenshot_on_failure` is ignored for Lightpanda tasks.
+Set `advance_options.screenshot_on_failure` to `true` to capture a PNG when a browser step fails. DataKit uploads the screenshot and records its metadata in `steps[].screenshot`. Lightpanda produces a text-oriented semantic rendering rather than a pixel-perfect Chrome screenshot. Browser startup failures, process exits, and overall task timeouts may not leave a live session to capture.
 
 Lightpanda HTTP proxy precedence is: task `advance_options.proxy_url` > `proxy_url` in `browser_config` > dialtesting node `[inputs.dialtesting.browser].proxy_url`. See [Private Network and Proxy](dialtesting_browser.md#private-network-and-proxy).
 

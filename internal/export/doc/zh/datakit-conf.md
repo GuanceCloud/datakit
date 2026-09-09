@@ -385,7 +385,7 @@ $ systemctl status datakit
 
 ### 选举配置 {#election}
 
-参见[这里](election.md#config)
+DataWay/Kodo、DataKit Operator 两种中心选举后端及选举白名单的配置，统一参见[选举配置](election.md#config)。
 
 ### DataWay 参数配置 {#dataway-settings}
 
@@ -395,13 +395,66 @@ Dataway 部分有如下几个配置可以配置，其它部分不建议改动：
 - `max_retry_count`：设置 Dataway 发送的重试次数（默认 1 次，最大 10 次）[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
 - `retry_delay`：设置重试间隔基础步长，默认 1s。所谓基础步长，即第一次 1s，第二次 2s，第三次 4s，以此类推（以 2^n 递增）[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
 - `max_raw_body_size`：控制单个上传包的最大大小（压缩前），单位字节 [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
-- `content_encoding`：可选择 v1 或 v2 [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
-    - v1 即行协议（默认 v1）
-    - v2 即 Protobuf 协议，相比 v1，它各方面的性能都更优越。运行稳定后，后续将默认采用 v2
-- `compression`：Point 数据上传压缩方式，可选 `gzip` 或 `zstd`，默认为 `gzip`。旧配置项 `gzip` 仅在未设置 `compression` 时生效
+- `content_encoding`：Point 数据上传编码，可选 `v1`（行协议）或 `v2`（Protobuf），当前默认 `v2` [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
+- `compression`：选择 Point 数据上传的压缩算法，默认 `gzip`。可选值、配置示例及兼容性说明参见[选择数据上传的压缩算法](datakit-conf.md#dataway-compression)
 - `payload_obfuscation`：默认空（关闭）。仅支持 `gzip-caesar-v1` 且 `compression` 必须为 `gzip`；配置错误时会禁用混淆并继续运行。该功能不是加密，仍须使用 HTTPS
 
 Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-dataway)。
+
+#### 选择数据上传的压缩算法 {#dataway-compression}
+
+DataKit 通过 `[dataway].compression` 或环境变量 `ENV_DATAWAY_COMPRESSION` 选择 Point 数据上传的压缩算法：
+
+- `gzip`：默认算法。使用默认配置时，Point 数据经 gzip 压缩后上传。
+- `zstd`：可选算法，从 DataKit [2.9.0](changelog-2026.md#cl-2.9.0) 起支持，需要显式配置，接收端须支持 zstd 解压。
+
+`content_encoding` 控制数据编码，`compression` 控制压缩算法，两者独立。当前默认组合是 `v2`（Protobuf）+ `gzip`。选择 gzip 或 zstd 时，只需设置压缩算法，无需同时修改编码配置。
+
+=== "主机部署"
+
+    编辑 `conf.d/datakit.conf`，将以下配置合并到已有的 `[dataway]` 段中：
+
+    ```toml
+    [dataway]
+      compression = "gzip" # 默认算法；使用 zstd 时改为 "zstd"
+    ```
+
+    例如，要使用 Protobuf + zstd，在保持默认编码的情况下，将上面的配置改为 `compression = "zstd"` 即可。
+
+    如果原配置显式设置了 `content_encoding = "v1"`，且希望使用 Protobuf，同时将其改为 `content_encoding = "v2"`。
+
+    保存配置后，[重启 DataKit](datakit-service-how-to.md#manage-service)：
+
+    ```shell
+    datakit service restart
+    ```
+
+=== "Kubernetes"
+
+    在 DataKit 容器的 `env` 列表中添加或修改以下环境变量，并更新 Pod：
+
+    ```yaml
+    - name: ENV_DATAWAY_COMPRESSION
+      value: "gzip" # 默认算法；使用 zstd 时改为 "zstd"
+    ```
+
+    `ENV_DATAWAY_CONTENT_ENCODING` 对应 `content_encoding`，默认使用 `v2`，不必与压缩变量同时设置。如果原来显式设置为 `v1`，且希望使用 Protobuf，再将其改为 `v2`。完整参数参见 [DataWay 环境变量](datakit-daemonset-deploy.md#env-dataway)。
+
+配置方式和兼容性规则如下：
+
+- 主机部署读取 TOML 中的 `compression`；Docker/Kubernetes 部署通过 `ENV_DATAWAY_COMPRESSION` 配置，该模式的主配置来自环境变量。
+- 显式设置 `compression` 后，旧的 `gzip` 配置不再决定压缩算法，无需修改原有的 `gzip = true`。
+- 未设置 `compression` 时，沿用旧的 `gzip` 配置：`true` 表示 gzip 压缩，`false` 表示不压缩。
+- `compression` 的值无效时，DataKit 会记录警告并使用 gzip。
+
+DataKit 按配置选择压缩算法，不进行能力协商，上传失败时也不会自动切换算法。使用 zstd 前，应确认接收端支持解压。切回 gzip 时，将 `compression` 或对应环境变量改为 `gzip`，然后重启 DataKit 或更新 Pod。
+
+重启后，可在 DataKit 启动日志中通过 `effective` 确认实际使用的压缩算法。显式选择 gzip 或 zstd 时，分别会看到以下日志之一：
+
+```text
+dataway compression: configured="gzip", effective="gzip"
+dataway compression: configured="zstd", effective="zstd"
+```
 
 #### DataWay IP 地址族策略 {#dataway-ip-family}
 
@@ -541,6 +594,30 @@ WAL 磁盘队列有默认的磁盘大小限制，当缓存数据量超过该限�
     ```
 
 - 容器方式部署，可使用环境变量，`ENV_PIPELINE_DEFAULT_PIPELINE`，其值例如 `{"logging":"abc.p","metric":"xyz.p"}`
+
+### Pipeline JIT 加速（可选） {#pipeline-jit}
+
+Pipeline JIT 用于加速脚本执行，**默认关闭**。启用前需安装包含 JIT 组件的 DataKit 安装包，目前支持 Linux amd64/arm64 的 glibc 环境。其他平台继续使用 Go 执行器。
+
+在主配置文件 *datakit.conf* 中添加以下配置；已有 `[pipeline.jit]` 时修改原配置，不要重复添加：
+
+```toml
+[pipeline.jit]
+  enabled = true
+```
+
+保存后重启 DataKit 生效，无需修改采集器配置或现有 Pipeline 脚本。JIT 使用安装包自带的动态库，通常无需另行配置库路径。
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `enabled` | `false` | 是否启用 JIT 加速 |
+| `mode` | `"auto"` | 自动选择执行方式，不支持的脚本在执行前选择 Go 执行器 |
+| `on_init_error` | `"go"` | 首次 JIT 初始化失败时使用 Go 执行器继续运行；设为 `"error"` 时返回初始化错误 |
+| `max_cached_programs` | `256` | 已编译脚本的缓存数量上限；设为 `0` 也使用默认值，最大为 `4096` |
+
+`on_init_error` 未填写时等同于 `"go"`。初始化降级会记录日志；此策略不忽略非法配置，也不表示脚本执行过程中发生错误后会自动用 Go 重新执行。
+
+如需关闭 JIT，将 `enabled` 改为 `false` 并重启 DataKit，原有脚本和采集器配置保持不变。
 
 ### 设置打开的文件描述符的最大值 {#enable-max-fd}
 

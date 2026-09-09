@@ -1408,15 +1408,20 @@ func TestBrowserScreenshotProcessing(t *testing.T) {
 	oldWorker := dialWorker
 	defer func() { dialWorker = oldWorker }()
 
-	pngPath := filepath.Join(t.TempDir(), "step.png")
-	require.NoError(t, os.WriteFile(pngPath, []byte{
-		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-		0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-		0x08, 0x02, 0x00, 0x00, 0x00,
-	}, 0o600))
+	newPNG := func(t *testing.T) string {
+		t.Helper()
+		pngPath := filepath.Join(t.TempDir(), "step.png")
+		require.NoError(t, os.WriteFile(pngPath, []byte{
+			0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+			0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+			0x08, 0x02, 0x00, 0x00, 0x00,
+		}, 0o600))
+		return pngPath
+	}
 
 	t.Run("upload success replaces local path with object", func(t *testing.T) {
+		pngPath := newPNG(t)
 		sender := &mockSender{
 			uploadResult: &dataway.BrowserScreenshotUploadResult{
 				ScreenshotID:   "run_789_step_2",
@@ -1457,9 +1462,11 @@ func TestBrowserScreenshotProcessing(t *testing.T) {
 		assert.Equal(t, "run_789_step_2.png", screenshot["file"])
 		assert.Equal(t, float64(12345), screenshot["size"])
 		assert.Equal(t, "image/png", screenshot["type"])
+		assert.NoFileExists(t, pngPath)
 	})
 
 	t.Run("upload failure removes local path and keeps point fields", func(t *testing.T) {
+		pngPath := newPNG(t)
 		dialWorker = &worker{sender: &mockSender{uploadErr: errors.New("upload rejected")}}
 
 		fields := map[string]interface{}{
@@ -1483,6 +1490,7 @@ func TestBrowserScreenshotProcessing(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(fields["steps"].(string)), &steps))
 		assert.NotContains(t, steps[0], "screenshot")
 		assert.Contains(t, steps[0]["screenshot_upload_error"], "upload rejected")
+		assert.NoFileExists(t, pngPath)
 	})
 }
 

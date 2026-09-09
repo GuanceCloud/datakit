@@ -136,3 +136,6 @@ iss-docs-*/
 .worktrees/
 .gocache/
 .codex
+
+# Local Pipeline performance experiments; published summary lives in docs/specs.
+/internal/pipeline/benchmarks/

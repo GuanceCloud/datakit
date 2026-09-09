@@ -25,7 +25,11 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+	p8s "github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/ugorji/go/codec"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
@@ -284,6 +288,287 @@ func TestDDTrace(t *testing.T) {
 	if err == nil {
 		assert.Len(t, pts, 1)
 	}
+}
+
+func TestSamplingPriorityDecision(t *testing.T) {
+	tests := []struct {
+		name                string
+		priorities          []float64
+		excludes            []int
+		wantSpans           int
+		wantPriority        string
+		wantAction          string
+		wantSamplingRateTag string
+	}{
+		{
+			name:         "rule sampler reject",
+			priorities:   []float64{-3},
+			wantPriority: "-3",
+			wantAction:   samplingPriorityActionDrop,
+		},
+		{
+			name:         "user reject",
+			priorities:   []float64{-1},
+			wantPriority: "-1",
+			wantAction:   samplingPriorityActionDrop,
+		},
+		{
+			name:         "auto reject",
+			priorities:   []float64{0},
+			wantPriority: "0",
+			wantAction:   samplingPriorityActionDrop,
+		},
+		{
+			name:         "excluded auto reject bypasses once",
+			priorities:   []float64{0, 0},
+			excludes:     []int{0},
+			wantSpans:    2,
+			wantPriority: "0",
+			wantAction:   samplingPriorityActionBypass,
+		},
+		{
+			name:         "non-excluded reject wins",
+			priorities:   []float64{0, -1},
+			excludes:     []int{0},
+			wantPriority: "-1",
+			wantAction:   samplingPriorityActionDrop,
+		},
+		{
+			name:                "keep priority is unchanged",
+			priorities:          []float64{1},
+			wantSpans:           1,
+			wantSamplingRateTag: itrace.SamplerKeep,
+		},
+	}
+
+	for i, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			service := "sampling-priority-test-" + strconv.Itoa(i)
+			trace := make(DDTrace, 0, len(tc.priorities))
+			for j, priority := range tc.priorities {
+				trace = append(trace, &DDSpan{
+					Service:  service,
+					Name:     "operation",
+					Resource: "resource",
+					TraceID:  uint64(i + 1),
+					SpanID:   uint64(j + 1),
+					Start:    time.Now().UnixNano(),
+					Duration: int64(time.Millisecond),
+					Meta:     map[string]string{},
+					Metrics:  map[string]float64{keyPriority: priority},
+				})
+			}
+
+			ipt := defaultInput()
+			ipt.SamplingPriorityDropExcludes = tc.excludes
+			ipt.customTagsX = itrace.NewCustomTags(nil, ddTags)
+			if tc.wantAction != "" {
+				samplingPriorityTraceDecision.DeleteLabelValues(tc.wantPriority, tc.wantAction, service)
+				samplingPrioritySpanDecision.DeleteLabelValues(tc.wantPriority, tc.wantAction, service)
+				t.Cleanup(func() {
+					samplingPriorityTraceDecision.DeleteLabelValues(tc.wantPriority, tc.wantAction, service)
+					samplingPrioritySpanDecision.DeleteLabelValues(tc.wantPriority, tc.wantAction, service)
+				})
+			}
+
+			got := ipt.ddtraceToDkTrace(trace, nil, "127.0.0.1")
+			assert.Len(t, got, tc.wantSpans)
+			if tc.wantSamplingRateTag != "" {
+				require.NotEmpty(t, got)
+				assert.Equal(t, tc.wantSamplingRateTag, got[0].GetTag(itrace.SampleRateKey))
+			}
+			if tc.wantAction == samplingPriorityActionBypass {
+				for _, span := range got {
+					assert.Empty(t, span.GetTag(itrace.SampleRateKey))
+				}
+			}
+
+			if tc.wantAction != "" {
+				assert.Equal(t, float64(1), prometheusCounterValue(t,
+					samplingPriorityTraceDecision, tc.wantPriority, tc.wantAction, service))
+				assert.Equal(t, float64(len(trace)), prometheusCounterValue(t,
+					samplingPrioritySpanDecision, tc.wantPriority, tc.wantAction, service))
+			}
+		})
+	}
+}
+
+func TestNormalizeSamplingPriorityDropExcludes(t *testing.T) {
+	ipt := &Input{SamplingPriorityDropExcludes: []int{0, -1, 0, -3, 1, 2}}
+	ipt.normalizeSamplingPriorityDropExcludes()
+	assert.Equal(t, []int{0, -1, -3}, ipt.SamplingPriorityDropExcludes)
+}
+
+func TestExcludedSamplingPriorityStillUsesDataKitSampler(t *testing.T) {
+	span := &DDSpan{
+		Service:  "sampling-priority-datakit-sampler",
+		Name:     "operation",
+		Resource: "resource",
+		TraceID:  1,
+		SpanID:   1,
+		Start:    time.Now().UnixNano(),
+		Duration: int64(time.Millisecond),
+		Meta:     map[string]string{},
+		Metrics:  map[string]float64{keyPriority: 0},
+	}
+	ipt := defaultInput()
+	ipt.SamplingPriorityDropExcludes = []int{0}
+	ipt.customTagsX = itrace.NewCustomTags(nil, ddTags)
+
+	dktrace := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1")
+	require.Len(t, dktrace, 1)
+	assert.Empty(t, dktrace[0].GetTag(itrace.SampleRateKey))
+
+	sampler := (&itrace.Sampler{SamplingRateGlobal: 0}).Init()
+	_, dropped := sampler.Sample(log, dktrace)
+	assert.True(t, dropped)
+}
+
+func prometheusCounterValue(t *testing.T, counter *p8s.CounterVec, labels ...string) float64 {
+	t.Helper()
+
+	metric := &dto.Metric{}
+	require.NoError(t, counter.WithLabelValues(labels...).Write(metric))
+
+	return metric.GetCounter().GetValue()
+}
+
+func TestDDTraceCustomerMetrics(t *testing.T) {
+	ipt := defaultInput()
+	ipt.CustomerTags = []string{
+		"custom.meta",
+		"custom.metric",
+		"duration",
+		"same.key",
+		`reg:^business\.`,
+	}
+	ipt.customTagsX = itrace.NewCustomTags(ipt.CustomerTags, cloneStringMap(ddTags))
+
+	span := &DDSpan{
+		Service:  "service",
+		Name:     "operation",
+		Resource: "resource",
+		TraceID:  1,
+		SpanID:   2,
+		Start:    time.Unix(1, 0).UnixNano(),
+		Duration: int64(10 * time.Millisecond),
+		Meta: map[string]string{
+			"custom.meta": "meta-value",
+			"same.key":    "meta-wins",
+		},
+		Metrics: map[string]float64{
+			"custom.metric":    12.5,
+			"business.count":   3,
+			"duration":         99,
+			"same.key":         2,
+			"unmatched.metric": 7,
+		},
+	}
+
+	got := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1")
+	require.Len(t, got, 1)
+	pt := got[0].Point
+
+	assert.Equal(t, "meta-value", pt.GetTag("custom_meta"))
+	assert.Equal(t, "meta-wins", pt.GetTag("same_key"))
+	assert.Empty(t, pt.GetTag("custom_metric"))
+	assert.Equal(t, 12.5, pointFloat(t, pt, "custom_metric"))
+	assert.Equal(t, float64(3), pointFloat(t, pt, "business_count"))
+	assert.Equal(t, int64(10*time.Millisecond)/int64(time.Microsecond), pointInt(t, pt, itrace.FieldDuration))
+
+	message, ok := pt.GetS(itrace.FieldMessage)
+	require.True(t, ok)
+	var remaining wrapMessage
+	require.NoError(t, json.Unmarshal([]byte(message), &remaining))
+	assert.Equal(t, map[string]float64{
+		"duration":         99,
+		"same.key":         2,
+		"unmatched.metric": 7,
+	}, remaining.Metrics)
+	assert.Empty(t, remaining.Meta)
+}
+
+func TestDDTraceCustomerMetricsReservedKeys(t *testing.T) {
+	tests := []struct {
+		name         string
+		customerTags []string
+	}{
+		{
+			name:         "exact match",
+			customerTags: []string{itrace.TagSpanStatus, itrace.FieldMessage, "http.status.class"},
+		},
+		{
+			name:         "regexp match",
+			customerTags: []string{`reg:^(status|message|http\.status\.class)$`},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ipt := defaultInput()
+			ipt.CustomerTags = tc.customerTags
+			ipt.customTagsX = itrace.NewCustomTags(ipt.CustomerTags, cloneStringMap(ddTags))
+
+			span := &DDSpan{
+				Service:  "service",
+				Name:     "operation",
+				Resource: "resource",
+				TraceID:  1,
+				SpanID:   2,
+				Start:    time.Unix(1, 0).UnixNano(),
+				Duration: int64(10 * time.Millisecond),
+				Error:    1,
+				Meta: map[string]string{
+					"http.status_code": "200",
+				},
+				Metrics: map[string]float64{
+					itrace.TagSpanStatus: 42,
+					itrace.FieldMessage:  7,
+					"http.status.class":  9,
+				},
+			}
+
+			got := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1")
+			require.Len(t, got, 1)
+			pt := got[0].Point
+
+			assert.Equal(t, itrace.StatusErr, pt.GetTag(itrace.TagSpanStatus))
+			assert.Equal(t, "2xx", pt.GetTag(itrace.TagHttpStatusClass))
+			message, ok := pt.GetS(itrace.FieldMessage)
+			require.True(t, ok)
+
+			var remaining wrapMessage
+			require.NoError(t, json.Unmarshal([]byte(message), &remaining))
+			assert.Equal(t, map[string]float64{
+				itrace.TagSpanStatus: 42,
+				itrace.FieldMessage:  7,
+				"http.status.class":  9,
+			}, remaining.Metrics)
+		})
+	}
+}
+
+func cloneStringMap(src map[string]string) map[string]string {
+	dst := make(map[string]string, len(src))
+	for key, value := range src {
+		dst[key] = value
+	}
+
+	return dst
+}
+
+func pointFloat(t *testing.T, pt *point.Point, key string) float64 {
+	t.Helper()
+	value, ok := pt.GetF(key)
+	require.True(t, ok)
+	return value
+}
+
+func pointInt(t *testing.T, pt *point.Point, key string) int64 {
+	t.Helper()
+	value, ok := pt.GetI(key)
+	require.True(t, ok)
+	return value
 }
 
 func randomDDSpan() *DDSpan {

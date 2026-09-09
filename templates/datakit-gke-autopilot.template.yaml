@@ -163,6 +163,8 @@ spec:
           value: dk,container
         - name: ENV_ENABLE_ELECTION
           value: "true"
+        - name: ENV_ELECTION_OPERATOR_URL # Set this only after every DataKit supports Operator election
+          value: ""
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
         - name: ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED

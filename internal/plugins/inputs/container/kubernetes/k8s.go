@@ -9,13 +9,13 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/informers"
+	kubeclient "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -31,9 +31,7 @@ import (
 var (
 	defaultChangeLanguage = changes.LangEn
 	watchRetryInterval    = time.Second * 10
-	controllerStartTime   time.Time
-
-	klog = logger.DefaultSLogger("k8s")
+	klog                  = logger.DefaultSLogger("k8s")
 )
 
 type k8sClient k8sclient.Client
@@ -58,255 +56,241 @@ type Config struct {
 	ExtraTags map[string]string
 	Feeder    dkio.Feeder
 
+	// The runtime watcher owns this process-lifetime, node-filtered informer.
+	LocalPodInformer cache.SharedIndexInformer
+
+	resourceCache    *resourceCache
 	promPodPublisher promPodPublisher
 }
 
 type Kube struct {
-	cfg    *Config
-	client k8sClient
+	cfg       *Config
+	client    k8sClient
+	apiClient kubeclient.Interface
 
-	onWatchingEvent          *atomic.Bool
-	onWatchingChange         *atomic.Bool
+	mu         sync.Mutex
+	leader     bool
+	generation uint64
+	stopped    bool
+	wake       chan struct{}
+	cluster    *resourceCache
+
+	// Owned by the collection loop; election callbacks never change these.
+	local                    *resourceCache
 	lastEventResourceVersion string
-
-	paused    bool
-	chanPause chan bool
 }
 
-func NewKubeCollector(client k8sclient.Client, cfg *Config, chanPause chan bool) (*Kube, error) {
+func NewKubeCollector(client k8sclient.Client, cfg *Config) (*Kube, error) {
 	klog = logger.SLogger("k8s", logger.WithRateLimiter(promTaskLimitLogRate, "legacy-pod-prom-task-limit"))
-
 	if client == nil {
 		return nil, fmt.Errorf("invalid kubernetes client, cannot be nil")
 	}
 	if cfg == nil {
 		return nil, fmt.Errorf("invalid kubernetes collector config, cannot be nil")
 	}
-
-	nodeName, err := config.GetLocalNodeName()
-	if err != nil {
-		return nil, err
+	if cfg.NodeName == "" {
+		nodeName, err := config.GetLocalNodeName()
+		if err != nil {
+			return nil, err
+		}
+		cfg.NodeName = nodeName
 	}
-	cfg.NodeName = nodeName
+	return &Kube{cfg: cfg, client: client, apiClient: client.KubernetesClientset(), wake: make(chan struct{}, 1)}, nil
+}
 
-	return &Kube{
-		cfg:              cfg,
-		client:           client,
-		onWatchingEvent:  &atomic.Bool{},
-		onWatchingChange: &atomic.Bool{},
-		paused:           true,
-		chanPause:        chanPause,
-	}, nil
+// SetLeader records every transition even while collection is busy. Invalidate
+// the old term synchronously; a coalesced wakeup only schedules its teardown.
+func (k *Kube) SetLeader(leader bool) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	if k.stopped || k.leader == leader {
+		return
+	}
+	k.leader = leader
+	k.generation++
+	if k.cluster != nil {
+		k.cluster.invalidate()
+	}
+	select {
+	case k.wake <- struct{}{}:
+	default:
+	}
 }
 
 func (k *Kube) StartCollect() {
-	tickers := []*time.Ticker{
-		time.NewTicker(k.cfg.MetricCollecInterval),
-		time.NewTicker(k.cfg.ObjectCollecInterval),
-		time.NewTicker(watchRetryInterval),
-	}
-	for _, t := range tickers {
-		defer t.Stop()
-	}
-
-	promManager := newPromTaskManager(k.cfg)
-	k.cfg.promPodPublisher = promManager
-	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-pod-prom-manager"})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-lifecycle"})
 	g.Go(func(_ context.Context) error {
-		promManager.run()
-		return nil
-	})
-
-	if k.cfg.EnableK8sObject {
-		k.gatherObject()
-	}
-
-	var (
-		start = ntp.Now()
-		watch *struct {
-			ctx    context.Context
-			cancel context.CancelFunc
-		}
-	)
-
-	stopWatching := func() {
-		if watch == nil {
-			return
-		}
-		watch.cancel()
-		watch = nil
-	}
-
-	for {
 		select {
 		case <-datakit.Exit.Wait():
-			stopWatching()
-			promManager.close()
-			if err := g.Wait(); err != nil {
-				klog.Warnf("wait k8s Pod annotation Prometheus manager failed: %s", err)
-			}
-			klog.Info("k8s collect exit")
+			cancel()
+		case <-ctx.Done():
+		}
+		return nil
+	})
+	k.run(ctx)
+	cancel()
+	if err := g.Wait(); err != nil {
+		klog.Warnf("wait Kubernetes lifecycle failed: %s", err)
+	}
+}
+
+func (k *Kube) run(ctx context.Context) {
+	var localSynced <-chan struct{}
+	if k.cfg.NodeLocal && (k.cfg.EnableK8sMetric || k.cfg.EnableK8sObject) {
+		k.local = newLocalResourceCache(ctx, k.apiClient, k.cfg)
+		k.local.start()
+		if k.cfg.EnableK8sObject {
+			ready := make(chan struct{})
+			localSynced = ready
+			local := k.local
+			local.wg.Go(func() {
+				if cache.WaitForCacheSync(local.ctx.Done(), local.resources["pod"].HasSynced, local.resources["node"].HasSynced) {
+					close(ready)
+				}
+			})
+		}
+	}
+	defer func() {
+		k.mu.Lock()
+		k.stopped = true
+		cluster := k.cluster
+		k.cluster = nil
+		if cluster != nil {
+			cluster.invalidate()
+		}
+		k.mu.Unlock()
+		if cluster != nil {
+			cluster.stop()
+		}
+		if k.local != nil {
+			k.local.stop()
+			k.local = nil
+		}
+		klog.Info("k8s collect exit")
+	}()
+
+	metricTicker := time.NewTicker(k.cfg.MetricCollecInterval)
+	objectTicker := time.NewTicker(k.cfg.ObjectCollecInterval)
+	defer metricTicker.Stop()
+	defer objectTicker.Stop()
+
+	k.reconcileCluster(ctx)
+	if k.cfg.EnableK8sObject && localSynced == nil {
+		k.gatherObject()
+	}
+	start := ntp.Now()
+	for {
+		select {
+		case <-ctx.Done():
 			return
-
-		case k.paused = <-k.chanPause:
-			if !k.cfg.NodeLocal {
-				promManager.setActive(!k.paused)
-			}
-			if k.paused {
-				stopWatching()
-				klog.Info("not leader for election")
-			}
-
-		case tt := <-tickers[0].C:
+		case <-k.wake:
+			k.reconcileCluster(ctx)
+		case <-localSynced:
+			// Start local objects and annotation scrapes without waiting for the
+			// next object tick. Cache synchronization must not block the loop.
+			localSynced = nil
+			k.gatherObject()
+		case tt := <-metricTicker.C:
 			if k.cfg.EnableK8sMetric {
 				start = inputs.AlignTime(tt, start, k.cfg.MetricCollecInterval)
 				k.gatherMetric(start.UnixNano())
 			}
-
-		case <-tickers[1].C:
+		case <-objectTicker.C:
 			if k.cfg.EnableK8sObject {
 				k.gatherObject()
 			}
+		}
+	}
+}
 
-		case <-tickers[2].C:
-			if k.paused {
-				continue
-			}
-			if watch == nil {
-				ctx, cancel := context.WithCancel(context.Background())
-				watch = &struct {
-					ctx    context.Context
-					cancel context.CancelFunc
-				}{ctx: ctx, cancel: cancel}
-			}
-			k.tryWatchEventAndChange(watch.ctx)
+// Only the collection loop creates or joins terms. Resume cannot overlap the
+// previous term, including its event handlers and annotation scrape workers.
+func (k *Kube) reconcileCluster(ctx context.Context) {
+	k.mu.Lock()
+	old := k.cluster
+	if old != nil && old.id == k.generation && old.usable() {
+		k.mu.Unlock()
+		return
+	}
+	k.cluster = nil
+	k.mu.Unlock()
+	if old != nil {
+		old.stop()
+	}
+
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	if !k.leader || k.stopped || ctx.Err() != nil {
+		return
+	}
+	c := newClusterResourceCache(ctx, k.apiClient, k.cfg, k.generation)
+	k.cluster = c
+	c.start()
+	if k.cfg.EnableK8sEvent {
+		c.wg.Go(func() { k.runEvents(c) })
+	}
+	klog.Infof("started Kubernetes cluster cache term %d", c.id)
+}
+
+func (k *Kube) runEvents(c *resourceCache) {
+	for c.usable() {
+		k.gatherEvent(c.ctx, c.cfg)
+		timer := time.NewTimer(watchRetryInterval)
+		select {
+		case <-c.ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
 		}
 	}
 }
 
 func (k *Kube) gatherMetric(timestamp int64) {
-	var (
-		start = time.Now()
-		g     = goroutine.NewGroup(goroutine.Option{Name: "k8s-metric"})
-		ctx   = context.Background()
-	)
-
-	if !k.paused {
-		for idx, newResourceFn := range nonNodeLocalResources {
-			func(name string, newResource resourceConstructor) {
-				g.Go(func(_ context.Context) error {
-					st := time.Now()
-					rc := newResource(k.client, k.cfg)
-					rc.gatherMetric(ctx, timestamp)
-					collectResourceCostVec.WithLabelValues("metric", name).Observe(time.Since(st).Seconds())
-					return nil
-				})
-			}(nonNodeLocalResourcesNames[idx], newResourceFn)
-		}
-	}
-
-	if k.cfg.NodeLocal {
-		for idx, newResourceFn := range nodeLocalResources {
-			func(name string, newResource resourceConstructor) {
-				g.Go(func(_ context.Context) error {
-					st := time.Now()
-					rc := newResource(k.client, k.cfg)
-					rc.gatherMetric(ctx, timestamp)
-					collectResourceCostVec.WithLabelValues("metric", name).Observe(time.Since(st).Seconds())
-					return nil
-				})
-			}(nodeLocalResourcesNames[idx], newResourceFn)
-		}
-	}
-
-	g.Wait()
-	collectCostVec.WithLabelValues("metric").Observe(time.Since(start).Seconds())
+	k.gatherResources("metric", timestamp)
 }
 
 func (k *Kube) gatherObject() {
-	var (
-		start = time.Now()
-		g     = goroutine.NewGroup(goroutine.Option{Name: "k8s-object"})
-		ctx   = context.Background()
-	)
-
-	if !k.paused {
-		for idx, newResourceFn := range nonNodeLocalResources {
-			func(name string, newResource resourceConstructor) {
-				g.Go(func(_ context.Context) error {
-					st := time.Now()
-					rc := newResource(k.client, k.cfg)
-					rc.gatherObject(ctx)
-					collectResourceCostVec.WithLabelValues("object", name).Observe(time.Since(st).Seconds())
-					return nil
-				})
-			}(nonNodeLocalResourcesNames[idx], newResourceFn)
-		}
-	}
-
-	if k.cfg.NodeLocal {
-		for idx, newResourceFn := range nodeLocalResources {
-			func(name string, newResource resourceConstructor) {
-				g.Go(func(_ context.Context) error {
-					st := time.Now()
-					rc := newResource(k.client, k.cfg)
-					rc.gatherObject(ctx)
-					collectResourceCostVec.WithLabelValues("object", name).Observe(time.Since(st).Seconds())
-					return nil
-				})
-			}(nodeLocalResourcesNames[idx], newResourceFn)
-		}
-	}
-
-	g.Wait()
-	collectCostVec.WithLabelValues("object").Observe(time.Since(start).Seconds())
+	k.gatherResources("object", 0)
 }
 
-func (k *Kube) tryWatchEventAndChange(ctx context.Context) {
-	if k.cfg.EnableK8sEvent && !k.onWatchingEvent.Load() {
-		klog.Info("collect k8s event starting")
-		g := goroutine.G("k8s-event")
-
-		k.onWatchingEvent.Store(true)
-		g.Go(func(_ context.Context) error {
-			k.gatherEvent(ctx)
-			k.onWatchingEvent.Store(false)
-			return nil
-		})
+func (k *Kube) gatherResources(category string, timestamp int64) {
+	start := time.Now()
+	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-" + category})
+	k.mu.Lock()
+	cluster := k.cluster
+	k.mu.Unlock()
+	for _, scope := range []struct {
+		cache        *resourceCache
+		constructors []resourceConstructor
+		names        []string
+	}{
+		{cluster, nonNodeLocalResources, nonNodeLocalResourcesNames},
+		{k.local, nodeLocalResources, nodeLocalResourcesNames},
+	} {
+		if !scope.cache.usable() {
+			continue
+		}
+		for idx, constructor := range scope.constructors {
+			name := scope.names[idx]
+			g.Go(func(_ context.Context) error {
+				st := time.Now()
+				rc := constructor(k.client, scope.cache.cfg)
+				if category == "metric" {
+					rc.gatherMetric(scope.cache.ctx, timestamp)
+				} else {
+					rc.gatherObject(scope.cache.ctx)
+				}
+				collectResourceCostVec.WithLabelValues(category, name).Observe(time.Since(st).Seconds())
+				return nil
+			})
+		}
 	}
-
-	if !k.onWatchingChange.Load() {
-		klog.Info("collect k8s object-change starting")
-		g := goroutine.G("k8s-object-change")
-
-		k.onWatchingChange.Store(true)
-		g.Go(func(_ context.Context) error {
-			k.gatherChange(ctx)
-			k.onWatchingChange.Store(false)
-			return nil
-		})
+	if err := g.Wait(); err != nil {
+		klog.Warnf("wait Kubernetes %s collection failed: %s", category, err)
 	}
-}
-
-func (k *Kube) gatherChange(ctx context.Context) {
-	controllerStartTime = time.Now().UTC()
-	klog.Infof("controller start time is %s", controllerStartTime)
-
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(
-		k.client.KubernetesClientset(), 0,
-		informers.WithTweakListOptions(func(v *metav1.ListOptions) { v.Limit = 50 }),
-	)
-
-	for _, newResource := range nonNodeLocalResources {
-		rc := newResource(k.client, k.cfg)
-		rc.addChangeInformer(informerFactory)
-	}
-
-	informerFactory.Start(ctx.Done())
-	informerFactory.WaitForCacheSync(ctx.Done())
-
-	<-ctx.Done()
-	klog.Info("collect chagnes end..")
+	collectCostVec.WithLabelValues(category).Observe(time.Since(start).Seconds())
 }
 
 type K8sResourceCount struct{}

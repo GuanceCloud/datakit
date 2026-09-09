@@ -347,7 +347,7 @@ The maximum window for configuration changes to take effect is 1 minute.
 
 - What happens when multiple ClusterLoggingConfigs match the same Pod?
 
-In theory, the ClusterLoggingConfig that was created first (with the smallest ResourceVersion) will be applied. It is best to avoid such situations.
+Adjust the matching conditions so that only one ClusterLoggingConfig matches each Pod to avoid conflicting collection configurations.
 
 - Do I need to add a mount to collect log files inside containers?
 

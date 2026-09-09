@@ -71,6 +71,9 @@ func TestInputFeedMetrics(t *T.T) {
 }
 
 func TestFeedMetrics(t *T.T) {
+	// Feed tests also populate these package-level collectors.
+	MetricsReset()
+	t.Cleanup(MetricsReset)
 	t.Run("basic", func(t *T.T) {
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(Metrics()...)

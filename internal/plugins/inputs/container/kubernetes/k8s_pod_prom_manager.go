@@ -72,16 +72,14 @@ type promTaskManager struct {
 	jobs      chan promJob
 	results   chan *promTask
 	snapshots chan []promPodCandidate
-	controls  chan bool
-	active    bool
 	running   int
 	runSeq    uint64
 
 	done chan struct{}
 }
 
-func newPromTaskManager(cfg *Config) *promTaskManager {
-	ctx, cancel := context.WithCancel(context.Background())
+func newPromTaskManager(parent context.Context, cfg *Config) *promTaskManager {
+	ctx, cancel := context.WithCancel(parent)
 	workers := min(4, max(2, runtime.NumCPU()))
 	return &promTaskManager{
 		cfg:            cfg,
@@ -94,8 +92,6 @@ func newPromTaskManager(cfg *Config) *promTaskManager {
 		jobs:           make(chan promJob, workers),
 		results:        make(chan *promTask, workers),
 		snapshots:      make(chan []promPodCandidate),
-		controls:       make(chan bool),
-		active:         cfg.NodeLocal,
 		done:           make(chan struct{}),
 	}
 }
@@ -293,14 +289,7 @@ func (m *promTaskManager) run() {
 			}
 			m.schedule(now)
 		case snapshot := <-m.snapshots:
-			if m.active {
-				m.applySnapshot(snapshot, m.now())
-			}
-		case active := <-m.controls:
-			m.active = active
-			if !m.active {
-				m.removeAllPods()
-			}
+			m.applySnapshot(snapshot, m.now())
 		case now := <-ticks:
 			m.schedule(now)
 		}
@@ -372,13 +361,6 @@ func (m *promTaskManager) runPromJob(job promJob) {
 func (m *promTaskManager) publishPromPods(candidates []promPodCandidate) {
 	select {
 	case m.snapshots <- candidates:
-	case <-m.ctx.Done():
-	}
-}
-
-func (m *promTaskManager) setActive(active bool) {
-	select {
-	case m.controls <- active:
 	case <-m.ctx.Done():
 	}
 }

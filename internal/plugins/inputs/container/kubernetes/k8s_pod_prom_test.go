@@ -37,7 +37,6 @@ import (
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 func TestLegacyPromConfigCompatibility(t *testing.T) {
@@ -88,7 +87,7 @@ func TestPromRunnerEmitsSelectedPodLabelsWithoutConfiguredTags(t *testing.T) {
 }
 
 func TestPromManagerRefreshesEffectivePodState(t *testing.T) {
-	manager := newPromTaskManager(&Config{
+	manager := newPromTaskManager(context.Background(), &Config{
 		LabelAsTagsForMetric: LabelsOption{Keys: []string{"team"}},
 	})
 	t.Cleanup(func() {
@@ -137,7 +136,7 @@ func TestPromManagerRefreshesEffectivePodState(t *testing.T) {
 }
 
 func TestPromScheduleKeepsUndispatchedTasksDue(t *testing.T) {
-	manager := newPromTaskManager(&Config{})
+	manager := newPromTaskManager(context.Background(), &Config{})
 	manager.cancel()
 	manager.workerCount = 4
 	manager.jobs = make(chan promJob, manager.workerCount)
@@ -168,7 +167,7 @@ func TestPromWorkersDrainAllDueTasksWithoutAnotherTick(t *testing.T) {
 	base := time.Unix(1_700_000_000, 0)
 	var nowNano atomic.Int64
 	nowNano.Store(base.UnixNano())
-	manager, ticks := startPromManager(t, &Config{NodeLocal: true}, 4, time.Second,
+	manager, ticks := startPromManager(t, context.Background(), &Config{}, 4, time.Second,
 		func() time.Time { return time.Unix(0, nowNano.Load()) })
 	raw := strings.Repeat(fmt.Sprintf(
 		"[[inputs.prom]]\nurl=%q\ninterval='10s'\n", server.URL,
@@ -526,7 +525,7 @@ func TestPromTLSFileRevisionTracksEveryCredentialFile(t *testing.T) {
 }
 
 func TestPromManagerAdmissionAndRawHash(t *testing.T) {
-	manager, _ := startPromManager(t, &Config{NodeLocal: true}, 2, time.Second, time.Now)
+	manager, _ := startPromManager(t, context.Background(), &Config{}, 2, time.Second, time.Now)
 	large := promCandidate("large", strings.Repeat("[[inputs.prom]]\nurl='http://127.0.0.1'\ninterval='1h'\n", 1001))
 	small := promCandidate("small", "[[inputs.prom]]\nurl='http://127.0.0.1'\ninterval='1h'\n")
 	atLimit := promCandidate("limit", strings.Repeat(small.rawConfig, defaultPromTaskLimit))
@@ -566,14 +565,13 @@ func TestPromManagerBoundsSkipsAndCancelsScrapes(t *testing.T) {
 	t.Cleanup(server.Close)
 	base := time.Unix(1_700_000_000, 0)
 	var nowOffset atomic.Int64
-	manager, ticks := startPromManager(t, &Config{}, 2, 300*time.Millisecond,
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	manager, ticks := startPromManager(t, ctx, &Config{}, 2, 300*time.Millisecond,
 		func() time.Time { return base.Add(time.Duration(nowOffset.Load())) })
 	timeoutBefore := promValue(t, podAnnotationPromScrapesTotal.WithLabelValues("timeout"))
 	canceledBefore := promValue(t, podAnnotationPromScrapesTotal.WithLabelValues("canceled"))
 	raw := strings.Repeat(fmt.Sprintf("[[inputs.prom]]\nurl=%q\ninterval='10s'\ntimeout='100ms'\n", server.URL), 3)
-	manager.publishPromPods([]promPodCandidate{promCandidate("slow", raw)})
-	manager.setActive(true)
-	require.Zero(t, promValue(t, podAnnotationPromActiveTasks))
 	manager.publishPromPods([]promPodCandidate{promCandidate("slow", raw)})
 	require.Eventually(t, func() bool { return promValue(t, podAnnotationPromActiveTasks) == 3 }, time.Second, time.Millisecond)
 	ticks <- base.Add(10 * time.Second)
@@ -594,14 +592,17 @@ func TestPromManagerBoundsSkipsAndCancelsScrapes(t *testing.T) {
 		nextTick++
 		return requests.Load() == 5
 	}, time.Second, time.Millisecond)
-	manager.setActive(false)
+	cancel()
 	require.Eventually(t, func() bool {
 		return promValue(t, podAnnotationPromScrapesTotal.WithLabelValues("canceled")) == canceledBefore+2 &&
 			promValue(t, podAnnotationPromInflightScrapes) == 0
 	}, time.Second, 5*time.Millisecond)
 	require.Zero(t, promValue(t, podAnnotationPromActiveTasks))
-	manager.setActive(true)
-	require.Zero(t, promValue(t, podAnnotationPromActiveTasks))
+	select {
+	case <-manager.done:
+	case <-time.After(time.Second):
+		t.Fatal("manager did not stop after parent cancellation")
+	}
 }
 
 func TestMaxPromRequestTimeoutHonorsConfiguredUpperBound(t *testing.T) {
@@ -609,12 +610,11 @@ func TestMaxPromRequestTimeoutHonorsConfiguredUpperBound(t *testing.T) {
 	require.Equal(t, defaultPromRequestTimeout, maxPromRequestTimeout(defaultPromRequestTimeout, 9*time.Second))
 }
 
-func TestPromSnapshotRequiresEveryPage(t *testing.T) {
-	client := &pageFailClient{}
-	p := newPod(client, &Config{promPodPublisher: client})
-	p.gatherObject(context.Background(), "", false)
-	require.Equal(t, 2, client.calls)
-	require.False(t, client.published)
+func TestPromSnapshotRequiresSyncedCache(t *testing.T) {
+	publisher := &promSnapshotRecorder{}
+	p := newPod(nil, &Config{promPodPublisher: publisher})
+	p.gatherObject(context.Background(), false)
+	require.False(t, publisher.published)
 }
 
 func TestPromMetricsHaveBoundedLabels(t *testing.T) {
@@ -637,10 +637,10 @@ func TestPromMetricsHaveBoundedLabels(t *testing.T) {
 	}
 }
 
-func startPromManager(t *testing.T, cfg *Config, workers int, timeout time.Duration, now func() time.Time) (*promTaskManager, chan time.Time) {
+func startPromManager(t *testing.T, ctx context.Context, cfg *Config, workers int, timeout time.Duration, now func() time.Time) (*promTaskManager, chan time.Time) {
 	t.Helper()
 	ticks := make(chan time.Time)
-	manager := newPromTaskManager(cfg)
+	manager := newPromTaskManager(ctx, cfg)
 	manager.workerCount, manager.requestTimeout, manager.tickC = workers, timeout, ticks
 	manager.now = now
 	go manager.run()
@@ -661,20 +661,8 @@ func promValue(t *testing.T, source prometheus.Metric) float64 {
 	return metric.GetGauge().GetValue() + metric.GetCounter().GetValue()
 }
 
-type pageFailClient struct {
-	k8sClient
-	corev1.PodInterface
-	calls     int
+type promSnapshotRecorder struct {
 	published bool
 }
 
-func (p *pageFailClient) GetPods(string) corev1.PodInterface { return p }
-func (p *pageFailClient) publishPromPods([]promPodCandidate) { p.published = true }
-
-func (p *pageFailClient) List(context.Context, metav1.ListOptions) (*apicorev1.PodList, error) {
-	p.calls++
-	if p.calls == 1 {
-		return &apicorev1.PodList{ListMeta: metav1.ListMeta{Continue: "next"}}, nil
-	}
-	return nil, fmt.Errorf("page 2 failed")
-}
+func (p *promSnapshotRecorder) publishPromPods([]promPodCandidate) { p.published = true }

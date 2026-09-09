@@ -1,0 +1,24 @@
+a={"a":1,"b":2,"c":3}
+result=0
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+result+=a[key]
+add_key(result,result)
+add_key(ok, result == 40)

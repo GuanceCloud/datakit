@@ -48,9 +48,9 @@ const (
   ## NOTE: DO NOT EDIT.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
-  ## customer_tags will work as a whitelist to prevent tags send to data center.
-  ## All . will replace to _ ,like this :
-  ## "project.name" to send to center is "project_name"
+  ## customer_tags selects span meta and metrics keys to promote.
+  ## String meta values are added as tags, while numeric metrics values are added as fields.
+  ## All . will replace to _ ,like this : "project.name" to send to center is "project_name"
   # customer_tags = ["sink_project", "custom_dd_tag", "reg:key_*"]
 
   ## Keep rare tracing resources list switch.
@@ -87,6 +87,12 @@ const (
 
   ## max trace body(Content-Length) limit. default 32MiB or set to -1 to remove this limit.
   # max_trace_body_mb = 32
+
+  ## Rejected sampling priorities that bypass DDTrace's early drop decision.
+  ## Supported values are -3, -1, and 0. Empty by default to preserve the current behavior.
+  ## Set it to [0] to bypass the early drop for priority 0. A bypassed trace still goes
+  ## through subsequent DataKit filters and samplers.
+  # sampling_priority_drop_excludes = []
 
   ## tracing_metric_enable: trace_hits trace_hits_by_http_status trace_latency trace_errors trace_errors_by_http_status trace_apdex.
   ## Extract the above metrics from the collection traces.
@@ -150,31 +156,32 @@ var (
 )
 
 type Input struct {
-	Path                      string                       `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs          interface{}                  `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
-	TraceSampleConf           interface{}                  `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
-	IgnoreResources           []string                     `toml:"ignore_resources"`         // deprecated []string
-	Pipelines                 map[string]string            `toml:"pipelines"`                // deprecated
-	CustomerTags              []string                     `toml:"customer_tags"`
-	Endpoints                 []string                     `toml:"endpoints"`
-	CompatibleOTEL            bool                         `toml:"compatible_otel"`
-	TraceID64BitHex           bool                         `toml:"trace_id_64_bit_hex"`
-	Trace128BitID             bool                         `toml:"trace_128_bit_id"`
-	TracingMetricEnable       bool                         `toml:"tracing_metric_enable"`        // 开关，默认false。
-	ApmTelemetryRouteEnable   bool                         `toml:"apmtelemetry_route_enable"`    // 是否接收 api/apmtelemetry 的JVM 数据。
-	TracingMetricTagBlacklist []string                     `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
-	TracingMetricTagWhitelist []string                     `toml:"tracing_metric_tag_whitelist"` // 指标白名单。
-	DelMessage                bool                         `toml:"del_message"`
-	KeepRareResource          bool                         `toml:"keep_rare_resource"`
-	OmitErrStatus             []string                     `toml:"omit_err_status"`
-	CloseResource             map[string][]string          `toml:"close_resource"`
-	Sampler                   *itrace.Sampler              `toml:"sampler"`
-	Tags                      map[string]string            `toml:"tags"`
-	WPConfig                  *workerpool.WorkerPoolConfig `toml:"threads"`
-	LocalCacheConfig          *storage.StorageConfig       `toml:"storage"`
-	TraceMaxSpans             int                          `toml:"trace_max_spans"`
-	MaxTraceBodyMB            int64                        `toml:"max_trace_body_mb"`
-	NoStreaming               bool                         `toml:"no_streaming,omitempty"`
+	Path                         string                       `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs             interface{}                  `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
+	TraceSampleConf              interface{}                  `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
+	IgnoreResources              []string                     `toml:"ignore_resources"`         // deprecated []string
+	Pipelines                    map[string]string            `toml:"pipelines"`                // deprecated
+	CustomerTags                 []string                     `toml:"customer_tags"`
+	Endpoints                    []string                     `toml:"endpoints"`
+	CompatibleOTEL               bool                         `toml:"compatible_otel"`
+	TraceID64BitHex              bool                         `toml:"trace_id_64_bit_hex"`
+	Trace128BitID                bool                         `toml:"trace_128_bit_id"`
+	TracingMetricEnable          bool                         `toml:"tracing_metric_enable"`        // 开关，默认false。
+	ApmTelemetryRouteEnable      bool                         `toml:"apmtelemetry_route_enable"`    // 是否接收 api/apmtelemetry 的JVM 数据。
+	TracingMetricTagBlacklist    []string                     `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
+	TracingMetricTagWhitelist    []string                     `toml:"tracing_metric_tag_whitelist"` // 指标白名单。
+	DelMessage                   bool                         `toml:"del_message"`
+	KeepRareResource             bool                         `toml:"keep_rare_resource"`
+	OmitErrStatus                []string                     `toml:"omit_err_status"`
+	CloseResource                map[string][]string          `toml:"close_resource"`
+	Sampler                      *itrace.Sampler              `toml:"sampler"`
+	Tags                         map[string]string            `toml:"tags"`
+	WPConfig                     *workerpool.WorkerPoolConfig `toml:"threads"`
+	LocalCacheConfig             *storage.StorageConfig       `toml:"storage"`
+	TraceMaxSpans                int                          `toml:"trace_max_spans"`
+	MaxTraceBodyMB               int64                        `toml:"max_trace_body_mb"`
+	SamplingPriorityDropExcludes []int                        `toml:"sampling_priority_drop_excludes"`
+	NoStreaming                  bool                         `toml:"no_streaming,omitempty"`
 
 	feeder              dkio.Feeder
 	semStop             *cliutils.Sem // start stop signal
@@ -203,6 +210,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
+	ipt.normalizeSamplingPriorityDropExcludes()
 	log.Infof("DdTrace start init and register HTTP. Input=%s", ipt.string())
 	if ipt.CompatibleOTEL {
 		ipt.spanBase = 16
@@ -353,6 +361,24 @@ func (ipt *Input) RegHTTPHandler() {
 		httpapi.RegHTTPHandler(http.MethodPost, apmTelemetry, ipt.handleDDProxy)
 	}
 	log.Infof("### %s agent is running...", inputName)
+}
+
+func (ipt *Input) normalizeSamplingPriorityDropExcludes() {
+	seen := make(map[int]struct{}, len(ipt.SamplingPriorityDropExcludes))
+	values := make([]int, 0, len(ipt.SamplingPriorityDropExcludes))
+	for _, priority := range ipt.SamplingPriorityDropExcludes {
+		if !isRejectedSamplingPriority(priority) {
+			log.Warnf("ignore unsupported sampling_priority_drop_excludes value %d; supported values are -3, -1, and 0", priority)
+			continue
+		}
+		if _, ok := seen[priority]; ok {
+			continue
+		}
+
+		seen[priority] = struct{}{}
+		values = append(values, priority)
+	}
+	ipt.SamplingPriorityDropExcludes = values
 }
 
 func (ipt *Input) Run() {

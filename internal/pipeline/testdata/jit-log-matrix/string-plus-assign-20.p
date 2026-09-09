@@ -1,0 +1,23 @@
+s = seed
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+s += suffix
+n = len(s)
+add_key(ok, n == expected_len)

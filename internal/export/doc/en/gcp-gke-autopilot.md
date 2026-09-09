@@ -20,7 +20,7 @@ The regular `datakit` chart targets standard Kubernetes environments and install
 - Kubernetes resource metrics and objects: collected from the Kubernetes API, including Pod, Deployment, Service, and Node resources.
 - GCP authentication: uses Workload Identity and does not require a Service Account key file.
 
-This mode does not support host metrics, container runtime sockets, local container file logs, or eBPF. Cloud Monitoring metrics are typically delayed by several minutes. Cloud Logging uses an overlapping time window and `timestamp + insertId` deduplication, so regular polling is deduplicated. After Pod replacement or leader changes, logs in the overlap window may be read again, so delivery is at least once.
+This mode does not support host metrics, container runtime sockets, local container file logs, or eBPF. Cloud Monitoring metrics are typically delayed by several minutes. After Pod replacement or leader changes, recent logs from Cloud Logging may be collected again. Log delivery is at least once.
 
 ## Prerequisites {#prerequisites}
 

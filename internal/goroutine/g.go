@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -18,7 +19,7 @@ var goroutines = []*Group{}
 // G create a goroutine group, with namespace datakit.
 func G(name string) *Group {
 	panicCb := func(b []byte) bool {
-		l.Errorf("recover panic: %s", string(b))
+		logger.SLogger("goroutine").Errorf("recover panic: %s", string(b))
 		select {
 		case <-datakit.Exit.Wait(): // don't continue when exit
 			return false
@@ -42,6 +43,7 @@ func G(name string) *Group {
 
 // GWait wait all goroutine group exit.
 func GWait() {
+	l := logger.SLogger("goroutine")
 	for _, g := range goroutines {
 		if err := g.Wait(); err != nil {
 			l.Warnf("wait %q failed: %s, ignored", g.Name(), err.Error())

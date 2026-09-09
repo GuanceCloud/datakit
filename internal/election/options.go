@@ -5,11 +5,23 @@
 
 package election
 
+import "time"
+
+type Clock interface {
+	Now() time.Time
+}
+
+type realClock struct{}
+
+func (realClock) Now() time.Time { return time.Now() }
+
 type option struct {
 	enabled       bool
 	namespace, id string
 	nodeWhitelist []string
 	puller        Puller
+	provider      Provider
+	clock         Clock
 }
 
 type ElectionOption func(opt *option)
@@ -41,5 +53,13 @@ func WithNamespace(ns string) ElectionOption {
 func WithDatawayPuller(p Puller) ElectionOption {
 	return func(opt *option) {
 		opt.puller = p
+		opt.provider = ProviderDataway
+	}
+}
+
+func WithPuller(provider Provider, p Puller) ElectionOption {
+	return func(opt *option) {
+		opt.puller = p
+		opt.provider = provider
 	}
 }

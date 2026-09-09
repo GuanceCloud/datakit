@@ -9,132 +9,86 @@ package snmp
 // nolint:lll
 const sampleCfg = `
 [[inputs.snmp]]
-  ## Filling in specific device IP address, example ["10.200.10.240", "10.200.10.241"].
-  ## And you can use auto_discovery and specific_devices at the same time.
-  ## If you don't want to specific device, you don't need provide this.
-  # specific_devices = [""] # SNMP Device IP.
-
-  ## Filling in autodiscovery CIDR subnet, example ["10.200.10.0/24", "10.200.20.0/24"].
-  ## If you don't want to enable autodiscovery feature, you don't need provide this.
-  # auto_discovery = [""] # Used in autodiscovery mode only, ignore this in other cases.
-
-  ## Consul server url for consul discovery
-  ## We can discovery snmp instance from consul services
-  # consul_discovery_url = "http://127.0.0.1:8500"
-
-  ## Consul token, optional.
-  # consul_token = "<consul token>"
-
-  ## Instance ip key name. ("IP" case sensitive)
-  # instance_ip_key = "IP"
-
-  ## Witch task will collect, according to consul service filed "Address"
-  ## [] mean collect all, optional, default to []
-  # exporter_ips = ["<ip1>", "<ip2>"...]
-
-  ## Consul TLS connection config, optional.
-  # ca_certs = ["/opt/tls/ca.crt"]
-  # cert = "/opt/tls/client.crt"
-  # cert_key = "/opt/tls/client.key"
-  # insecure_skip_verify = true
-
-  ## SNMP protocol version the devices using, fill in 2 or 3.
-  ## If you using the version 1, just fill in 2. Version 2 supported version 1.
-  ## This is must be provided.
+  ## SNMP version: 1, 2 (v2c), or 3.
   snmp_version = 2
-
-  ## SNMP port in the devices. Default is 161. In most cases, you don't need change this.
-  ## This is optional.
   # port = 161
 
-  ## Password in SNMP v2, enclose with single quote. Only worked in SNMP v2.
-  ## If you are using SNMP v2, this is must be provided.
-  ## If you are using SNMP v3, you don't need provide this.
+  ## Community string, required for SNMP v1/v2c.
   # v2_community_string = ""
 
-  ## Authentication for SNMP v3.
-  ## If you are using SNMP v2, you don't need provide this.
-  ## If you are using SNMP v3, this is must be provided.
-  # v3_user = ""
-  # v3_auth_protocol = "" # MD5/SHA/SHA224/SHA256/SHA384/SHA512 or empty
-  # v3_auth_key = ""
-  # v3_priv_protocol = "" # DES/AES/AES192/AES192C/AES256/AES256C or empty
-  # v3_priv_key = ""
+  ## SNMP v3 credentials; authentication and privacy settings must match the device.
+  # v3_user              = ""
+  # v3_auth_protocol     = "" # MD5/SHA/SHA224/SHA256/SHA384/SHA512 or empty
+  # v3_auth_key          = ""
+  # v3_priv_protocol     = "" # DES/AES/AES192/AES192C/AES256/AES256C or empty
+  # v3_priv_key          = ""
   # v3_context_engine_id = "" # optional
-  # v3_context_name = ""      # optional
+  # v3_context_name      = "" # optional
 
-  ## Number of workers used to collect and discovery devices concurrently. Default is 100.
-  ## Modifying it based on device's number and network scale.
-  ## This is optional.
-  # workers = 100
-
-  ## Number of max OIDs during walk(default 1000)
-  # max_oids = 1000
-
-  ## Number of OIDs retrieved in a single SNMP Get/GetBulk call. Default is 5.
-  # oid_batch_size = 5
-
-  ## Max repetitions used in SNMP GetBulk calls. Default is 10.
-  # bulk_max_repetitions = 10
-
-  ## Interval between each auto discovery in seconds. Default is "1h".
-  ## Only worked in auto discovery feature.
-  ## This is optional.
-  # discovery_interval = "1h"
-
-  ## Collect metric interval, default is 10s. (optional)
-  # metric_interval = "10s"
-
-  ## Collect object interval, default is 5m. (optional)
-  # object_interval = "5m"
-
-  ## Collect LLDP/CDP topology links in snmp_object. Default is false. (optional)
-  ## Built-in Profiles only; follows object_interval and is independent of enable_lldp.
-  ## LLDP is preferred, with CDP used as a fallback.
-  # collect_topology = false
-
-  ## Enable standalone LLDP neighbor collection and report snmp_lldp logging data.
-  ## Default is false. (optional)
-  ## Avoid enabling this together with collect_topology unless both outputs are needed.
-  # enable_lldp = false
-
-  ## LLDP collection interval, default is 10m. (optional)
-  # lldp_interval = "10m"
-
-  ## Filling in excluded device IP address, example ["10.200.10.220", "10.200.10.221"].
-  ## Only worked in auto discovery feature.
-  ## This is optional.
-  # discovery_ignored_ip = []
-
-  ## Set true to enable election
-  # election = true
-
-  ## Device Namespace. Default is "default". It is an identity tag and cannot be overridden by custom tags.
+  ## Namespace used in device identity; cannot be overridden by custom tags.
   # device_namespace = "default"
 
-  ## Picking the metric data only contains the field's names below.
-  # enable_picking_data = true # Default is "false", which means collecting all data.
+  ## Device IPs, e.g. ["10.200.10.240"]; can be combined with auto_discovery.
+  ## With Zabbix/Prometheus profiles, use their ip_list instead.
+  # specific_devices = [""]
+
+  ## Autodiscovery subnets in CIDR notation, e.g. ["10.200.10.0/24"].
+  # auto_discovery       = [""]
+  # discovery_interval   = "1h"
+  # discovery_ignored_ip = [] # Device IPs excluded from autodiscovery.
+
+  ## Consul discovery with Prometheus profiles and module_regexps below.
+  # consul_discovery_url = "http://127.0.0.1:8500"
+  # consul_token         = "<consul token>"  # Optional.
+  # instance_ip_key      = "IP"              # Device IP metadata key (case-sensitive).
+  # exporter_ips         = ["<ip1>", "<ip2>"] # Filter by service Address; defaults to [] (all).
+  ## TLS settings for Consul.
+  # ca_certs             = ["/opt/tls/ca.crt"]
+  # cert                 = "/opt/tls/client.crt"
+  # cert_key             = "/opt/tls/client.key"
+  # insecure_skip_verify = true
+
+  ## Metric collection interval.
+  # metric_interval = "10s"
+
+  ## Device object collection; optional topology links follow object_interval.
+  ## Topology uses built-in Profiles, preferring LLDP with CDP as a fallback.
+  # object_interval  = "5m"
+  # collect_topology = false
+
+  ## Collect LLDP neighbors as snmp_lldp logs, independently of object topology.
+  ## Enable with collect_topology only if both outputs are needed.
+  # enable_lldp   = false
+  # lldp_interval = "10m"
+
+  ## Collection concurrency and request sizes.
+  # workers              = 100  # Concurrent discovery and collection workers.
+  # max_oids             = 1000 # Maximum OIDs allowed per Get call.
+  # oid_batch_size       = 5    # OIDs requested per Get/GetBulk call.
+  # bulk_max_repetitions = 10   # Maximum repetitions per GetBulk call.
+
+  ## Enable election.
+  # election = true
+
+  ## Optional filtering for built-in Profiles; collect data containing any listed field.
+  # enable_picking_data = true # Defaults to false (collect all metric data).
   # status = ["sysUpTimeInstance", "tcpCurrEstab", "ifAdminStatus", "ifOperStatus", "cswSwitchState"]
   # speed = ["ifHCInOctets", "ifHCInOctetsRate", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHighSpeed", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate"]
   # cpu = ["cpuUsage"]
   # mem = ["memoryUsed", "memoryUsage", "memoryFree"]
   # extra = []
 
-  ## The matched tags would be dropped.
-  # tags_ignore = ["Key1","key2"]
-
-  ## The regexp matched tags would be dropped.
+  ## Drop tags by exact key or regular expression.
+  # tags_ignore        = ["Key1","key2"]
   # tags_ignore_regexp = ["^key1$","^(a|bc|de)$"]
 
-  ## Zabbix profiles
+  ## Zabbix profiles.
   # [[inputs.snmp.zabbix_profiles]]
-    ## Can be full path file name or only file name.
-    ## If only file name, the path is "./conf.d/snmp/userprofiles/
-    ## Suffix can be .yaml .yml .xml
+    ## Full path or file name under ./conf.d/snmp/userprofiles/ (.yaml, .yml, or .xml).
     # profile_name = "xxx.yaml"
-    ## ip_list is optional
+    ## Optional device IPs.
     # ip_list = ["ip1", "ip2"]
-    ## Device class, Best to use the following words:
+    ## Recommended device classes:
     ## access_point, firewall, load_balancer, pdu, printer, router, sd_wan, sensor, server, storage, switch, ups, wlc, net_device
     # class = "server"
 
@@ -145,20 +99,19 @@ const sampleCfg = `
 
   # ...
 
-  ## Prometheus snmp_exporter profiles, 
-  ## If module mapping different class, can disassemble yml file.
+  ## Prometheus snmp_exporter profiles; split files by device class if needed.
   # [[inputs.snmp.prom_profiles]]
     # profile_name = "xxx.yml"
-    ## ip_list useful when xxx.yml have 1 module 
+    ## ip_list applies only to single-module profiles.
     # ip_list = ["ip1", "ip2"]
     # class = "net_device"
 
   # ...
 
-  ## Prometheus consul discovery module mapping.  ("type"/"isp" case sensitive)
+  ## Map Consul services to Prometheus modules; metadata keys are case-sensitive.
   # [[inputs.snmp.module_regexps]]
     # module = "vpn5"
-    ## There is an and relationship between step regularization
+    ## All regular expressions must match (AND).
     # step_regexps = [["type", "vpn"],["isp", "CT"]]
 
   # [[inputs.snmp.module_regexps]]
@@ -166,8 +119,8 @@ const sampleCfg = `
     # step_regexps = [["type", "switch"]]
 
   # ...
-    
-  ## Field key or tag key mapping. Do NOT edit.
+
+  ## Field and tag key mappings for Zabbix/Prometheus profiles. Do NOT edit existing entries.
   [inputs.snmp.key_mapping]
     CNTLR_NAME = "unit_name"
     DISK_NAME = "unit_name"
@@ -187,11 +140,11 @@ const sampleCfg = `
     SNMPVALUE = "snmp_value"
     TYPE = "unit_type"
     SENSOR_INFO = "unit_desc"
-    ## We can add more mapping below
+    ## Add custom mappings below.
     # dev_fan_speed = "fanSpeed"
-    # dev_disk_size = "diskTotal
-  
-  ## Reserved oid-key mappings. Do NOT edit.
+    # dev_disk_size = "diskTotal"
+
+  ## OID-to-key mappings for Zabbix/Prometheus profiles. Do NOT edit existing entries.
   [inputs.snmp.oid_keys]
     "1.3.6.1.2.1.1.3.0" = "netUptime"
     "1.3.6.1.2.1.25.1.1.0" = "uptime"
@@ -203,16 +156,17 @@ const sampleCfg = `
     "1.3.6.1.2.1.31.1.1.1.10" = "ifHCOutOctets"
     "1.3.6.1.2.1.31.1.1.1.15" = "ifHighSpeed"
     "1.3.6.1.2.1.2.2.1.8" = "ifNetStatus"
-    ## We can add more oid-key mapping below
+    ## Add custom OID-to-key mappings below.
 
   # [inputs.snmp.tags]
     # tag1 = "val1"
     # tag2 = "val2"
 
+  ## Enable to receive device traps and report them as logs.
   [inputs.snmp.traps]
-    enable = true
+    enable = false
     bind_host = "0.0.0.0"
     port = 9162
-    stop_timeout = 3    # stop timeout in seconds.
+    stop_timeout = 3    # Shutdown timeout in seconds.
     # source = "traps"
 `

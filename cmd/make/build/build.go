@@ -401,7 +401,14 @@ func Compile() error {
 			l.Infof("skip datakit lambda extensions under %s/%s", goos, goarch)
 		}
 
-		if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "with_inputs"); err != nil {
+		mainTags, err := pipelineJITBuildTags(goos, goarch, "with_inputs")
+		if err != nil {
+			return err
+		}
+		if err := stagePipelineJITRuntime(dir, goos, goarch); err != nil {
+			return err
+		}
+		if err := compileArch(AppBin, goos, goarch, dir, MainEntry, mainTags); err != nil {
 			return err
 		}
 

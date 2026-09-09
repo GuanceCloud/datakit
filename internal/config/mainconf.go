@@ -151,6 +151,7 @@ func DefaultConfig() *Config {
 			Enable:             false,
 			NodeWhitelist:      []string{},
 			EnableNamespaceTag: false,
+			OperatorURL:        "",
 			Namespace:          "default",
 			Tags:               map[string]string{},
 		},
@@ -197,6 +198,7 @@ func DefaultConfig() *Config {
 			ReferTablePullInterval: "5m",
 			EnableGrokFastPath:     false,
 			DefaultPipeline:        map[string]string{},
+			JIT:                    &plval.JITCfg{MaxCachedPrograms: 256},
 			Offload: &offload.OffloadConfig{
 				Receiver:  offload.DKRcv,
 				Addresses: []string{},

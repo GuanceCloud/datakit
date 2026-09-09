@@ -7,6 +7,7 @@
 package geoip
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -41,6 +42,23 @@ func InitLog() {
 type Geoip struct {
 	geo *geoip2.Reader
 	isp *geoip2.Reader
+}
+
+// Close releases MaxMind readers after the owning pipeline generation drains.
+func (g *Geoip) Close() error {
+	if g == nil {
+		return nil
+	}
+	var errs []error
+	if g.geo != nil {
+		errs = append(errs, g.geo.Close())
+		g.geo = nil
+	}
+	if g.isp != nil {
+		errs = append(errs, g.isp.Close())
+		g.isp = nil
+	}
+	return errors.Join(errs...)
 }
 
 func (g *Geoip) loadIPLib(geo string, isp string) error {

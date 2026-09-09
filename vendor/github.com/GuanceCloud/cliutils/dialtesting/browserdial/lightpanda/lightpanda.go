@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package lightpanda
 
 import (
@@ -20,7 +25,9 @@ import (
 	"github.com/GuanceCloud/cliutils/dialtesting/browserdial/evidence"
 	"github.com/GuanceCloud/cliutils/dialtesting/browserdial/runner"
 	"github.com/GuanceCloud/cliutils/dialtesting/browserdial/util"
+	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/cdproto/page"
 	cdpruntime "github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
@@ -44,6 +51,8 @@ type Engine struct {
 	requests  map[network.RequestID]requestInfo
 	responses map[network.RequestID]struct{}
 }
+
+var _ runner.Screenshotter = (*Engine)(nil)
 
 type requestInfo struct {
 	URL          string
@@ -91,7 +100,16 @@ func NewEngine(ctx context.Context, options runner.EngineOptions) (runner.Engine
 	}
 
 	chromedp.ListenTarget(tabCtx, engine.listen)
-	if err := engine.run(tabCtx, network.Enable(), cdpruntime.Enable()); err != nil {
+	actions := []chromedp.Action{network.Enable(), cdpruntime.Enable()}
+	if options.ViewportWidth > 0 && options.ViewportHeight > 0 {
+		actions = append(actions, emulation.SetDeviceMetricsOverride(
+			int64(options.ViewportWidth),
+			int64(options.ViewportHeight),
+			1,
+			false,
+		))
+	}
+	if err := engine.run(tabCtx, actions...); err != nil {
 		engine.cancel()
 		return nil, err
 	}
@@ -103,7 +121,13 @@ func lightpandaArguments(options runner.EngineOptions) ([]string, error) {
 }
 
 func lightpandaArgumentsWithSystemCADirectories(options runner.EngineOptions, systemDirectories []string) ([]string, error) {
-	arguments := []string{}
+	// Lightpanda 0.4.0 no longer loads iframes or workers by default. Keep
+	// browser dialtesting behavior compatible with the previously bundled
+	// engine while adopting the new explicit resource-loading interface.
+	arguments := []string{
+		"--load-resources", "iframe",
+		"--load-resources", "worker",
+	}
 	caCertFile := strings.TrimSpace(options.CACertFile)
 	caCertDir := strings.TrimSpace(options.CACertDir)
 	if caCertFile != "" || caCertDir != "" {
@@ -150,7 +174,9 @@ func lightpandaArgumentsWithSystemCADirectories(options runner.EngineOptions, sy
 		cidrs = append(cidrs, cidr)
 	}
 	if len(cidrs) > 0 {
-		arguments = append(arguments, "--block-cidrs", strings.Join(cidrs, ","))
+		for _, cidr := range cidrs {
+			arguments = append(arguments, "--block-cidrs", cidr)
+		}
 	} else if options.BlockPrivateNetwork {
 		arguments = append(arguments, "--block-private-networks")
 	}
@@ -283,6 +309,39 @@ func (e *Engine) Eval(ctx context.Context, expression string) (string, error) {
 	return util.JSONString(result, 8_000), err
 }
 
+func (e *Engine) CaptureScreenshot(ctx context.Context, path string, fullPage bool) (string, error) {
+	actionCtx, cancel := e.actionContext(ctx)
+	defer cancel()
+
+	// Lightpanda only supports PNG screenshots. Keep the returned path's
+	// extension consistent even if a caller requests a full-page capture.
+	if !strings.EqualFold(filepath.Ext(path), ".png") {
+		path = strings.TrimSuffix(path, filepath.Ext(path)) + ".png"
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return "", err
+	}
+
+	var image []byte
+	capture := page.CaptureScreenshot().
+		WithFormat(page.CaptureScreenshotFormatPng).
+		WithCaptureBeyondViewport(fullPage)
+	if err := e.run(actionCtx, chromedp.ActionFunc(func(ctx context.Context) error {
+		var err error
+		image, err = capture.Do(ctx)
+		return err
+	})); err != nil {
+		return "", err
+	}
+	if len(image) == 0 {
+		return "", fmt.Errorf("lightpanda returned an empty screenshot")
+	}
+	if err := os.WriteFile(path, image, 0o600); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func (e *Engine) CaptureDOM(ctx context.Context) (evidence.DomSnapshot, error) {
 	snapshot := evidence.DomSnapshot{CapturedAt: util.NowISO()}
 	if currentURL, err := e.URL(ctx); err == nil {
@@ -337,9 +396,12 @@ func (e *Engine) evaluate(ctx context.Context, expression string, out any) error
 }
 
 func (e *Engine) actionContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	actionCtx, cancel := context.WithCancel(e.ctx)
+	var actionCtx context.Context
+	var cancel context.CancelFunc
 	if deadline, ok := ctx.Deadline(); ok {
 		actionCtx, cancel = context.WithDeadline(e.ctx, deadline)
+	} else {
+		actionCtx, cancel = context.WithCancel(e.ctx)
 	}
 	go func() {
 		select {

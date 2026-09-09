@@ -22,6 +22,8 @@ var (
 	podAnnotationPromInflightScrapes prometheus.Gauge
 	podAnnotationPromScrapesTotal    *prometheus.CounterVec
 	objectChangeCountVec             *prometheus.CounterVec
+	informerStartsVec                *prometheus.CounterVec
+	informerUnsyncedVec              *prometheus.GaugeVec
 )
 
 func setupMetrics() {
@@ -138,7 +140,18 @@ func setupMetrics() {
 		},
 	)
 
+	informerStartsVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "datakit", Subsystem: "input_container", Name: "kubernetes_informer_starts_total",
+		Help: "Number of informer starts by scope; excludes borrowed runtime Pod informers.",
+	}, []string{"scope"})
+	informerUnsyncedVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "datakit", Subsystem: "input_container", Name: "kubernetes_informer_unsynced",
+		Help: "Number of informers still awaiting initial synchronization in the active scope; zero after retirement.",
+	}, []string{"scope"})
+
 	metrics.MustRegister(
+		informerStartsVec,
+		informerUnsyncedVec,
 		collectCostVec,
 		collectResourceCostVec,
 		collectPtsVec,

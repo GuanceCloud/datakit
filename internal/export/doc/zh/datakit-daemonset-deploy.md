@@ -473,9 +473,9 @@ DataKit 启动时会根据 `ENV_K8S_NODE_NAME` 查询当前 Node，并将上述�
 <!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
-???+ note "关于 buffer 和 queue 的说明"
+???+ note "缓存大小"
 
-    `ENV_IO_MAX_CACHE_COUNT` 用来控制数据的发送策略，即当内存中 cache 的（行协议）点数超过该数值的时候，就会尝试将内存中当前 cache 的点数发送到中心。如果该 cache 的阈值调的太大，数据就都堆积在内存，导致内存飙升，但会提高 GZip 的压缩效果。如果太小，可能影响发送吞吐率。
+    `ENV_IO_MAX_CACHE_COUNT` 控制批量发送前缓存的数据点数。增大该值可能提高发送吞吐率，但会增加内存占用和等待时间；减小该值可降低缓存占用，但可能影响吞吐率。
 <!-- markdownlint-enable MD046 -->
 
 `ENV_IO_FILTERS` 是一个 JSON 字符串，示例如下：

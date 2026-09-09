@@ -1,6 +1,6 @@
 ---
 title     : 'SNMP'
-summary   : '采集 SNMP 设备的指标和对象数据'
+summary   : '采集 SNMP 设备的指标、对象及可选日志数据'
 tags:
   - 'SNMP'
 __int_icon      : 'icon/snmp'
@@ -760,6 +760,31 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
     # v3_context_name      = "" # optional
     ```
 
+### SNMP Trap 配置 {#snmp-traps}
+
+SNMP Trap 日志默认关闭。开启后，设备主动发送的 Trap 事件会作为日志上报，可能增加日志用量和费用。
+
+修改 *snmp.conf* 中的 `[inputs.snmp.traps]`，然后[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service)：
+
+```toml
+[inputs.snmp.traps]
+  enable = true
+  bind_host = "0.0.0.0"
+  port = 9162
+  stop_timeout = 3
+  # source = "traps"
+```
+
+- `bind_host`：本地监听地址，`0.0.0.0` 表示所有 IPv4 地址；`port`：Trap UDP 监听端口，默认 `9162`。
+- `stop_timeout`：停止 Trap 服务的超时时间（秒），未配置或为 `0` 时使用 `5` 秒。
+- `source`：日志源，默认 `traps`。
+
+设备侧需启用 Trap 发送，将目标设置为可访问的 DataKit IP 和监听端口，并放通 UDP 流量。
+
+Trap 复用同一 `[[inputs.snmp]]` 下的 [SNMP 凭证](snmp.md#config-pre)，设备侧需保持一致。
+
+关闭时，将 `enable` 设为 `false` 并重启 DataKit。
+
 ## LLDP 网络拓扑采集 {#lldp-topology}
 
 DataKit 支持通过 SNMP 协议采集网络设备的 LLDP（Link Layer Discovery Protocol，链路层发现协议）邻居信息，用于自动构建网络拓扑。
@@ -943,6 +968,16 @@ snmpwalk -v3 -u [USERNAME] -l authPriv \
 {{ end }}
 
 ## 日志 {#logging}
+
+### SNMP Trap 日志 {#snmp-trap-logging}
+
+配置方式见 [SNMP Trap 配置](snmp.md#snmp-traps)。在日志查看器中选择配置的日志源（默认为 `traps`），可查看以下主要内容：
+
+| 名称 | 说明 |
+| --- | --- |
+| `host` | Trap 发送方的 IP 地址标签。 |
+| `message` | 事件摘要，包含发送方 IP 和 Trap 名称（可解析时）。 |
+| `trap_payload` | JSON 字符串，包含 Trap OID、变量及其值，以及可解析的 Trap 名称等信息。 |
 
 <!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}

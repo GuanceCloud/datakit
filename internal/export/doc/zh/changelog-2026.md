@@ -1,5 +1,29 @@
 # 更新日志
 
+## 2.12.0(2026/09/09) {#cl-2.12.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-2.12.0-new}
+
+- Pipeline 新增可选的 Rust JIT 执行引擎，用于加速脚本处理。默认关闭，支持 Linux amd64/arm64 的 glibc 环境，需使用包含 JIT 组件的安装包（#3204）
+- 新增 Datakit Operator 中心选举后端，支持在 Kubernetes 集群内完成选举，并通过租约控制采集启停；需配合 Datakit Operator v1.9.1 及以上版本使用（#3210）
+- DDTrace 支持通过 `customer_tags` 将 `span.metrics` 中的数值提取为字段，同时保留原有 `meta` 标签提取行为（#3206）
+- DDTrace 新增采样优先级决策指标和 `sampling_priority_drop_excludes` 配置，可按需跳过指定优先级的早期丢弃判断。默认行为不变，放行数据仍会经过后续过滤和采样（#3208）
+
+### 问题修复 {#cl-2.12.0-fix}
+
+- 修复 SQL Server 和 Redis 单实例采集覆盖用户自定义 `server` 标签的问题，同时保留 Redis 集群及主从模式的节点区分（#3205）
+
+### 功能优化 {#cl-2.12.0-opt}
+
+- Kubernetes 资源指标和对象采集改用 informer 缓存，减少对 APIServer 的重复查询，并优化选举切换时的缓存管理（#2906）
+- 浏览器拨测升级 Lightpanda 至 `0.4.0-g1`，支持按需采集失败截图，并适配新版资源加载和内网访问控制参数（#3207）
+- 优化 SNMP 示例配置的分组和说明，默认关闭 Trap 日志接收，需要时可显式开启；已有配置不受影响（#3209）
+- Oracle 采集器完成 Oracle 26ai Free 兼容性验证（#3212）
+
+---
+
 ## 2.11.0(2026/08/27) {#cl-2.11.0}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -43,7 +67,7 @@
 ### 新加功能 {#cl-2.9.0-new}
 
 - MySQL、PostgreSQL、Oracle 和 SQL Server 的 DBM 语句指标新增归一化 SQL 搜索与 `normalized_query_hash`，支持跨实例聚合，并关联语句指标、SQL 对象、活动采样和执行计划（#3156）
-- DataWay 数据上报新增 Protobuf + `zstd` 压缩支持（#3168）
+- DataWay 数据上报新增 Protobuf + `zstd` 压缩支持，配置方法参见[选择数据上传的压缩算法](datakit-conf.md#dataway-compression)（#3168）
 - 拨测调试接口支持异步执行，并提供排队、并发控制、状态查询和结果保留能力（#3171）
 - Pipeline 部分字段生成函数支持自定义字段名前缀（#3174）
 - 新增 W32Time 采集器，采集 Windows 时间服务运行状态、时间偏差、NTP 往返延迟和可用时间源数量（#3188）

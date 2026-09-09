@@ -246,7 +246,7 @@ Traceback (most recent call last):
 
 #### Maximum Log Single Line Length {#max-log}
 
-The maximum length of a single line (including after `multiline_match`) is about 800KB, whether read from a file or from TCP/UDP, and the excess is truncated and discarded.
+Whether logs are read from files or TCP/UDP, DataKit uses approximately 819 KiB by default as the split threshold for a log entry assembled through multiline processing. When this threshold is exceeded, the entry is split into multiple log records, and each record is ingested separately instead of truncating and discarding the remaining content.
 
 ### Pipeline Configuring and Using {#pipeline}
 

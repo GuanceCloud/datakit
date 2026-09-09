@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -32,55 +31,30 @@ func init() {
 }
 
 type service struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newService(client k8sClient, cfg *Config) resource {
-	return &service{client: client, cfg: cfg, counter: make(map[string]int)}
+func newService(_ k8sClient, cfg *Config) resource {
+	return &service{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (s *service) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := s.client.GetServices(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := s.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apicorev1.Service](ctx, s.cfg, "service", func(items []apicorev1.Service) {
+		pts := s.buildMetricPoints(&apicorev1.ServiceList{Items: items}, timestamp)
 		feedMetric("k8s-service-metric", s.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(s.cfg, "service", s.counter, timestamp)
 }
 
 func (s *service) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := s.client.GetServices(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := s.buildObjectPoints(list)
+	cachedBatches[apicorev1.Service](ctx, s.cfg, "service", func(items []apicorev1.Service) {
+		pts := s.buildObjectPoints(&apicorev1.ServiceList{Items: items})
 		feedObject("k8s-service-object", s.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
-
-func (*service) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (s *service) buildMetricPoints(list *apicorev1.ServiceList, timestamp int64) []*point.Point {
 	var pts []*point.Point

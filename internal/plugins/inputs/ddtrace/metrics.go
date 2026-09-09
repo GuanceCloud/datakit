@@ -15,8 +15,10 @@ import (
 var (
 	droppedTraces,
 	truncatedTraceSpans *p8s.CounterVec
-	traceSpans         *p8s.SummaryVec
-	proxyTelemetryBody *p8s.SummaryVec
+	traceSpans                    *p8s.SummaryVec
+	proxyTelemetryBody            *p8s.SummaryVec
+	samplingPriorityTraceDecision *p8s.CounterVec
+	samplingPrioritySpanDecision  *p8s.CounterVec
 )
 
 func metricsSetup() {
@@ -60,6 +62,26 @@ func metricsSetup() {
 		},
 		[]string{"service"},
 	)
+
+	samplingPriorityTraceDecision = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_ddtrace",
+			Name:      "sampling_priority_trace_total",
+			Help:      "DDTrace trace decisions caused by rejected sampling priorities",
+		},
+		[]string{"priority", "action", "service"},
+	)
+
+	samplingPrioritySpanDecision = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_ddtrace",
+			Name:      "sampling_priority_span_total",
+			Help:      "DDTrace span decisions caused by rejected sampling priorities",
+		},
+		[]string{"priority", "action", "service"},
+	)
 }
 
 // nolint: gochecknoinits
@@ -71,5 +93,7 @@ func init() {
 		droppedTraces,
 		traceSpans,
 		proxyTelemetryBody,
+		samplingPriorityTraceDecision,
+		samplingPrioritySpanDecision,
 	)
 }

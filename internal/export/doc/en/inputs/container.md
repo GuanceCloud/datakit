@@ -81,7 +81,7 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 
 ???+ note
 
-    - Object data collection interval is 5 minutes and metric data collection interval is 20 seconds. Configuration is not supported for the time being.
+    - The default object collection interval is 5 minutes and the default metric collection interval is 60 seconds.
     - Acquired log has a maximum length of ~800KB per line (including after `multiline_match` processing), the excess will split into new logging lines.
 
 ### GKE Autopilot Cloud API Mode {#gke-autopilot-cloud-api}
@@ -306,10 +306,12 @@ You can control which Pods are included or excluded from metrics collection by c
     By using this method, you can flexibly control the range of Pods from which DataKit collects metrics, reducing the collection of unnecessary data and optimizing system performance and resource usage.
 
 <!-- markdownlint-disable MD013 -->
-### NODE_LOCAL Mode Requires New RBAC Permissions {#rbac-nodes-stats}
+### Kubernetes RBAC Permissions {#rbac-nodes-stats}
 <!-- markdownlint-enable MD013 -->
 
-The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/stats` permission needs to be added to RBAC. For example:
+<div id="rbac-pv-pvc"></div>
+
+The default installation YAML already includes the permissions required for NODE_LOCAL mode and PV/PVC object collection. When using an older or custom YAML, ensure that DataKit's ClusterRole includes the following rules:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -318,55 +320,15 @@ metadata:
   name: datakit
 rules:
 - apiGroups: [""]
-  resources: ["nodes", "nodes/stats"]
+  resources: ["nodes", "nodes/stats", "persistentvolumes", "persistentvolumeclaims"]
   verbs: ["get", "list", "watch"]
 ```
 
-In addition, the DataKit Pod needs to have the `hostNetwork: true` configuration item enabled.
-
-<!-- markdownlint-disable MD013 -->
-### Collect PersistentVolumes and PersistentVolumeClaims Requires New Permissions {#rbac-pv-pvc}
-<!-- markdownlint-enable MD013 -->
-
-DataKit version 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) supported the collection of object data for Kubernetes PersistentVolume and PersistentVolumeClaim, which require new RBAC permissions, as described below:
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: datakit
-rules:
-- apiGroups: [""]
-  resources: ["persistentvolumes", "persistentvolumeclaims"]
-  verbs: ["get", "list", "watch"]
-```
+The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is recommended only for DaemonSet deployments. It requires access to kubelet and `hostNetwork: true`.
 
 ### Kubernetes Object YAML Field Filtering {#yaml-filter-fields}
 
-When DataKit collects Kubernetes object data, it retrieves and stores the YAML configurations of the corresponding resources. To reduce storage usage, improve transmission efficiency, and avoid including unnecessary or sensitive information, DataKit performs field filtering on the original YAML.
-
-Types of Filtered Fields:
-
-1. **Status Field**: Removes the `status` field from all resources, as it contains runtime status information calculated by the cluster, not user-defined configuration content, and is ignored during `kubectl apply`.
-
-1. **System-generated Metadata**: Removes the following automatically generated metadata fields:
-    - `metadata.creationTimestamp`
-    - `metadata.resourceVersion`
-    - `metadata.uid`
-    - `metadata.generation`
-    - `metadata.managedFields`
-
-1. **Specific Annotations**: Filters out annotations with the following prefixes. These are typically operational annotations automatically added by platform management tools (such as `Rancher`, `ArgoCD`, `Flux`, etc.) and do not contain business configuration information:
-
-```text
-argocd.argoproj.io/*
-cattle.io/*
-field.cattle.io/*
-fluxcd.io/*
-rancher.io/*
-kubectl.kubernetes.io/*
-nginx.ingress.kubernetes.io/*
-```
+The `yaml` field in object data contains a simplified resource configuration. It omits `status`, system-generated metadata, and some platform management annotations, so it is not a complete copy of the original YAML.
 
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML Sensitive Field Mask {#yaml-secret}

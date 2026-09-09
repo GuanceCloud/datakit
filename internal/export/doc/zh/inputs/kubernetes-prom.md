@@ -15,12 +15,7 @@ __int_icon: 'icon/kubernetes'
 
 **已废弃，相关功能移动到 [KubernetesPrometheus 采集器](kubernetesprometheus.md)。**
 
-本文档介绍如何采集 Kubernetes 集群中自定义 Pod 暴露出来的 Prometheus 指标，有两种方式：
-
-- 通过 Annotations 方式将指标接口暴露给 DataKit
-- 通过自动发现 Kubernetes Endpoint Services 到 Prometheus，将指标接口暴露给 DataKit
-
-以下会详细说明两种方式的用法。
+本页保留 `datakit/prom.instances` 的旧版配置示例及自动发现功能的环境变量兼容说明。
 
 ## 使用 Annotations 开放指标接口 {#annotations-of-prometheus}
 
@@ -105,37 +100,14 @@ kubectl apply -f deployment.yaml
 
 至此，Annotations 已经添加完成。DataKit 稍后会读取到 Pod 的 Annotations，并采集 `url` 上暴露出来的指标。
 
-好的，我来帮您完善和补充这段文档，使其更加清晰、完整和专业。
-
----
-
 ## 自动发现 Pod/Service 的 Prometheus 指标 {#auto-discovery-metrics-with-prometheus}
 
-**注意：此功能的完整文档和最新配置已迁移至 [KubernetesPrometheus 采集器 - “基于 Annotations 的 Prometheus 指标自动发现机制”](kubernetesprometheus.md)。本文档仅保留基础的环境变量配置说明，建议前往新文档查看详细配置示例和最佳实践。**
-
-### 功能概述 {#auto-discovery-metrics-overview}
-
-该功能能够自动发现 Kubernetes 集群中 Pod 或 Service 上的特定 Annotations，并根据注解内容动态生成 Prometheus 指标的采集配置。当 Pod 或 Service 被添加了预定义的注解后，DataKit 会自动拼接 HTTP URL 并创建对应的 Prometheus 指标采集任务，无需手动修改采集器配置。
-
-### 开启方式 {#auto-discovery-metrics-enablement}
-
-此功能默认关闭，需要通过以下环境变量在 DataKit 中启用。这两个环境变量作为全局开关，控制自动发现功能的启用状态：
+配置方法和注解参数见 [KubernetesPrometheus 采集器](kubernetesprometheus.md#auto-discovery-metrics-with-prometheus)。原有环境变量仍然兼容，已有配置无需修改。以下开关默认关闭：
 
 - **`ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS`**：设置为 `"true"` 时，开启基于 Pod Annotations 的自动发现
 - **`ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS`**：设置为 `"true"` 时，开启基于 Service Annotations 的自动发现
 
 环境变量配置详情请参考 [container 文档](container.md#config-using-env)。
-
-### 功能特点 {#auto-discovery-metrics-features}
-
-- **自动发现**：无需重启 DataKit，自动识别新建或更新的 Pod/Service
-- **动态配置**：根据注解内容动态生成采集配置，灵活适应不同应用
-- **资源过滤**：支持通过注解值对采集目标进行精确控制
-- **配置继承**：Pod 级别的配置优先级高于 Service 级别
-
-### 兼容性说明 {#auto-discovery-metrics-note}
-
-原有的环境变量开启方式完全兼容，现有配置无需修改。但后续的功能增强和配置选项将在 [KubernetesPrometheus 采集器文档](kubernetesprometheus.md) 中更新，建议用户迁移至新的配置方式以获得更完整的功能支持。
 
 ## 延伸阅读 {#more-readings}
 

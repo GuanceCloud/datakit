@@ -10,11 +10,54 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
 )
 
-var _ipdb ipdb.IPdb
+// Wrap the interface so publication is atomic even when implementations change.
+// A batch lease pins readers until both pipeline-go and the JIT host finish.
+type ipdbInstance struct {
+	db    ipdb.IPdb
+	users sync.RWMutex
+	close sync.Once
+}
+
+type IPDBLease struct {
+	instance *ipdbInstance
+	once     sync.Once
+}
+
+var _ipdb atomic.Pointer[ipdbInstance]
+
+func AcquireIPDB() (*IPDBLease, bool) {
+	for {
+		instance := _ipdb.Load()
+		if instance == nil || instance.db == nil {
+			return nil, false
+		}
+		instance.users.RLock()
+		if _ipdb.Load() == instance {
+			return &IPDBLease{instance: instance}, true
+		}
+		instance.users.RUnlock()
+	}
+}
+
+func (lease *IPDBLease) DB() ipdb.IPdb {
+	if lease == nil || lease.instance == nil {
+		return nil
+	}
+	return lease.instance.db
+}
+
+func (lease *IPDBLease) Release() {
+	if lease == nil || lease.instance == nil {
+		return
+	}
+	lease.once.Do(lease.instance.users.RUnlock)
+}
 
 const (
 	IPInfoUnknow = "unknown"
@@ -31,24 +74,29 @@ const (
 
 // Geo get ip info from global IPDB.
 func Geo(ip string) (*ipdb.IPdbRecord, error) {
-	if _ipdb != nil {
-		return _ipdb.Geo(ip)
+	lease, ok := AcquireIPDB()
+	if ok {
+		defer lease.Release()
+		return lease.DB().Geo(ip)
 	}
 	return nil, fmt.Errorf("ipdb not ready")
 }
 
 // GetIPDB return global configured IPDB instance.
 func GetIPDB() (ipdb.IPdb, bool) {
-	if _ipdb == nil {
+	instance := _ipdb.Load()
+	if instance == nil {
 		return nil, false
 	}
-	return _ipdb, true
+	return instance.db, true
 }
 
 // SearchISP query IP's ISP info.
 func SearchISP(ip string) string {
-	if _ipdb != nil {
-		return _ipdb.SearchIsp(ip)
+	lease, ok := AcquireIPDB()
+	if ok {
+		defer lease.Release()
+		return lease.DB().SearchIsp(ip)
 	}
 	return "unknown"
 }
@@ -150,7 +198,15 @@ func resetSpecificIPInfo(ipInfo *ipdb.IPdbRecord) *ipdb.IPdbRecord {
 }
 
 func geoTags(srcip string) (*ipdb.IPdbRecord, error) {
-	ipInfo, err := Geo(srcip)
+	// Geo and ISP belong to the same service generation even if publication
+	// changes while the first query is in flight.
+	lease, ok := AcquireIPDB()
+	if !ok {
+		return nil, fmt.Errorf("ipdb not ready")
+	}
+	defer lease.Release()
+	db := lease.DB()
+	ipInfo, err := db.Geo(srcip)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +217,7 @@ func geoTags(srcip string) (*ipdb.IPdbRecord, error) {
 
 	ipInfo = resetSpecificIPInfo(ipInfo)
 
-	if isp := SearchISP(srcip); len(isp) > 0 {
+	if isp := db.SearchIsp(srcip); len(isp) > 0 {
 		ipInfo.Isp = isp
 	}
 

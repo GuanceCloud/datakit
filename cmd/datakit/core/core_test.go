@@ -10,7 +10,22 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	giturls "github.com/whilp/git-urls"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 )
+
+func TestDisabledElectionDoesNotRequireOperatorToken(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Election.OperatorURL = "https://datakit-operator.datakit.svc:443"
+	c := &Core{cfg: cfg}
+
+	provider, puller, err := c.selectElectionPuller()
+	assert.NoError(t, err)
+	assert.Equal(t, election.ProviderOperator, provider)
+	assert.Nil(t, puller)
+	assert.NoError(t, c.startElection())
+}
 
 func TestGitURL(t *testing.T) {
 	const e = "https://username:password@github.com/username/repository.git"

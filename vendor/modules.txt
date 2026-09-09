@@ -29,7 +29,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20260826073647-39604b666ac5
+# github.com/GuanceCloud/cliutils v1.1.22-0.20260909095846-ce14204e8799
 ## explicit; go 1.25.0
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/aggregate
@@ -103,8 +103,8 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.4.3
-## explicit; go 1.19
+# github.com/GuanceCloud/pipeline-go v1.4.6-0.20260909142234-d89e085ac667
+## explicit; go 1.26
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants
 github.com/GuanceCloud/pipeline-go/lang
@@ -669,6 +669,12 @@ github.com/eapache/go-resiliency/breaker
 # github.com/eapache/queue v1.1.0
 ## explicit
 github.com/eapache/queue
+# github.com/ebitengine/purego v0.9.1
+## explicit; go 1.18
+github.com/ebitengine/purego
+github.com/ebitengine/purego/internal/cgo
+github.com/ebitengine/purego/internal/fakecgo
+github.com/ebitengine/purego/internal/strings
 # github.com/elastic/go-lumber v0.1.1
 ## explicit; go 1.14
 github.com/elastic/go-lumber/lj

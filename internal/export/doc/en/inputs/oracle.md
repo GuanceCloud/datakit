@@ -26,6 +26,7 @@ Oracle monitoring metrics collection has the following data collection functions
 
 Already tested version:
 
+- [x] Oracle 26ai Free
 - [x] Oracle 19c
 - [x] Oracle 12c
 - [x] Oracle 11g

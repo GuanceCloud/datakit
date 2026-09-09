@@ -42,6 +42,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "Tags", Type: doc.JSON, Example: "`'{\"k1\":\"v1\", \"k2\":\"v2\", \"k3\":\"v3\"}'`"},
 		{FieldName: "TraceMaxSpans", ENVName: "ENV_INPUT_DDTRACE_MAX_SPANS", Type: doc.Int, Example: `1000`, Default: "100000", Desc: "Max spans of single trace. Set to -1 to remove this limit", DescZh: "单个 trace 最大 span 个数，如果超过该限制，多余的 span 将截断，置为 -1 可关闭该限制"},
 		{FieldName: "MaxTraceBodyMB", ENVName: "ENV_INPUT_DDTRACE_MAX_BODY_MB", Type: doc.Int, Example: `32`, Default: "10", Desc: "Max body(in MiB) of single trace POST. Set to -1 to remove this limit", DescZh: "单个 trace API 请求最大 body 字节数（单位 MiB），置为 -1 可关闭该限制"},
+		{FieldName: "SamplingPriorityDropExcludes", Type: doc.JSON, Example: "`'[0]'`", Default: "[]", Desc: "Rejected sampling priorities that bypass the DDTrace early drop decision; supported values: -3, -1, 0", DescZh: "跳过 DDTrace 早期删除判断的采样优先级；支持 -3、-1、0"},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DDTRACE_", infos)
@@ -71,6 +72,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_BLACKLIST",
 		"ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_WHITELIST",
 		"ENV_INPUT_DDTRACE_APMTELEMETRY_ROUTE_ENABLE",
+		"ENV_INPUT_DDTRACE_SAMPLING_PRIORITY_DROP_EXCLUDES",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -97,6 +99,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.Endpoints = list
+			}
+		case "ENV_INPUT_DDTRACE_SAMPLING_PRIORITY_DROP_EXCLUDES":
+			var list []int
+			if err := json.Unmarshal([]byte(value), &list); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.SamplingPriorityDropExcludes = list
+				ipt.normalizeSamplingPriorityDropExcludes()
 			}
 		case "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL":
 			if ok, err := strconv.ParseBool(value); err != nil {

@@ -267,7 +267,7 @@ Traceback (most recent call last):
 
 #### 日志单行最大长度 {#max-log}
 
-无论从文件还是从 TCP/UDP 中读取的日志，单行（包括经过 `multiline_match` 处理后）最大长度默认约 800KiB 左右，超出部分会被分割成多条上报。
+无论日志来自文件还是 TCP/UDP，经过多行处理拼接后的单条日志默认以约 819 KiB 作为拆分阈值。超过该阈值时，日志会被拆分成多条日志记录并分别采集，而不会直接截断并丢弃剩余内容。
 
 ### Pipeline 配置和使用 {#pipeline}
 

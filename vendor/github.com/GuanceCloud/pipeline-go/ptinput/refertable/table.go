@@ -7,6 +7,7 @@
 package refertable
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -84,7 +85,11 @@ func (plrefer *PlReferTablesInMemory) Query(tableName string, colName []string, 
 	return result, true
 }
 
-func (plrefer *PlReferTablesInMemory) updateAll(tables []referTable) (retErr error) {
+func (plrefer *PlReferTablesInMemory) updateAll(tables []referTable) error {
+	return plrefer.updateAllContext(context.Background(), tables)
+}
+
+func (plrefer *PlReferTablesInMemory) updateAllContext(ctx context.Context, tables []referTable) (retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			retErr = fmt.Errorf("run pl: %s", err)
@@ -98,7 +103,7 @@ func (plrefer *PlReferTablesInMemory) updateAll(tables []referTable) (retErr err
 	tablesName := []string{}
 	for idx := range tables {
 		table := tables[idx]
-		if err := table.buildTableIndex(); err != nil {
+		if err := table.buildTableIndexContext(ctx); err != nil {
 			return err
 		}
 		if _, ok := refTableMap[table.TableName]; !ok {
@@ -109,6 +114,9 @@ func (plrefer *PlReferTablesInMemory) updateAll(tables []referTable) (retErr err
 
 	plrefer.queryRWmutex.Lock()
 	defer plrefer.queryRWmutex.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	plrefer.tables = refTableMap
 	plrefer.tablesName = tablesName
 	return nil
@@ -178,6 +186,13 @@ func (table *referTable) check() error {
 }
 
 func (table *referTable) buildTableIndex() error {
+	return table.buildTableIndexContext(context.Background())
+}
+
+func (table *referTable) buildTableIndexContext(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := table.check(); err != nil {
 		return err
 	}
@@ -187,6 +202,9 @@ func (table *referTable) buildTableIndex() error {
 
 	// 遍历行
 	for rowIdx, row := range table.RowData {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		// 遍历列，建立索引: colName -> colValue -> []rowIndex
 		for colIdx := 0; colIdx < len(table.ColumnName); colIdx++ {
 			colName := table.ColumnName[colIdx]

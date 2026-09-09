@@ -937,6 +937,10 @@ func (ipt *Input) init() {
 		ipt.overrideMeasurement = measurementSQLServer
 	}
 
+	if ipt.Tags == nil {
+		ipt.Tags = make(map[string]string)
+	}
+
 	port := "1433"
 	host := ipt.Host
 	parts := strings.Split(ipt.Host, ":")
@@ -958,7 +962,9 @@ func (ipt *Input) init() {
 	}
 
 	// set server tag
-	ipt.Tags["server"] = ipt.Object.name
+	if _, ok := ipt.Tags["server"]; !ok {
+		ipt.Tags["server"] = ipt.Object.name
+	}
 
 	if len(ipt.Database) == 0 {
 		ipt.Database = "master"
@@ -999,10 +1005,7 @@ func (ipt *Input) init() {
 
 	ipt.initDBFilterMap()
 
-	// init Tags and set host tag
-	if ipt.Tags == nil {
-		ipt.Tags = make(map[string]string)
-	}
+	// set host tag
 	if _, ok := ipt.Tags["host"]; !ok {
 		host := getHostTagIfNotLoopback(ipt.Host)
 		if len(host) > 0 {

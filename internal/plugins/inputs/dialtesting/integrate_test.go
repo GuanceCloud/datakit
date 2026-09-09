@@ -662,6 +662,7 @@ func TestIntegrate(t *testing.T) {
 
 			require.True(t, fields["has_screenshot"].(bool))
 			require.NotContains(t, fields["steps"].(string), screenshotPath)
+			require.NoFileExists(t, screenshotPath)
 
 			requests := sender.UploadRequests()
 			require.Len(t, requests, 1)

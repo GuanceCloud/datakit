@@ -104,6 +104,13 @@ ulimit = 64000
   # append run info
   disable_append_run_info = false
 
+  # Linux-only in-process JIT. Unsupported scripts and runtime failures
+  # automatically fall back to the pipeline-go interpreter.
+  [pipeline.jit]
+    enabled = false
+    runtime_path = "" # defaults to <install_dir>/lib/libplatypus_jit.so
+    max_cached_programs = 256
+
   # default pipeline
   [pipeline.default_pipeline]
     # logging = "<your_script.p>"
@@ -370,6 +377,10 @@ ulimit = 64000
   # Election whitelist
   # NOTE: Empty to disable whitelist
   node_whitelist = []
+
+  # Optional DataKit Operator URL. Use Operator if its startup check passes,
+  # otherwise DataWay/Kodo. The provider stays fixed until DataKit restarts.
+  operator_url = ""
 
   # Election namespace.
   # NOTE: for single workspace, there can be multiple election namespace.

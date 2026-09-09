@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -29,36 +28,21 @@ func init() {
 }
 
 type persistentvolumeclaim struct {
-	client k8sClient
-	cfg    *Config
+	cfg *Config
 }
 
-func newPersistentvolumeclaim(client k8sClient, cfg *Config) resource {
-	return &persistentvolumeclaim{client: client, cfg: cfg}
+func newPersistentvolumeclaim(_ k8sClient, cfg *Config) resource {
+	return &persistentvolumeclaim{cfg: cfg}
 }
 
-func (p *persistentvolumeclaim) gatherMetric(ctx context.Context, timestamp int64) { /* nil */ }
+func (*persistentvolumeclaim) gatherMetric(_ context.Context, _ int64) { /* nil */ }
 
 func (p *persistentvolumeclaim) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := p.client.GetPersistentVolumeClaims(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := p.buildObjectPoints(list)
+	cachedBatches[apicorev1.PersistentVolumeClaim](ctx, p.cfg, "persistentvolumeclaim", func(items []apicorev1.PersistentVolumeClaim) {
+		pts := p.buildObjectPoints(&apicorev1.PersistentVolumeClaimList{Items: items})
 		feedObject("k8s-persistentvolumeclaim-object", p.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
-
-func (*persistentvolumeclaim) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolumeClaimList) []*point.Point {
 	var pts []*point.Point

@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.12.0(2026/09/09) {#cl-2.12.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.12.0-new}
+
+- Added an optional Rust JIT engine to accelerate Pipeline script processing. It is disabled by default and requires a DataKit package with JIT components on Linux amd64/arm64 with glibc (#3204)
+- Added a Datakit Operator election backend for elections within Kubernetes clusters, with leases controlling collection activity; requires Datakit Operator v1.9.1 or later (#3210)
+- DDTrace now supports extracting numeric values from `span.metrics` into fields through `customer_tags`, while preserving existing `meta` tag extraction (#3206)
+- Added DDTrace sampling-priority decision metrics and the `sampling_priority_drop_excludes` setting to bypass early drops for selected priorities. Default behavior remains unchanged, and bypassed data still passes through subsequent filtering and sampling (#3208)
+
+### Bug Fixes {#cl-2.12.0-fix}
+
+- Fixed SQL Server and single-instance Redis collection overwriting user-defined `server` tags, while preserving node identification in Redis cluster and replication modes (#3205)
+
+### Improvements {#cl-2.12.0-opt}
+
+- Kubernetes resource metrics and objects now use informer caches to reduce repeated APIServer queries, with improved cache management during election transitions (#2906)
+- Upgraded Lightpanda to `0.4.0-g1` for browser dialtesting, adding optional failure screenshots and adapting resource-loading and private-network access controls (#3207)
+- Reorganized and clarified the SNMP sample configuration, with Trap log reception disabled by default and available through explicit configuration; existing configurations are unaffected (#3209)
+- Verified Oracle collector compatibility with Oracle 26ai Free (#3212)
+
+---
+
 ## 2.11.0(2026/08/27) {#cl-2.11.0}
 
 This release is an iterative release, with the following main updates:
@@ -43,7 +67,7 @@ This release is an iterative release, with the following main updates:
 ### New Features {#cl-2.9.0-new}
 
 - DBM statement metrics for MySQL, PostgreSQL, Oracle, and SQL Server now provide normalized SQL search and `normalized_query_hash` for cross-instance grouping, linking statement metrics, SQL objects, activity samples, and execution plans (#3156)
-- DataWay uploads now support Protobuf with `zstd` compression (#3168)
+- DataWay uploads now support Protobuf with `zstd` compression. See [Upload Compression](datakit-conf.md#dataway-compression) for configuration details (#3168)
 - The dialtesting debug API now supports asynchronous execution with queuing, concurrency control, status polling, and retained results (#3171)
 - Pipeline field-generating functions now support custom output-field prefixes (#3174)
 - Added the W32Time collector for Windows Time Service status, clock offset, NTP round-trip delay, and available time-source count (#3188)

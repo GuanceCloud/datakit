@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Browser dialtesting is a `BROWSER` task type under the `inputs.dialtesting` collector. It simulates page access through the Lightpanda browser engine, including opening pages, clicking elements, entering text, waiting for selectors, and asserting titles or text. It reports page performance, step details, and failure reasons. The bundled Lightpanda build does not include screenshots.
+Browser dialtesting is a `BROWSER` task type under the `inputs.dialtesting` collector. It simulates page access through the Lightpanda browser engine, including opening pages, clicking elements, entering text, waiting for selectors, and asserting titles or text. It reports page performance, step details, failure reasons, and optional failure screenshots.
 
 For basic dialtesting node configuration, see [Network Dialtesting](dialtesting.md). This page only describes browser-specific configuration, deployment, and troubleshooting.
 
@@ -74,12 +74,12 @@ For host deployment, install Lightpanda on the dialtesting node first, then conf
 
 ### Install Lightpanda {#host-install-lightpanda}
 
-The DataKit image uses the GuanceCloud Lightpanda `0.3.6-g2` release. To install the same build on x86_64 Linux:
+The DataKit image uses the GuanceCloud Lightpanda `0.4.0-g1` release, built on Ubuntu 22.04. To install the same build on x86_64 Linux:
 
 ```shell
 curl -fL -o lightpanda \
-  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g2/lightpanda-x86_64-linux
-echo "c68f7f340252156fa954fa1e2603769e3fcdb1dd6d07bce9d8b9f034545f09ba  lightpanda" | sha256sum -c -
+  https://github.com/GuanceCloud/browser/releases/download/0.4.0-g1/lightpanda-x86_64-linux
+echo "3da11a5e0ce793480648074b6dfcc3f91c5386fd394e904aece28270f410b756  lightpanda" | sha256sum -c -
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 rm lightpanda
 ```
@@ -88,8 +88,8 @@ For arm64/aarch64 Linux, use:
 
 ```shell
 curl -fL -o lightpanda \
-  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g2/lightpanda-aarch64-linux
-echo "76f13c2debc88b5b7de91dbb1a540c0de97189fa134a8c84369097f7551e2566  lightpanda" | sha256sum -c -
+  https://github.com/GuanceCloud/browser/releases/download/0.4.0-g1/lightpanda-aarch64-linux
+echo "ee84aec580d936b843b07c968e64d6a92360f5d3cbdde4780031588f4e4abdfd  lightpanda" | sha256sum -c -
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 rm lightpanda
 ```
@@ -172,7 +172,7 @@ DataKit blocks internal network targets by default. On a private dialtesting nod
 
 DataKit also passes this setting to Lightpanda. With the default `disable_internal_network_task = true` and no custom CIDR list, Lightpanda starts with `--block-private-networks`. When `disabled_internal_network_cidr_list` is configured, DataKit passes those exact ranges through `--block-cidrs` instead of blocking every private range. When `disable_internal_network_task` is `false`, Lightpanda allows private-network requests. No engine-specific environment variable is required.
 
-Lightpanda `0.3.6-g2` supports the following default HTTP proxy setting:
+Lightpanda `0.4.0-g1` supports the following default HTTP proxy setting:
 
 ```toml
 [inputs.dialtesting.browser]
@@ -300,7 +300,10 @@ In the full task JSON, `browser_config` is inside the `BROWSER` task object:
       "status": "OK",
       "frequency": "1m",
       "post_url": "https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>",
-      "browser_config": "<browser_config YAML string>"
+      "browser_config": "<browser_config YAML string>",
+      "advance_options": {
+        "screenshot_on_failure": true
+      }
     }
   ]
 }
@@ -308,7 +311,9 @@ In the full task JSON, `browser_config` is inside the `BROWSER` task object:
 
 ## Screenshot Support {#screenshot}
 
-The bundled Lightpanda build does not support screenshots. `advance_options.screenshot_on_failure` is ignored for Lightpanda tasks, and no `steps[].screenshot` is generated.
+Set `advance_options.screenshot_on_failure` to `true` to capture a PNG after a browser step fails. DataKit uploads the image and records its metadata in `steps[].screenshot`; upload failures are reported in `screenshot_upload_error`.
+
+Lightpanda screenshots are text-oriented semantic renderings rather than pixel-perfect browser images. They are useful for checking the page content and DOM state at the point of failure, but do not reproduce all CSS, images, canvas content, or other Chrome rendering details. A screenshot is unavailable when Lightpanda cannot start, the browser process exits, or the browser session has already reached its overall timeout.
 
 ## Troubleshooting {#troubleshooting}
 
@@ -343,6 +348,6 @@ Troubleshoot common issues as follows:
 - Results are not reported: check that task `post_url` is reachable, and that `datakit_dialtesting_dataway_send_failed_number`, `datakit_dialtesting_worker_cached_points_number`, and `datakit_dialtesting_worker_dropped_points_number` do not keep increasing.
 - Browser fails to start: check that `engine_path`, `LIGHTPANDA_EXECUTABLE_PATH`, or `lightpanda` from `PATH` is accessible to the DataKit process.
 - Browser dependencies are missing: in Kubernetes, use the `datakit:<version>` image directly; on hosts, confirm that Lightpanda is installed correctly.
-- Screenshot is not uploaded: the bundled Lightpanda build does not generate screenshots.
+- Screenshot is not uploaded: confirm that `advance_options.screenshot_on_failure` is `true`, then check `screenshot_upload_error`. Browser startup failures, process exits, and overall task timeouts may not leave a live session to capture.
 
 Normally, the node can pull `BROWSER` tasks, `datakit_dialtesting_worker_send_points_number{status="ok"}` keeps increasing, and `datakit_dialtesting_dataway_send_failed_number`, `datakit_dialtesting_worker_cached_points_number`, and `datakit_dialtesting_worker_dropped_points_number` do not keep increasing.

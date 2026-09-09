@@ -5,18 +5,12 @@
 
 package kubernetes
 
-import (
-	"context"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/informers"
-)
+import "context"
 
 var (
-	maxMessageLength   int   = 256 * 1024 // 256KB
-	queryLimit         int64 = 100
-	allNamespaces            = ""
-	emptyFieldSelector       = ""
+	maxMessageLength int   = 256 * 1024 // 256KB
+	queryLimit       int64 = 100
+	allNamespaces          = ""
 )
 
 type (
@@ -25,7 +19,6 @@ type (
 	resource interface {
 		gatherMetric(ctx context.Context, timestamp int64 /*nanoseconds*/)
 		gatherObject(ctx context.Context)
-		addChangeInformer(informerFactory informers.SharedInformerFactory)
 	}
 )
 
@@ -50,12 +43,4 @@ func registerResource(name string, nodeLocal bool, rc resourceConstructor) {
 type LabelsOption struct {
 	All  bool
 	Keys []string
-}
-
-func newListOptions(fieldSelector, continued string) metav1.ListOptions {
-	return metav1.ListOptions{
-		Limit:         queryLimit,
-		FieldSelector: fieldSelector,
-		Continue:      continued,
-	}
 }

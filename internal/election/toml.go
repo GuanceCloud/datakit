@@ -10,7 +10,17 @@ type ElectionCfg struct {
 	Enable             bool     `toml:"enable"`
 	NodeWhitelist      []string `toml:"node_whitelist"`
 	EnableNamespaceTag bool     `toml:"enable_namespace_tag"`
+	OperatorURL        string   `toml:"operator_url"`
 
 	Namespace string            `toml:"namespace"`
 	Tags      map[string]string `toml:"tags"`
+}
+
+func (cfg *ElectionCfg) Normalize() error {
+	normalized, err := NormalizeOperatorURL(cfg.OperatorURL)
+	if err != nil {
+		return err
+	}
+	cfg.OperatorURL = normalized
+	return nil
 }

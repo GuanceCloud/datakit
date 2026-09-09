@@ -1,0 +1,1138 @@
+[
+  {
+    "name": "log-json-1-small",
+    "script": "json-1-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42"
+    },
+    "calls": 1,
+    "kind": "json"
+  },
+  {
+    "name": "log-json-3-small",
+    "script": "json-3-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST"
+    },
+    "calls": 3,
+    "kind": "json"
+  },
+  {
+    "name": "log-json-10-small",
+    "script": "json-10-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "calls": 10,
+    "kind": "json"
+  },
+  {
+    "name": "log-json-1-large",
+    "script": "json-1-large.p",
+    "input": "event-large.json",
+    "expected": {
+      "user_id": "u-42"
+    },
+    "calls": 1,
+    "kind": "json"
+  },
+  {
+    "name": "log-json-10-large",
+    "script": "json-10-large.p",
+    "input": "event-large.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "calls": 10,
+    "kind": "json"
+  },
+  {
+    "name": "log-json-10-pretty",
+    "script": "json-10-pretty.p",
+    "input": "event-pretty.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "calls": 10,
+    "kind": "json"
+  },
+  {
+    "name": "log-json-3-documents",
+    "script": "json-3-documents.p",
+    "input": "event-small.json",
+    "expected": {
+      "id0": "evt-0",
+      "id1": "evt-1",
+      "id2": "evt-2"
+    },
+    "calls": 3,
+    "kind": "json",
+    "extra_fields": {
+      "doc0": "{\"event\": {\"id\": \"evt-0\", \"detail\": \"context context context context context context context context context context context context context context context context context context context context context context context context \"}}",
+      "doc1": "{\"event\": {\"id\": \"evt-1\", \"detail\": \"context context context context context context context context context context context context context context context context context context context context context context context context \"}}",
+      "doc2": "{\"event\": {\"id\": \"evt-2\", \"detail\": \"context context context context context context context context context context context context context context context context context context context context context context context context \"}}"
+    }
+  },
+  {
+    "name": "log-grok-1-line",
+    "script": "grok-1-line.p",
+    "input": "application.txt",
+    "expected": {
+      "service": "checkout"
+    },
+    "calls": 1,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-3-line",
+    "script": "grok-3-line.p",
+    "input": "application.txt",
+    "expected": {
+      "service": "checkout",
+      "level": "INFO",
+      "request_id": "req-12345"
+    },
+    "calls": 3,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-10-line",
+    "script": "grok-10-line.p",
+    "input": "application.txt",
+    "expected": {
+      "service": "checkout",
+      "level": "INFO",
+      "request_id": "req-12345",
+      "method": "POST",
+      "path": "/api/orders",
+      "status_code": "201",
+      "duration_ms": "12.75",
+      "bytes": "1024",
+      "region": "cn-east-1",
+      "user": "u-42"
+    },
+    "calls": 10,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-1-all-fields",
+    "script": "grok-1-all-fields.p",
+    "input": "application.txt",
+    "expected": {
+      "service": "checkout",
+      "level": "INFO",
+      "request_id": "req-12345",
+      "method": "POST",
+      "path": "/api/orders",
+      "status_code": "201",
+      "duration_ms": "12.75",
+      "bytes": "1024",
+      "region": "cn-east-1",
+      "user": "u-42"
+    },
+    "calls": 1,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-3-miss-hit",
+    "script": "grok-3-miss-hit.p",
+    "input": "application.txt",
+    "expected": {
+      "service": "checkout",
+      "level": "INFO",
+      "request_id": "req-12345",
+      "method": "POST",
+      "path": "/api/orders",
+      "status_code": "201",
+      "duration_ms": "12.75",
+      "bytes": "1024",
+      "region": "cn-east-1",
+      "user": "u-42"
+    },
+    "calls": 3,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-1-stack-4k",
+    "script": "grok-1-stack-4k.p",
+    "input": "java-stack-4k.txt",
+    "expected": {
+      "ts": "2026-09-06T10:15:30.123Z",
+      "level": "ERROR",
+      "stack": "request failed\njava.lang.IllegalStateException: request processing failed\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:100)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:101)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:102)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:103)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:104)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:105)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:106)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:107)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:108)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:109)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:110)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:111)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:112)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:113)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:114)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:115)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:116)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:117)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:118)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:119)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:120)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:121)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:122)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:123)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:124)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:125)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:126)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:127)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:128)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:129)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:130)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:131)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:132)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:133)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:134)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:135)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:136)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:137)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:138)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:139)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:140)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:141)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:142)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:143)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:144)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:145)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:146)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:147)\nCaused by: java.net.SocketTimeoutException: upstream read timed out"
+    },
+    "calls": 1,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-3-stack-4k",
+    "script": "grok-3-stack-4k.p",
+    "input": "java-stack-4k.txt",
+    "expected": {
+      "ts": "2026-09-06T10:15:30.123Z",
+      "level": "ERROR",
+      "summary": "request failed",
+      "exception": "java.lang.IllegalStateException",
+      "error_text": "request processing failed",
+      "cause": "java.net.SocketTimeoutException",
+      "cause_text": "upstream read timed out"
+    },
+    "calls": 3,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-1-stack-16k",
+    "script": "grok-1-stack-16k.p",
+    "input": "java-stack-16k.txt",
+    "expected": {
+      "ts": "2026-09-06T10:15:30.123Z",
+      "level": "ERROR",
+      "stack": "request failed\njava.lang.IllegalStateException: request processing failed\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:100)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:101)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:102)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:103)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:104)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:105)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:106)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:107)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:108)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:109)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:110)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:111)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:112)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:113)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:114)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:115)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:116)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:117)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:118)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:119)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:120)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:121)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:122)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:123)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:124)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:125)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:126)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:127)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:128)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:129)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:130)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:131)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:132)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:133)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:134)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:135)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:136)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:137)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:138)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:139)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:140)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:141)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:142)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:143)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:144)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:145)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:146)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:147)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:148)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:149)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:150)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:151)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:152)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:153)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:154)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:155)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:156)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:157)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:158)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:159)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:160)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:161)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:162)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:163)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:164)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:165)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:166)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:167)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:168)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:169)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:170)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:171)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:172)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:173)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:174)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:175)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:176)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:177)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:178)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:179)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:180)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:181)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:182)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:183)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:184)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:185)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:186)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:187)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:188)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:189)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:190)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:191)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:192)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:193)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:194)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:195)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:196)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:197)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:198)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:199)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:200)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:201)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:202)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:203)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:204)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:205)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:206)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:207)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:208)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:209)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:210)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:211)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:212)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:213)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:214)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:215)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:216)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:217)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:218)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:219)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:220)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:221)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:222)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:223)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:224)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:225)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:226)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:227)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:228)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:229)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:230)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:231)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:232)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:233)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:234)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:235)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:236)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:237)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:238)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:239)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:240)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:241)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:242)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:243)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:244)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:245)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:246)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:247)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:248)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:249)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:250)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:251)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:252)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:253)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:254)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:255)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:256)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:257)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:258)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:259)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:260)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:261)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:262)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:263)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:264)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:265)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:266)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:267)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:268)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:269)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:270)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:271)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:272)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:273)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:274)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:275)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:276)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:277)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:278)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:279)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:280)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:281)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:282)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:283)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:284)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:285)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:286)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:287)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:288)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:289)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:290)\n\tat com.example.checkout.OrderService.processOrder(OrderService.java:291)\nCaused by: java.net.SocketTimeoutException: upstream read timed out"
+    },
+    "calls": 1,
+    "kind": "grok"
+  },
+  {
+    "name": "log-grok-3-stack-16k",
+    "script": "grok-3-stack-16k.p",
+    "input": "java-stack-16k.txt",
+    "expected": {
+      "ts": "2026-09-06T10:15:30.123Z",
+      "level": "ERROR",
+      "summary": "request failed",
+      "exception": "java.lang.IllegalStateException",
+      "error_text": "request processing failed",
+      "cause": "java.net.SocketTimeoutException",
+      "cause_text": "upstream read timed out"
+    },
+    "calls": 3,
+    "kind": "grok"
+  },
+  {
+    "name": "log-gjson-1-small",
+    "script": "gjson-1-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42"
+    },
+    "kind": "gjson",
+    "calls": 1
+  },
+  {
+    "name": "log-gjson-10-small",
+    "script": "gjson-10-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "kind": "gjson",
+    "calls": 10
+  },
+  {
+    "name": "log-gjson-10-large",
+    "script": "gjson-10-large.p",
+    "input": "event-large.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "kind": "gjson",
+    "calls": 10
+  },
+  {
+    "name": "log-load-json-once-1-small",
+    "script": "load-json-once-1-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42"
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-once-10-small",
+    "script": "load-json-once-10-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-once-10-large",
+    "script": "load-json-once-10-large.p",
+    "input": "event-large.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-3-small",
+    "script": "load-json-3-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42"
+    },
+    "kind": "load_json",
+    "calls": 3
+  },
+  {
+    "name": "log-exec-assign-20",
+    "script": "exec-assign-20.p",
+    "input": "application.txt",
+    "expected": {
+      "result": 7
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": 7
+    }
+  },
+  {
+    "name": "log-exec-arithmetic-20",
+    "script": "exec-arithmetic-20.p",
+    "input": "application.txt",
+    "expected": {
+      "result": 127
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": 7
+    }
+  },
+  {
+    "name": "log-exec-branch-20",
+    "script": "exec-branch-20.p",
+    "input": "application.txt",
+    "expected": {
+      "result": 11
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": 7
+    }
+  },
+  {
+    "name": "log-exec-loop-100",
+    "script": "exec-loop-100.p",
+    "input": "application.txt",
+    "expected": {
+      "result": 4957
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": 7
+    }
+  },
+  {
+    "name": "log-exec-loop-branch-100",
+    "script": "exec-loop-branch-100.p",
+    "input": "application.txt",
+    "expected": {
+      "result": -2493
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": 7
+    }
+  },
+  {
+    "name": "log-exec-loop-control-100",
+    "script": "exec-loop-control-100.p",
+    "input": "application.txt",
+    "expected": {
+      "result": 2977
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": 7
+    }
+  },
+  {
+    "name": "log-exec-loop-1000",
+    "script": "exec-loop-1000.p",
+    "input": "application.txt",
+    "expected": {
+      "result": 499507
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": 7
+    }
+  },
+  {
+    "name": "log-exec-assign-string-20",
+    "script": "exec-assign-string-20.p",
+    "input": "application.txt",
+    "expected": {
+      "result": "Abc XYZ"
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "seed": "Abc XYZ"
+    }
+  },
+  {
+    "name": "log-exec-call-result-20",
+    "script": "exec-call-result-20.p",
+    "input": "application.txt",
+    "expected": {
+      "result": true
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "message": "Abc XYZ"
+    }
+  },
+  {
+    "name": "log-exec-call-static-20",
+    "script": "exec-call-static-20.p",
+    "input": "application.txt",
+    "expected": {
+      "v0": "0",
+      "v1": "1",
+      "v2": "2",
+      "v3": "3",
+      "v4": "4",
+      "v5": "5",
+      "v6": "6",
+      "v7": "7",
+      "v8": "8",
+      "v9": "9",
+      "v10": "10",
+      "v11": "11",
+      "v12": "12",
+      "v13": "13",
+      "v14": "14",
+      "v15": "15",
+      "v16": "16",
+      "v17": "17",
+      "v18": "18",
+      "v19": "19"
+    },
+    "kind": "execution",
+    "extra_fields": {}
+  },
+  {
+    "name": "log-exec-call-key-20",
+    "script": "exec-call-key-20.p",
+    "input": "application.txt",
+    "expected": {
+      "message": "ABC XYZ"
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "message": "Abc XYZ"
+    }
+  },
+  {
+    "name": "log-collection-list-construct-20",
+    "script": "collection-list-construct-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-list-alias-20",
+    "script": "collection-list-alias-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-list-read-20",
+    "script": "collection-list-read-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-list-write-20",
+    "script": "collection-list-write-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-map-construct-20",
+    "script": "collection-map-construct-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-map-alias-20",
+    "script": "collection-map-alias-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-map-read-20",
+    "script": "collection-map-read-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-map-write-20",
+    "script": "collection-map-write-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-nested-read-20",
+    "script": "collection-nested-read-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-list-append-20",
+    "script": "collection-list-append-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-list-dynamic-read-20",
+    "script": "collection-list-dynamic-read-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-collection-map-dynamic-read-20",
+    "script": "collection-map-dynamic-read-20.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-string-plus-20",
+    "script": "string-plus-20.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "prefix",
+      "suffix": "-x",
+      "expected_len": 46
+    }
+  },
+  {
+    "name": "log-string-plus-assign-20",
+    "script": "string-plus-assign-20.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "prefix",
+      "suffix": "-x",
+      "expected_len": 46
+    }
+  },
+  {
+    "name": "log-string-plus-loop-100",
+    "script": "string-plus-loop-100.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "prefix",
+      "suffix": "-x",
+      "expected_len": 206
+    }
+  },
+  {
+    "name": "log-string-plus-unicode-20",
+    "script": "string-plus-unicode-20.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "日志",
+      "suffix": "中文🙂",
+      "expected_len": 206
+    }
+  },
+  {
+    "name": "log-string-plus-long-20",
+    "script": "string-plus-long-20.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "suffix": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "expected_len": 9216
+    }
+  },
+  {
+    "name": "log-string-assign-20",
+    "script": "string-assign-20.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "prefix",
+      "suffix": "-x",
+      "expected_len": 46
+    }
+  },
+  {
+    "name": "log-local-list-output",
+    "script": "local-list-output.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-local-map-output",
+    "script": "local-map-output.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-local-list-alias-expanded",
+    "script": "local-list-alias-expanded.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-local-string-output",
+    "script": "local-string-output.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "result": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "suffix": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "expected_len": 9216
+    }
+  },
+  {
+    "name": "log-local-string-alias-concat",
+    "script": "local-string-alias-concat.p",
+    "input": "application.txt",
+    "kind": "string-ops",
+    "expected": {
+      "original": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "updated": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "suffix": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "expected_len": 4352
+    }
+  },
+  {
+    "name": "log-local-cache-container-output",
+    "script": "local-cache-container-output.p",
+    "input": "application.txt",
+    "kind": "collection",
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "log-string-chain-20",
+    "script": "string-chain-20.p",
+    "input": "application.txt",
+    "kind": "runtime-expansion",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "seed": "prefix",
+      "suffix": "-x",
+      "expected_len": 46
+    }
+  },
+  {
+    "name": "log-exec-nested-call-20",
+    "script": "exec-nested-call-20.p",
+    "input": "application.txt",
+    "kind": "runtime-expansion",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "message": "[1,2,3]"
+    }
+  },
+  {
+    "name": "log-json-alternating-20",
+    "script": "json-alternating-20.p",
+    "input": "application.txt",
+    "kind": "runtime-expansion",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "a": "{\"x\":1}",
+      "b": "{\"x\":2}"
+    }
+  },
+  {
+    "name": "log-gjson-alternating-20",
+    "script": "gjson-alternating-20.p",
+    "input": "application.txt",
+    "kind": "runtime-expansion",
+    "expected": {
+      "ok": true
+    },
+    "extra_fields": {
+      "a": "{\"x\":1}",
+      "b": "{\"x\":2}"
+    }
+  },
+  {
+    "name": "log-collection-list-point-read-20",
+    "script": "collection-list-point-read-20.p",
+    "input": "application.txt",
+    "expected": {
+      "ok": true
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "key": "b"
+    },
+    "extra_integer_fields": {
+      "index": 1
+    }
+  },
+  {
+    "name": "log-collection-list-point-write-20",
+    "script": "collection-list-point-write-20.p",
+    "input": "application.txt",
+    "expected": {
+      "ok": true
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "key": "b"
+    },
+    "extra_integer_fields": {
+      "index": 1
+    }
+  },
+  {
+    "name": "log-collection-map-point-read-20",
+    "script": "collection-map-point-read-20.p",
+    "input": "application.txt",
+    "expected": {
+      "ok": true
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "key": "b"
+    },
+    "extra_integer_fields": {
+      "index": 1
+    }
+  },
+  {
+    "name": "log-collection-map-point-write-20",
+    "script": "collection-map-point-write-20.p",
+    "input": "application.txt",
+    "expected": {
+      "ok": true
+    },
+    "kind": "execution",
+    "extra_fields": {
+      "key": "b"
+    },
+    "extra_integer_fields": {
+      "index": 1
+    }
+  },
+  {
+    "name": "log-load-json-once-10-rich-point",
+    "script": "load-json-once-10-small.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "kind": "load_json",
+    "calls": 1,
+    "extra_fields": {
+      "unused_0": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_1": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_2": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_3": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_4": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_5": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_6": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_7": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_8": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_9": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_10": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_11": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_12": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_13": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_14": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_15": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_16": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_17": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_18": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_19": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_20": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_21": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_22": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_23": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_24": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_25": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_26": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_27": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_28": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_29": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_30": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_31": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_32": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_33": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_34": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_35": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_36": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_37": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_38": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_39": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_40": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_41": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_42": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_43": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_44": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_45": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_46": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_47": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_48": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_49": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_50": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_51": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_52": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_53": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_54": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_55": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_56": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_57": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_58": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_59": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_60": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_61": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_62": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_63": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_64": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_65": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_66": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_67": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_68": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_69": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_70": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_71": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_72": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_73": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_74": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_75": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_76": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_77": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_78": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_79": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_80": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_81": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_82": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_83": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_84": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_85": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_86": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_87": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_88": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_89": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_90": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_91": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_92": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_93": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_94": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_95": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_96": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_97": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_98": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-",
+      "unused_99": "unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-unchanged-value-"
+    }
+  },
+  {
+    "name": "log-load-json-pt-set-small",
+    "script": "load-json-pt-set.p",
+    "input": "event-small.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-pt-set-large",
+    "script": "load-json-pt-set.p",
+    "input": "event-large.json",
+    "expected": {
+      "user_id": "u-42",
+      "request_path": "/api/orders",
+      "method": "POST",
+      "status_code": 201,
+      "duration_ms": 12.75,
+      "trace_id": "4bf92f3577b34da6",
+      "service_name": "checkout",
+      "service_version": "1.2.3",
+      "response_bytes": 1024,
+      "ok": true
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-pt-object-small",
+    "script": "load-json-pt-object.p",
+    "input": "event-small.json",
+    "expected": {
+      "result": "{\"ok\":true,\"request\":{\"duration_ms\":12.75,\"method\":\"POST\",\"path\":\"/api/orders\",\"status\":201},\"response\":{\"bytes\":1024},\"service\":{\"name\":\"checkout\",\"version\":\"1.2.3\"},\"trace\":{\"id\":\"4bf92f3577b34da6\"},\"user\":{\"id\":\"u-42\"}}"
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-pt-object-large",
+    "script": "load-json-pt-object.p",
+    "input": "event-large.json",
+    "expected": {
+      "result": "{\"ok\":true,\"request\":{\"duration_ms\":12.75,\"method\":\"POST\",\"path\":\"/api/orders\",\"status\":201},\"response\":{\"bytes\":1024},\"service\":{\"name\":\"checkout\",\"version\":\"1.2.3\"},\"trace\":{\"id\":\"4bf92f3577b34da6\"},\"user\":{\"id\":\"u-42\"}}"
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-add-object-small",
+    "script": "load-json-add-object.p",
+    "input": "event-small.json",
+    "expected": {
+      "result": "{\"ok\":true,\"request\":{\"duration_ms\":12.75,\"method\":\"POST\",\"path\":\"/api/orders\",\"status\":201},\"response\":{\"bytes\":1024},\"service\":{\"name\":\"checkout\",\"version\":\"1.2.3\"},\"trace\":{\"id\":\"4bf92f3577b34da6\"},\"user\":{\"id\":\"u-42\"}}"
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-add-object-large",
+    "script": "load-json-add-object.p",
+    "input": "event-large.json",
+    "expected": {
+      "result": "{\"ok\":true,\"request\":{\"duration_ms\":12.75,\"method\":\"POST\",\"path\":\"/api/orders\",\"status\":201},\"response\":{\"bytes\":1024},\"service\":{\"name\":\"checkout\",\"version\":\"1.2.3\"},\"trace\":{\"id\":\"4bf92f3577b34da6\"},\"user\":{\"id\":\"u-42\"}}"
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-pt-set-3-small",
+    "script": "load-json-pt-set-3.p",
+    "input": "event-small.json",
+    "expected": {
+      "path": "/api/orders",
+      "method": "POST",
+      "duration_ms": 12.75
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-pt-set-3-large",
+    "script": "load-json-pt-set-3.p",
+    "input": "event-large.json",
+    "expected": {
+      "path": "/api/orders",
+      "method": "POST",
+      "duration_ms": 12.75
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-dynamic-pt-set-small",
+    "script": "load-json-dynamic-pt-set.p",
+    "input": "event-small.json",
+    "expected": {
+      "checkout": 201,
+      "checkout_raw": "{\"ok\":true,\"request\":{\"duration_ms\":12.75,\"method\":\"POST\",\"path\":\"/api/orders\",\"status\":201},\"response\":{\"bytes\":1024},\"service\":{\"name\":\"checkout\",\"version\":\"1.2.3\"},\"trace\":{\"id\":\"4bf92f3577b34da6\"},\"user\":{\"id\":\"u-42\"}}"
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-dynamic-pt-set-large",
+    "script": "load-json-dynamic-pt-set.p",
+    "input": "event-large.json",
+    "expected": {
+      "checkout": 201,
+      "checkout_raw": "{\"ok\":true,\"request\":{\"duration_ms\":12.75,\"method\":\"POST\",\"path\":\"/api/orders\",\"status\":201},\"response\":{\"bytes\":1024},\"service\":{\"name\":\"checkout\",\"version\":\"1.2.3\"},\"trace\":{\"id\":\"4bf92f3577b34da6\"},\"user\":{\"id\":\"u-42\"}}"
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-add-key-3-small",
+    "script": "load-json-add-key-3.p",
+    "input": "event-small.json",
+    "expected": {
+      "path": "/api/orders",
+      "method": "POST",
+      "duration_ms": 12.75
+    },
+    "kind": "load_json",
+    "calls": 1
+  },
+  {
+    "name": "log-load-json-add-key-3-large",
+    "script": "load-json-add-key-3.p",
+    "input": "event-large.json",
+    "expected": {
+      "path": "/api/orders",
+      "method": "POST",
+      "duration_ms": 12.75
+    },
+    "kind": "load_json",
+    "calls": 1
+  }
+]

@@ -83,6 +83,10 @@ func NewReferTable(cfg RefTbCfg) (*ReferTable, error) {
 			if err != nil {
 				return nil, fmt.Errorf("open in-memory SQLite failed: %w", err)
 			}
+			// :memory: is private to one physical connection. A second pool
+			// connection sees an empty database; keep the initialized one alive.
+			d.SetMaxOpenConns(1)
+			d.SetMaxIdleConns(1)
 			ref.tables = &PlReferTablesSqlite{db: d}
 		} else {
 			l.Infof("using on-disk SQLite for refer-table")
@@ -138,6 +142,7 @@ func checkURL(tableURL string) (string, error) {
 // InitFinished used to check init status.
 func (refT *ReferTable) InitFinished(waitTime time.Duration) bool {
 	ticker := time.NewTicker(waitTime)
+	defer ticker.Stop()
 
 	if refT.initFinished == nil {
 		return false
@@ -155,10 +160,26 @@ func (refT *ReferTable) Tables() PlReferTables {
 	return refT.tables
 }
 
+// Close releases the backing store. The owner must cancel and join PullWorker
+// and drain users first; script retirement alone must not close a shared table.
+func (refT *ReferTable) Close() error {
+	if refT == nil {
+		return nil
+	}
+	if closer, ok := refT.tables.(interface{ Close() error }); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
 func (refT *ReferTable) PullWorker(ctx context.Context) {
 	ticker := time.NewTicker(refT.inConfig.Interval)
+	defer ticker.Stop()
 	for {
-		if err := refT.getAndUpdate(); err != nil {
+		if ctx.Err() != nil {
+			return
+		}
+		if err := refT.getAndUpdate(ctx); err != nil {
 			l.Error(err)
 		}
 		select {
@@ -169,15 +190,26 @@ func (refT *ReferTable) PullWorker(ctx context.Context) {
 	}
 }
 
-func (refT *ReferTable) getAndUpdate() error {
-	if tables, err := httpGet(context.Background(), refT.inConfig.URL); err != nil {
+func (refT *ReferTable) getAndUpdate(ctx context.Context) error {
+	if tables, err := httpGet(ctx, refT.inConfig.URL); err != nil {
 		return fmt.Errorf("get table data from URL: %w", err)
 	} else {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if refT.tables == nil {
 			return nil
 		}
-		if err := refT.tables.updateAll(tables); err != nil {
-			l.Errorf("failed to update tables: %w", err)
+		var updateErr error
+		if updater, ok := refT.tables.(interface {
+			updateAllContext(context.Context, []referTable) error
+		}); ok {
+			updateErr = updater.updateAllContext(ctx, tables)
+		} else {
+			updateErr = refT.tables.updateAll(tables)
+		}
+		if err := updateErr; err != nil {
+			return fmt.Errorf("failed to update tables: %w", err)
 		}
 	}
 

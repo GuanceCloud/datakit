@@ -1,0 +1,1 @@
+{"timestamp":"2026-09-06T10:15:30.123Z","level":"INFO","message":"订单已创建","payload":{"user":{"id":"u-42"},"request":{"path":"/api/orders","method":"POST","status":201,"duration_ms":12.75},"trace":{"id":"4bf92f3577b34da6"},"service":{"name":"checkout","version":"1.2.3"},"response":{"bytes":1024},"ok":true}}

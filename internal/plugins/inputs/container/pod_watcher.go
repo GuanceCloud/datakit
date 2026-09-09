@@ -14,11 +14,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -43,17 +44,22 @@ type podWatcher struct {
 	queue    workqueue.DelayingInterface
 	informer cache.SharedIndexInformer
 
-	stopCh   chan struct{}
-	stopOnce sync.Once
+	stopCh         chan struct{}
+	stopOnce       sync.Once
+	requestCtx     context.Context
+	cancelRequests context.CancelFunc
 }
 
 func newPodWatcher(client kubernetes.Interface, coordinator *containerLogCoordinator, nodeName string) *podWatcher {
+	ctx, cancel := context.WithCancel(context.Background())
 	watcher := &podWatcher{
-		client:      client,
-		coordinator: coordinator,
-		nodeName:    nodeName,
-		queue:       workqueue.NewDelayingQueue(),
-		stopCh:      make(chan struct{}),
+		client:         client,
+		coordinator:    coordinator,
+		nodeName:       nodeName,
+		queue:          workqueue.NewDelayingQueue(),
+		stopCh:         make(chan struct{}),
+		requestCtx:     ctx,
+		cancelRequests: cancel,
 	}
 	watcher.setupInformer()
 	return watcher
@@ -69,17 +75,6 @@ func (w *podWatcher) start(ctx context.Context) {
 			l.Errorf("pod watcher worker stopped with error: %s", err)
 		}
 	}()
-
-	// RBAC 预检：尝试进行一次最小化的 List 调用，若无权限则退出
-	if w.client != nil {
-		options := w.podListOptions()
-		options.Limit = 1
-		_, err := w.client.CoreV1().Pods(metav1.NamespaceAll).List(ctx, options)
-		if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
-			l.Errorf("missing RBAC to access Pod: %v; exit pod watcher", err)
-			return
-		}
-	}
 
 	workers.Go(func(_ context.Context) error {
 		w.processQueue(ctx)
@@ -106,6 +101,7 @@ func (w *podWatcher) start(ctx context.Context) {
 
 func (w *podWatcher) stop() {
 	w.stopOnce.Do(func() {
+		w.cancelRequests()
 		close(w.stopCh)
 		w.queue.ShutDown()
 		l.Info("pod watcher stopped")
@@ -113,18 +109,20 @@ func (w *podWatcher) stop() {
 }
 
 func (w *podWatcher) setupInformer() {
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(
-		w.client,
-		0,
-		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
+	// The reflector owns retry/backoff, including RBAC errors. A one-shot
+	// preflight must not permanently strand all consumers of this shared cache.
+	w.informer = cache.NewSharedIndexInformer(&cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			options.FieldSelector = w.podListOptions().FieldSelector
-		}),
-	)
-
-	podInformer := informerFactory.Core().V1().Pods()
-	w.informer = podInformer.Informer()
+			return w.client.CoreV1().Pods(metav1.NamespaceAll).List(w.requestCtx, options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = w.podListOptions().FieldSelector
+			return w.client.CoreV1().Pods(metav1.NamespaceAll).Watch(w.requestCtx, options)
+		},
+	}, &corev1.Pod{}, 0, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 	w.podMetadata = &informerPodMetadataProvider{
-		lister:    podInformer.Lister(),
+		lister:    corelisters.NewPodLister(w.informer.GetIndexer()),
 		hasSynced: w.informer.HasSynced,
 	}
 

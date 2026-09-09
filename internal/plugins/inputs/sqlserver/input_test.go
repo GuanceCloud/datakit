@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 	_ "github.com/microsoft/go-mssqldb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCon(t *testing.T) {
@@ -31,6 +32,91 @@ func TestCon(t *testing.T) {
 	n.getMetric()
 	for _, v := range n.collectCache {
 		t.Log(v.LineProto())
+	}
+}
+
+func TestServerTag(t *testing.T) {
+	cases := []struct {
+		name       string
+		host       string
+		tags       map[string]string
+		server     string
+		objectName string
+	}{
+		{
+			name:       "default port with nil tags",
+			host:       "db.example.com",
+			server:     "db.example.com:1433",
+			objectName: "db.example.com:1433",
+		},
+		{
+			name:       "explicit connection port",
+			host:       "127.0.0.1:11433",
+			tags:       map[string]string{},
+			server:     "127.0.0.1:11433",
+			objectName: "127.0.0.1:11433",
+		},
+		{
+			name:       "explicit empty server is preserved",
+			host:       "127.0.0.1:11433",
+			tags:       map[string]string{"server": ""},
+			server:     "",
+			objectName: "127.0.0.1:11433",
+		},
+		{
+			name: "custom server through proxy",
+			host: "127.0.0.1:11433",
+			tags: map[string]string{
+				"server": "db.example.com:1433",
+				"host":   "db.example.com",
+				"env":    "production",
+			},
+			server:     "db.example.com:1433",
+			objectName: "127.0.0.1:11433",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ipt := defaultInput()
+			ipt.Host = tc.host
+			ipt.Tags = tc.tags
+			ipt.init()
+
+			// A reporting address must not change the connection target.
+			assert.Equal(t, tc.host, ipt.Host)
+			assert.Equal(t, tc.server, ipt.Tags["server"])
+
+			row := &dbmStatementRow{
+				querySignature: "query-signature",
+				queryPlanHash:  "plan-hash",
+			}
+			ptsTime := time.Now()
+			planKey := generatePlanCacheKey(row.querySignature, row.queryPlanHash)
+			metrics := ipt.buildStatementPoints([]*dbmStatementRow{row}, ptsTime)
+			require.Len(t, metrics, 1)
+			assert.Equal(t, tc.server, metrics[0].GetTag("server"))
+
+			// Preserve existing object identities when overriding the server tag.
+			for _, instance := range []string{"", "sql-instance"} {
+				ipt.databaseInstance = instance
+				plans := ipt.buildAndFeedDatabasePlanObjects([]*statementRowWithPlan{{dbmStatementRow: row}}, ptsTime)
+				require.Len(t, plans, 1)
+				assert.Equal(t, tc.server, plans[0].GetTag("server"))
+				expectedName := tc.objectName
+				if instance != "" {
+					expectedName += "-" + instance
+				}
+				assert.Equal(t, expectedName+"-"+planKey, plans[0].GetTag("name"))
+			}
+
+			if tc.name == "custom server through proxy" {
+				assert.Equal(t, "127.0.0.1", ipt.Object.host)
+				assert.Equal(t, "11433", ipt.Object.port)
+				assert.Equal(t, "db.example.com", metrics[0].GetTag("host"))
+				assert.Equal(t, "production", metrics[0].GetTag("env"))
+			}
+		})
 	}
 }
 

@@ -91,6 +91,26 @@ func envCommon() []*inputs.ENVInfo {
 			DescZh: "为指定数据类别设置默认 Pipeline 脚本；与远程设置冲突时，此设置优先",
 		},
 		{
+			ENVName: "ENV_PIPELINE_JIT_ENABLED",
+			Type:    doc.Boolean,
+			Desc:    "Enable Pipeline JIT acceleration in supported DataKit packages; disabled by default",
+			DescZh:  "在支持的 DataKit 安装包中启用 Pipeline JIT 加速，默认关闭",
+		},
+		{
+			ENVName: "ENV_PIPELINE_JIT_RUNTIME_PATH",
+			Type:    doc.String,
+			Example: "`/usr/local/datakit/lib/libplatypus_jit.so`",
+			Desc:    "Set a custom Pipeline JIT shared-library path; normally use the library included in the installation",
+			DescZh:  "自定义 Pipeline JIT 动态库路径；通常使用安装包自带的库，无需设置",
+		},
+		{
+			ENVName: "ENV_PIPELINE_JIT_MAX_CACHED_PROGRAMS",
+			Type:    doc.Int,
+			Example: "`256`",
+			Desc:    "Set the maximum number of cached Pipeline JIT programs",
+			DescZh:  "设置 Pipeline JIT 编译程序的最大缓存数量",
+		},
+		{
 			ENVName: "ENV_PIPELINE_DISABLE_HTTP_REQUEST_FUNC",
 			Type:    doc.Boolean,
 			Desc:    "Disable Pipeline `http_request` function",
@@ -251,8 +271,8 @@ func envDataway() []*inputs.ENVInfo {
 			ENVName: "ENV_DATAWAY_COMPRESSION",
 			Type:    doc.String,
 			Default: `gzip`,
-			Desc:    "Set Point upload compression to `gzip` or `zstd`.",
-			DescZh:  "设置 Point 数据上传压缩方式，可选 `gzip` 或 `zstd`。",
+			Desc:    "Select the compression algorithm for Point uploads: `gzip` or `zstd`. See [Upload Compression](datakit-conf.md#dataway-compression) for configuration and compatibility details.",
+			DescZh:  "选择 Point 数据上传的压缩算法：`gzip` 或 `zstd`。配置方法和兼容性说明参见[选择数据上传的压缩算法](datakit-conf.md#dataway-compression)。",
 		},
 
 		{
@@ -440,11 +460,19 @@ func envElect() []*inputs.ENVInfo {
 			DescZh:  "开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可",
 		},
 		{
+			ENVName: "ENV_ELECTION_OPERATOR_URL",
+			Type:    doc.URL,
+			Default: "-",
+			Example: "`https://datakit-operator.datakit.svc:443`",
+			Desc:    "Manually set the Operator URL for central election. Requires DataKit 2.12.0 or later, DataKit Operator v1.9.1 or later, and `ENV_ENABLE_ELECTION` enabled. See [Operator election](election.md#operator-election) for additional Operator RBAC, startup checks, and provider selection.",
+			DescZh:  "手动设置用于中心选举的 Operator 地址。需要 DataKit 2.12.0 及以上、DataKit Operator v1.9.1 及以上，并开启 `ENV_ENABLE_ELECTION`。Operator 额外 RBAC、启动检查和后端选择规则统一参见 [Operator 选举](election.md#operator-election)。",
+		},
+		{
 			ENVName: "ENV_NAMESPACE",
 			Type:    doc.String,
 			Default: "default",
-			Desc:    "The namespace in which the DataKit resides, which defaults to null to indicate that it is namespace-insensitive and accepts any non-null string, such as `dk-namespace-example`. If the election is turned on, you can specify the workspace through this environment variable.",
-			DescZh:  "DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。",
+			Desc:    "DataKit election namespace, default `default`. Within one workspace and provider, DataKit instances using the same election namespace participate in the same election. This is independent of Kubernetes namespaces. See [election scope](election.md#how).",
+			DescZh:  "DataKit 选举命名空间，默认 `default`。同一工作空间和后端下，使用相同选举命名空间的 DataKit 参与同一次选举，与 Kubernetes namespace 无关。详见[选举作用域](election.md#how)。",
 		},
 		{
 			ENVName: "ENV_ENABLE_ELECTION_NAMESPACE_TAG",
@@ -473,8 +501,8 @@ func envElect() []*inputs.ENVInfo {
 			ENVName: "ENV_ELECTION_NODE_WHITELIST",
 			Type:    doc.List,
 			Default: "[]",
-			Desc:    "List of node names that are allowed to participate in elections [:octicons-tag-24: Version-1.35.0](changelog.md#cl-1.35.0)",
-			DescZh:  "允许参加选举的节点名称列表 [:octicons-tag-24: Version-1.35.0](changelog.md#cl-1.35.0)",
+			Desc:    "List of node names allowed to participate in either DataWay/Kodo or Operator election. An empty list allows all nodes. See [election whitelist](election.md#election-whitelist) for matching and configuration rules. Supported since DataKit 1.35.0.",
+			DescZh:  "允许参加选举的节点名称列表，对 DataWay/Kodo 和 Operator 两种后端均生效，空列表允许所有节点。匹配规则和配置方法参见[选举白名单](election.md#election-whitelist)。DataKit 1.35.0 起支持。",
 		},
 	}
 

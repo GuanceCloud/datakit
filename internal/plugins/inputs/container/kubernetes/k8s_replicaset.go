@@ -15,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apiappsv1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -29,55 +28,30 @@ func init() {
 }
 
 type replicaset struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newReplicaset(client k8sClient, cfg *Config) resource {
-	return &replicaset{client: client, cfg: cfg, counter: make(map[string]int)}
+func newReplicaset(_ k8sClient, cfg *Config) resource {
+	return &replicaset{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (r *replicaset) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := r.client.GetReplicaSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := r.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apiappsv1.ReplicaSet](ctx, r.cfg, "replicaset", func(items []apiappsv1.ReplicaSet) {
+		pts := r.buildMetricPoints(&apiappsv1.ReplicaSetList{Items: items}, timestamp)
 		feedMetric("k8s-replicaset-metric", r.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(r.cfg, "replicaset", r.counter, timestamp)
 }
 
 func (r *replicaset) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := r.client.GetReplicaSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := r.buildObjectPoints(list)
+	cachedBatches[apiappsv1.ReplicaSet](ctx, r.cfg, "replicaset", func(items []apiappsv1.ReplicaSet) {
+		pts := r.buildObjectPoints(&apiappsv1.ReplicaSetList{Items: items})
 		feedObject("k8s-replicaset-Object", r.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
-
-func (*replicaset) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (r *replicaset) buildMetricPoints(list *apiappsv1.ReplicaSetList, timestamp int64) []*point.Point {
 	var pts []*point.Point

@@ -17,6 +17,7 @@ fullnameOverride: datakit
 datakit:
   default_enabled_inputs: dk,container
   enabled_election: true
+  election_operator_url: ""
 
 resources:
   requests:

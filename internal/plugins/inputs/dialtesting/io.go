@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -173,10 +174,12 @@ func (d *dialer) processBrowserScreenshots(fields map[string]interface{}) {
 		if err != nil {
 			uploadErrors = append(uploadErrors, err.Error())
 			step["screenshot_upload_error"] = err.Error()
+			cleanupBrowserScreenshot(screenshotPath)
 			continue
 		}
 
 		result, contentType, uploadErr := d.uploadBrowserScreenshot(uploadURL, screenshotPath, runID, stepSeq)
+		cleanupBrowserScreenshot(screenshotPath)
 		if uploadErr != nil {
 			l.Warnf("upload browser screenshot failed: %s", uploadErr.Error())
 			uploadErrors = append(uploadErrors, uploadErr.Error())
@@ -207,6 +210,15 @@ func (d *dialer) processBrowserScreenshots(fields map[string]interface{}) {
 		return
 	}
 	fields["steps"] = string(updated)
+}
+
+func cleanupBrowserScreenshot(path string) {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		l.Warnf("remove browser screenshot failed: %s", err.Error())
+	}
+	// The runner stores each run in its own directory. Remove it when the last
+	// screenshot has gone; a non-empty directory is intentionally left alone.
+	_ = os.Remove(filepath.Dir(path))
 }
 
 func (d *dialer) browserScreenshotUploadURL() (string, error) {

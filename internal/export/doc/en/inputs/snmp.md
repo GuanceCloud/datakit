@@ -1,6 +1,6 @@
 ---
 title     : 'SNMP'
-summary   : 'Collect metrics and object data from SNMP devices'
+summary   : 'Collect metrics, object data, and optional logs from SNMP devices'
 tags:
   - 'SNMP'
 __int_icon      : 'icon/snmp'
@@ -772,6 +772,31 @@ We take an `snmpd` service on Linux as an example to demonstrate how to collecti
     # v3_context_name      = "" # Optional
     ```
 
+### SNMP Trap Configuration {#snmp-traps}
+
+SNMP Trap logging is disabled by default. When enabled, Trap events sent by devices are reported as logs, which may increase log usage and costs.
+
+Update `[inputs.snmp.traps]` in *snmp.conf*, then [restart DataKit](../datakit/datakit-service-how-to.md#manage-service):
+
+```toml
+[inputs.snmp.traps]
+  enable = true
+  bind_host = "0.0.0.0"
+  port = 9162
+  stop_timeout = 3
+  # source = "traps"
+```
+
+- `bind_host`: Local listening address; `0.0.0.0` listens on all IPv4 addresses. `port`: Trap UDP listening port, defaulting to `9162`.
+- `stop_timeout`: Timeout for stopping the Trap service, in seconds. Defaults to `5` when omitted or set to `0`.
+- `source`: Log source, defaulting to `traps`.
+
+Enable Trap sending on the device, set its destination to a reachable DataKit IP and listening port, and allow UDP traffic.
+
+Traps reuse the [SNMP credentials](snmp.md#config-pre) from the same `[[inputs.snmp]]` instance. Configure matching credentials on the device.
+
+To disable Trap logging, set `enable = false` and restart DataKit.
+
 ## LLDP Network Topology Collection {#lldp-topology}
 
 DataKit supports collecting LLDP (Link Layer Discovery Protocol) neighbor information from network devices via SNMP protocol for automatic network topology construction.
@@ -957,6 +982,16 @@ For all of the following data collections, the global election tags will added a
 {{ end }}
 
 ## Logging {#logging}
+
+### SNMP Trap Logs {#snmp-trap-logging}
+
+See [SNMP Trap Configuration](snmp.md#snmp-traps) for setup instructions. In the log explorer, select the configured log source (`traps` by default) to view the following main contents:
+
+| Name | Description |
+| --- | --- |
+| `host` | Tag containing the Trap sender's IP address. |
+| `message` | Event summary with the sender's IP and the Trap name, when resolved. |
+| `trap_payload` | JSON string containing the Trap OID, variables and their values, and the Trap name when resolved. |
 
 <!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}

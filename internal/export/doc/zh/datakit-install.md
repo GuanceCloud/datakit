@@ -482,7 +482,8 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 
 - Linux 系统
     - CPU 架构：x86_64 或 arm64
-    - C 标准库：glibc 2.4 及以上版本，或 musl
+    - 标准版 DataKit 为静态构建，支持 glibc 2.4 及以上版本或 musl
+    - Pipeline JIT 加速仅支持 Linux amd64/arm64 的 glibc 环境
     - Java 8 及以上版本
     - Python 3.7 及以上版本
     - PHP 7 及以上版本

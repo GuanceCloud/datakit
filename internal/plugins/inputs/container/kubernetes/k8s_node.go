@@ -18,7 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -32,55 +31,30 @@ func init() {
 }
 
 type node struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newNode(client k8sClient, cfg *Config) resource {
-	return &node{client: client, cfg: cfg, counter: make(map[string]int)}
+func newNode(_ k8sClient, cfg *Config) resource {
+	return &node{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (n *node) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := n.client.GetNodes().List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := n.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apicorev1.Node](ctx, n.cfg, "node", func(items []apicorev1.Node) {
+		pts := n.buildMetricPoints(&apicorev1.NodeList{Items: items}, timestamp)
 		feedMetric("k8s-node-metric", n.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(n.cfg, "node", n.counter, timestamp)
 }
 
 func (n *node) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := n.client.GetNodes().List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := n.buildObjectPoints(list)
+	cachedBatches[apicorev1.Node](ctx, n.cfg, "node", func(items []apicorev1.Node) {
+		pts := n.buildObjectPoints(&apicorev1.NodeList{Items: items})
 		feedObject("k8s-node-object", n.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
-
-func (*node) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (n *node) buildMetricPoints(list *apicorev1.NodeList, timestamp int64) []*point.Point {
 	var pts []*point.Point

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package runner
 
 import (
@@ -14,6 +19,8 @@ import (
 	"github.com/GuanceCloud/cliutils/dialtesting/browserdial/script"
 	"github.com/GuanceCloud/cliutils/dialtesting/browserdial/util"
 )
+
+const screenshotCaptureTimeout = 5 * time.Second
 
 type Engine interface {
 	Close(context.Context) error
@@ -220,8 +227,21 @@ func runLoaded(ctx context.Context, loaded script.Script, options Options, runID
 		if last.Success {
 			return last
 		}
+		if attempt < maxAttempts {
+			cleanupResultScreenshots(last)
+		}
 	}
 	return last
+}
+
+func cleanupResultScreenshots(result Result) {
+	for _, step := range result.Steps {
+		if step.Screenshot == "" {
+			continue
+		}
+		_ = os.Remove(step.Screenshot)
+		_ = os.Remove(filepath.Dir(step.Screenshot))
+	}
 }
 
 func retryRecordFromResult(result Result) evidence.RetryRecord {
@@ -303,12 +323,12 @@ func runAttempt(ctx context.Context, loaded script.Script, options Options, runI
 		}
 	}
 
-	steps, runErr := executeSteps(engineCtx, engine, loaded, timeoutMS, vars, engineScreenshotOptions(engineName, screenshotOptions{
+	steps, runErr := executeSteps(engineCtx, engine, loaded, timeoutMS, vars, screenshotOptions{
 		OnFailure: options.ScreenshotOnFailure,
 		PerStep:   options.ScreenshotPerStep,
 		Dir:       options.ScreenshotDir,
 		RunID:     runID,
-	}))
+	})
 	var dom *evidence.DomSnapshot
 	if runErr != nil {
 		if snapshot, err := engine.CaptureDOM(context.Background()); err == nil {
@@ -450,13 +470,6 @@ func engineProxyURL(values ...string) string {
 	return firstNonEmpty(values...)
 }
 
-func engineScreenshotOptions(engineName string, options screenshotOptions) screenshotOptions {
-	if engineName == "lightpanda" {
-		return screenshotOptions{Dir: options.Dir, RunID: options.RunID}
-	}
-	return options
-}
-
 func collectTraceIDs(events []evidence.NetworkEvent) []string {
 	traceIDs := []string{}
 	seen := map[string]struct{}{}
@@ -505,7 +518,7 @@ func executeSteps(ctx context.Context, engine Engine, s script.Script, timeoutMS
 			record.Performance = captureStepPerformance(engine)
 		}
 		if err == nil && screenshots.PerStep {
-			captureStepScreenshot(context.Background(), engine, &record, screenshots, false)
+			_ = captureStepScreenshot(context.Background(), engine, &record, screenshots, false)
 		}
 		if err != nil {
 			var conditionErr conditionTimeoutError
@@ -521,11 +534,15 @@ func executeSteps(ctx context.Context, engine Engine, s script.Script, timeoutMS
 			}
 			record.Status = evidence.StatusFail
 			record.Error = errorsx.ErrorInfo(err)
+			var screenshotErr error
 			if screenshots.OnFailure || screenshots.PerStep {
-				captureStepScreenshot(context.Background(), engine, &record, screenshots, false)
+				screenshotErr = captureStepScreenshot(context.Background(), engine, &record, screenshots, false)
 			}
 			if record.Screenshot == "" && (screenshots.OnFailure || screenshots.PerStep) && record.Error != nil {
-				record.Error.Message = record.Error.Message + "; screenshot capture unavailable"
+				record.Error.Message += "; screenshot capture unavailable"
+				if screenshotErr != nil {
+					record.Error.Message += ": " + screenshotErr.Error()
+				}
 			}
 			steps = append(steps, record)
 			steps = appendSkippedSteps(steps, plans[index+1:], seq+1)
@@ -622,11 +639,13 @@ func inputDisplay(step script.Step) string {
 	return step.Value
 }
 
-func captureStepScreenshot(ctx context.Context, engine Engine, record *evidence.StepResult, options screenshotOptions, fullPage bool) {
+func captureStepScreenshot(ctx context.Context, engine Engine, record *evidence.StepResult, options screenshotOptions, fullPage bool) error {
 	screenshotter, ok := engine.(Screenshotter)
 	if !ok {
-		return
+		return fmt.Errorf("browser engine does not support screenshots")
 	}
+	captureCtx, cancel := context.WithTimeout(ctx, screenshotCaptureTimeout)
+	defer cancel()
 	extension := ".png"
 	if fullPage {
 		extension = ".jpg"
@@ -635,10 +654,12 @@ func captureStepScreenshot(ctx context.Context, engine Engine, record *evidence.
 	if options.Dir == "" {
 		path = filepath.Join(os.TempDir(), "browser-dial-evidence", options.RunID, fmt.Sprintf("step-%d%s", record.Seq, extension))
 	}
-	saved, err := screenshotter.CaptureScreenshot(ctx, path, fullPage)
-	if err == nil {
-		record.Screenshot = saved
+	saved, err := screenshotter.CaptureScreenshot(captureCtx, path, fullPage)
+	if err != nil {
+		return err
 	}
+	record.Screenshot = saved
+	return nil
 }
 
 func normalizedEngineName(name string) string {

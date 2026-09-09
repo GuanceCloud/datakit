@@ -101,6 +101,16 @@ func (i *instance) resolveHostTag(host string) string {
 	return ""
 }
 
+func (i *instance) resolveServerTag(addr string) string {
+	// INFO may report standalone for replicated nodes, so use the collector configuration.
+	if i.ipt != nil && i.ipt.Cluster == nil && i.ipt.MasterSlave == nil {
+		if server, ok := i.ipt.Tags["server"]; ok {
+			return server
+		}
+	}
+	return addr
+}
+
 func (i *instance) buildNodeTags(server, host string) map[string]string {
 	mergedTags := make(map[string]string)
 
@@ -115,7 +125,7 @@ func (i *instance) buildNodeTags(server, host string) map[string]string {
 	}
 
 	if server != "" {
-		mergedTags["server"] = server
+		mergedTags["server"] = i.resolveServerTag(server)
 	}
 
 	return mergedTags
@@ -167,7 +177,7 @@ func (i *instance) resetReplica() {
 func (i *instance) setCurrentNode(cli collectorClient, rep *replica, host, addr string) {
 	i.curCli = cli
 	i.curRepplica = rep
-	i.mergedTags["server"] = addr
+	i.mergedTags["server"] = i.resolveServerTag(addr)
 
 	if resolvedHost := i.resolveHostTag(host); resolvedHost != "" {
 		i.mergedTags["host"] = resolvedHost

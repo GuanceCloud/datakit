@@ -15,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apibatchv1 "k8s.io/api/batch/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -29,55 +28,30 @@ func init() {
 }
 
 type cronjob struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newCronjob(client k8sClient, cfg *Config) resource {
-	return &cronjob{client: client, cfg: cfg, counter: make(map[string]int)}
+func newCronjob(_ k8sClient, cfg *Config) resource {
+	return &cronjob{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (c *cronjob) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := c.client.GetCronJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := c.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apibatchv1.CronJob](ctx, c.cfg, "cronjob", func(items []apibatchv1.CronJob) {
+		pts := c.buildMetricPoints(&apibatchv1.CronJobList{Items: items}, timestamp)
 		feedMetric("k8s-cronjob-metric", c.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(c.cfg, "cronjob", c.counter, timestamp)
 }
 
 func (c *cronjob) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := c.client.GetCronJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := c.buildObjectPoints(list)
+	cachedBatches[apibatchv1.CronJob](ctx, c.cfg, "cronjob", func(items []apibatchv1.CronJob) {
+		pts := c.buildObjectPoints(&apibatchv1.CronJobList{Items: items})
 		feedObject("k8s-cronjob-object", c.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
-
-func (*cronjob) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (c *cronjob) buildMetricPoints(list *apibatchv1.CronJobList, timestamp int64) []*point.Point {
 	var pts []*point.Point

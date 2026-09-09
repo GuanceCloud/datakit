@@ -321,7 +321,8 @@ used_cpu_user:31.649967
 	t.Run(`supplement-info-from-config-cache`, func(t *T.T) {
 		inst := newInstance()
 		inst.ipt = ipt
-		inst.mergedTags["server"] = "redis-a:6379"
+		inst.addr = "redis-a:6379"
+		inst.mergedTags["server"] = "custom-server:6379"
 		inst.infoConfigCache["redis-a:6379"] = map[string]string{"maxclients": "10000"}
 		inst.infoConfigCache["redis-b:6379"] = map[string]string{"maxclients": "20000"}
 
@@ -331,12 +332,19 @@ redis_version:7.0.0
 
 		assert.Len(t, pts, 1)
 		assert.Equal(t, int64(10000), pts[0].Get("maxclients"), "pt: %s", pts[0].Pretty())
+
+		rep := &replica{addr: "redis-b:6379", host: "redis-b"}
+		inst.setCurrentNode(nil, rep, rep.host, rep.addr)
+		pts = inst.parseInfoData("redis_version:7.0.0")
+		if assert.Len(t, pts, 1) {
+			assert.Equal(t, int64(20000), pts[0].Get("maxclients"))
+		}
 	})
 
 	t.Run(`config-cache-concurrent-access`, func(t *T.T) {
 		inst := newInstance()
 		inst.ipt = ipt
-		inst.mergedTags["server"] = "redis-read:6379"
+		inst.addr = "redis-read:6379"
 
 		var wg sync.WaitGroup
 		for n := 0; n < 4; n++ {

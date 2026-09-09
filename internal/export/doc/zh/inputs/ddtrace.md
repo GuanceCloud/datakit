@@ -132,7 +132,11 @@ DataKit 的 `ddtrace` 采集器是一个 **DataDog Trace 协议接收端**：应
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-`customer_tags` 用于将指定的 `meta` 字段提升为一级标签。普通字段名中的 `.` 会自动转为 `_`，例如 `http.route` 会变为 `http_route`。正则必须以 `reg:` 开头，并使用 Go 正则表达式；例如 `reg:^key_.*$` 匹配所有以 `key_` 开头的字段。请先在测试环境验证正则，非法表达式会使采集器无法正常初始化。
+`customer_tags` 用于将指定的 span `meta` 和 `metrics` 字段提升到一级。`meta` 字符串写入标签，`metrics` 数值写入字段；未匹配的内容继续保留在 `message` 中。普通字段名中的 `.` 会自动转为 `_`，例如 `http.route` 会变为 `http_route`。正则必须以 `reg:` 开头，并使用 Go 正则表达式；例如 `reg:^key_.*$` 匹配所有以 `key_` 开头的字段。请先在测试环境验证正则，非法表达式会使采集器无法正常初始化。
+
+`sampling_priority_drop_excludes` 用于配置不在 DDTrace 早期判断处删除的上游拒绝采样优先级，支持 `-3`、`-1` 和 `0`。默认为空数组，保持对这三个值的现有删除行为；例如配置 `[0]` 后，priority=0 的 trace 将进入 DataKit 后续过滤和采样流程，而不是强制保留。该配置不能恢复上游未发送的 span，并且可能明显增加上报数据量。
+
+DataKit 自身指标 `datakit_input_ddtrace_sampling_priority_trace_total` 和 `datakit_input_ddtrace_sampling_priority_span_total` 通过 `priority`、`action` (`drop`/`bypass`) 和 `service` 标签记录这一决策。它们能证明 DataKit 收到并删除或放行了多少数据，但不能证明 priority=0 的值一定来自 W3C `traceparent`。
 
 ### 多线路工具串联注意事项 {#trace_propagator}
 

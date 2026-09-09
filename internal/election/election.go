@@ -17,10 +17,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+const (
+	datawayElectionIntervalDefault  = 4
+	operatorElectionIntervalDefault = 3
+)
+
 var (
-	log                     = logger.DefaultSLogger("dk-election")
-	electionIntervalDefault = 4
-	CurrentElected          = "<checking...>"
+	log            = logger.DefaultSLogger("dk-election")
+	CurrentElected = "<checking...>"
 
 	chStatus = make(chan ElectionStatus) // blocking
 )
@@ -45,6 +49,10 @@ func Start(opts ...ElectionOption) {
 	for idx := range opts {
 		opts[idx](&opt)
 	}
+	if opt.provider == "" {
+		opt.provider = ProviderDataway
+	}
+	electionProviderInfoVec.WithLabelValues(string(opt.provider), opt.namespace).Set(1)
 
 	if !opt.enabled {
 		status := StatusDisabled
@@ -68,7 +76,7 @@ func Start(opts ...ElectionOption) {
 	}
 
 	instance := newLeaderElection(&opt, inputs.GetElectionInputs())
-	log.Infof("election mode with Dataway ,namespace: %s, id: %s", opt.namespace, opt.id)
+	log.Infof("election provider=%s namespace=%q id=%q", opt.provider, opt.namespace, opt.id)
 
 	g := goroutine.G("election")
 	g.Go(func(ctx context.Context) error {

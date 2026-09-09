@@ -1,0 +1,6 @@
+[
+  {"name":"floor-local", "script":"local.p", "input":"message.txt", "expected":{"sentinel":"keep"}},
+  {"name":"floor-read", "script":"read.p", "input":"message.txt", "expected":{"sentinel":"keep"}},
+  {"name":"floor-write", "script":"write.p", "input":"message.txt", "expected":{"result":"ok"}},
+  {"name":"floor-cast", "script":"cast.p", "input":"message.txt", "extra_fields":{"number":"42"}, "expected":{"number":42}}
+]

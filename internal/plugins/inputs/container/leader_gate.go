@@ -5,45 +5,76 @@
 
 package container
 
-import "sync/atomic"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type leaderGate struct {
-	electionEnabled atomic.Bool
+	mu              sync.Mutex
+	electionEnabled bool
 	allowed         atomic.Bool
-	touched         atomic.Bool
+	touched         bool
+	requested       bool
+	onChange        func(bool)
 }
 
 func newLeaderGate() *leaderGate {
-	g := &leaderGate{}
+	g := &leaderGate{requested: true}
 	g.allowed.Store(true)
 	return g
 }
 
 func (g *leaderGate) ConfigureElection(enabled bool) {
-	g.electionEnabled.Store(enabled)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.electionEnabled = enabled
 	if !enabled {
 		g.allowed.Store(true)
-		return
-	}
-
-	if !g.touched.Load() {
+	} else if !g.touched {
 		g.allowed.Store(false)
+	} else {
+		g.allowed.Store(g.requested)
 	}
+	g.notify()
 }
 
 func (g *leaderGate) Pause() {
-	g.touched.Store(true)
-	g.allowed.Store(false)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.touched = true
+	g.requested = false
+	g.allowed.Store(!g.electionEnabled)
+	g.notify()
 }
 
 func (g *leaderGate) Resume() {
-	g.touched.Store(true)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.touched = true
+	g.requested = true
 	g.allowed.Store(true)
+	g.notify()
 }
 
 func (g *leaderGate) Allowed() bool {
-	if g == nil || !g.electionEnabled.Load() {
+	if g == nil {
 		return true
 	}
 	return g.allowed.Load()
+}
+
+// Subscribe delivers the current state too, so election decisions made before
+// the Kubernetes collector is constructed cannot be lost.
+func (g *leaderGate) Subscribe(onChange func(bool)) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.onChange = onChange
+	g.notify()
+}
+
+func (g *leaderGate) notify() {
+	if g.onChange != nil {
+		g.onChange(g.allowed.Load())
+	}
 }

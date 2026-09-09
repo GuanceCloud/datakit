@@ -30,6 +30,8 @@
 1. 在 *dataflux-doc* 项目下，有一个 *requirements.txt*，执行 `pip install -r requirements.txt` 安装对应依赖
 1. 回到 DataKit 代码目录，执行根目录下的 `./export.sh` 即可
 
+> DataKit Operator 基础文档由 [DataKit Operator 项目](https://gitlab.jiagouyun.com/cloudcare-tools/datakit-operator){:target="_blank"} 维护并导出到原有目录；DataKit 只维护中英文 `datakit.pages` 中的导航。新增、删除 Operator 页面或调整导航时，需要同步修改对应的 `datakit.pages`。
+
 ## MkDocs 技巧分享 {#mkdocs-tips}
 
 ### 标记实验性功能 {#experimental}

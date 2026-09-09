@@ -9,20 +9,40 @@
 package refertable
 
 import (
+	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	_ "modernc.org/sqlite"
 )
 
 type PlReferTablesSqlite struct {
+	mu         sync.RWMutex
 	tableNames []string
 	db         *sql.DB
 }
 
+// Close releases the service-owned pool after all current queries/updates finish.
+// Callers must stop the pull worker and drain script users before closing it.
+func (p *PlReferTablesSqlite) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.db == nil {
+		return nil
+	}
+	err := p.db.Close()
+	p.db = nil
+	p.tableNames = nil
+	return err
+}
+
 func (p *PlReferTablesSqlite) Query(tableName string, colName []string, colValue []any, kGet []string) (map[string]any, bool) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if p.db == nil {
 		return nil, false
 	}
@@ -69,7 +89,19 @@ func (p *PlReferTablesSqlite) Query(tableName string, colName []string, colValue
 	return ret, true
 }
 
-func (p *PlReferTablesSqlite) updateAll(tables []referTable) (retErr error) {
+func (p *PlReferTablesSqlite) updateAll(tables []referTable) error {
+	return p.updateAllContext(context.Background(), tables)
+}
+
+func (p *PlReferTablesSqlite) updateAllContext(ctx context.Context, tables []referTable) (retErr error) {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if p.db == nil {
 		return errors.New("PlReferTablesSqlite is not initialized")
 	}
@@ -79,18 +111,36 @@ func (p *PlReferTablesSqlite) updateAll(tables []referTable) (retErr error) {
 		}
 	}
 
-	tx, err := p.db.Begin()
+	conn, err := p.db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire update connection: %w", err)
+	}
+	defer conn.Close()
+	// Keep rollback under our control: database/sql may discard a canceled
+	// transaction connection, destroying a :memory: database. SQL operations
+	// below use ctx, and cancellation is checked before committing.
+	tx, err := conn.BeginTx(context.Background(), nil)
 	if err != nil {
 		return fmt.Errorf("failed to start a TX: %w", err)
 	}
 	defer func() {
 		if retErr != nil {
-			if err := tx.Rollback(); err != nil {
+			if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 				l.Errorf("failed to rollback TX: %v", err)
+				_ = conn.Raw(func(any) error { return driver.ErrBadConn })
 			}
 		} else {
 			if err := tx.Commit(); err != nil {
-				l.Errorf("failed to commit TX: %v", err)
+				retErr = fmt.Errorf("failed to commit TX: %w", err)
+				// database/sql marks Tx done even when SQLite COMMIT is busy.
+				// Discard the physical connection so its live transaction cannot
+				// return to the pool and keep locks across subsequent refreshes.
+				_ = conn.Raw(func(any) error { return driver.ErrBadConn })
+				return
+			}
+			p.tableNames = nil
+			for _, table := range tables {
+				p.tableNames = append(p.tableNames, table.TableName)
 			}
 		}
 	}()
@@ -98,13 +148,13 @@ func (p *PlReferTablesSqlite) updateAll(tables []referTable) (retErr error) {
 	// Drop deprecated tables.
 	for _, t := range p.tableNames {
 		dropStmt := fmt.Sprintf("DROP TABLE IF EXISTS %s", t)
-		if _, err := tx.Exec(dropStmt); err != nil {
+		if _, err := tx.ExecContext(ctx, dropStmt); err != nil {
 			return fmt.Errorf("failed to execute '%s': %w", dropStmt, err)
 		}
 	}
 	for _, t := range tables {
 		dropStmt := fmt.Sprintf("DROP TABLE IF EXISTS %s", t.TableName)
-		if _, err := tx.Exec(dropStmt); err != nil {
+		if _, err := tx.ExecContext(ctx, dropStmt); err != nil {
 			return fmt.Errorf("failed to execute '%s': %w", dropStmt, err)
 		}
 	}
@@ -112,7 +162,7 @@ func (p *PlReferTablesSqlite) updateAll(tables []referTable) (retErr error) {
 	// Create new tables.
 	for i := range tables {
 		createStmt := buildCreateTableStmt(&tables[i])
-		if _, err := tx.Exec(createStmt); err != nil {
+		if _, err := tx.ExecContext(ctx, createStmt); err != nil {
 			return fmt.Errorf("failed to execute '%s': %w", createStmt, err)
 		}
 	}
@@ -121,22 +171,18 @@ func (p *PlReferTablesSqlite) updateAll(tables []referTable) (retErr error) {
 	for i := range tables {
 		insertStmt := buildInsertIntoStmts(&tables[i])
 		for j := 0; j < len(tables[i].RowData); j++ {
-			if _, err := tx.Exec(insertStmt, tables[i].RowData[j]...); err != nil {
+			if _, err := tx.ExecContext(ctx, insertStmt, tables[i].RowData[j]...); err != nil {
 				return fmt.Errorf("failed to execute '%s' with params %v: %w", insertStmt, tables[i].RowData[j], err)
 			}
 		}
 	}
 
-	// Update table list.
-	p.tableNames = []string{}
-	for _, t := range tables {
-		p.tableNames = append(p.tableNames, t.TableName)
-	}
-
-	return nil
+	return ctx.Err()
 }
 
 func (p *PlReferTablesSqlite) Stats() *ReferTableStats {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if p.db == nil {
 		return nil
 	}

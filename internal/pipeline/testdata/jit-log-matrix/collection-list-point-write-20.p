@@ -1,0 +1,24 @@
+a=[1,2,3]
+result=0
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+a[index]+=1
+add_key(result,a[index])
+add_key(ok, a[index] == 22)

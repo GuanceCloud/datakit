@@ -29,6 +29,8 @@ The basic environment on which *export.sh* depends:
 1. In the *dataflux-doc* project, there is a *requirements.txt*. Execute `pip install -r requirements.txt` to install the corresponding dependencies.
 1. Return to the DataKit code directory and execute `./export.sh` in the root directory.
 
+> Basic DataKit Operator documents are maintained by the [DataKit Operator project](https://gitlab.jiagouyun.com/cloudcare-tools/datakit-operator){:target="_blank"} and exported to their existing location. DataKit only maintains the navigation in the Chinese and English `datakit.pages` files. Adding or removing Operator pages, or changing their navigation, requires updating the corresponding `datakit.pages`.
+
 ## MkDocs Tips {#mkdocs-tips}
 
 ### Marking Experimental Features {#experimental}

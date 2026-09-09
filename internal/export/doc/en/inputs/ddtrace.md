@@ -132,7 +132,11 @@ This section configures the **DataKit receiver**. Configure the SDK's destinatio
 
 {{ CodeBlock .InputENVSample 4 }}
 
-`customer_tags` promotes selected `meta` fields to top-level tags. A `.` in a literal field name becomes `_`; for example, `http.route` becomes `http_route`. A regular expression must begin with `reg:` and uses Go regular-expression syntax; for example, `reg:^key_.*$` matches fields beginning with `key_`. Validate expressions in a test environment first: an invalid expression prevents the collector from initializing correctly.
+`customer_tags` promotes selected span `meta` and `metrics` entries to the top level. String `meta` values become tags, while numeric `metrics` values become fields; unmatched entries remain in `message`. A `.` in a literal field name becomes `_`; for example, `http.route` becomes `http_route`. A regular expression must begin with `reg:` and uses Go regular-expression syntax; for example, `reg:^key_.*$` matches fields beginning with `key_`. Validate expressions in a test environment first: an invalid expression prevents the collector from initializing correctly.
+
+`sampling_priority_drop_excludes` lists rejected upstream sampling priorities that bypass DDTrace's early drop decision. Supported values are `-3`, `-1`, and `0`. The default empty list preserves the existing behavior of dropping all three values. For example, with `[0]`, a priority=0 trace continues through DataKit's normal filters and sampler; it is not force-kept. This setting cannot restore spans that the upstream did not send and may significantly increase the volume sent downstream.
+
+The DataKit self-monitoring metrics `datakit_input_ddtrace_sampling_priority_trace_total` and `datakit_input_ddtrace_sampling_priority_span_total` record these decisions with `priority`, `action` (`drop` or `bypass`), and `service` labels. They prove how much data DataKit received and then dropped or bypassed, but cannot prove that a priority=0 value originated from W3C `traceparent`.
 
 ### Notes on Multi-Tool Trace Propagation {#trace_propagator}
 

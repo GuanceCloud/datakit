@@ -1,6 +1,6 @@
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "2.11.0"
+  CI_VERSION: "2.12.0"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DCA_CI_VERSION: "0.1.9"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
@@ -11,6 +11,10 @@ variables:
   DK_GO_VERSION: "1.26.2"
   GOLANGCI_LINT_VERSION: "v2.11.4"
   GOLANGCI_LINT_BIN: "./bin/golangci-lint"
+  # Release jobs enable glibc JIT packaging after downloading the runtime.
+  PIPELINE_JIT_ENABLED: "0"
+  PP_JIT_VERSION: "v0.1.3"
+  PLATYPUS_JIT_RUNTIME_DIR: "$CI_PROJECT_DIR/.cache/pipeline-jit-runtime"
 
 before_script:
   - uname -a
@@ -83,6 +87,7 @@ ci_lint_and_ut:
     - make lint GOLINT_BINARY="$GOLANGCI_LINT_BIN" AUTO_FIX=false
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go test -c -o /tmp/winnetflow.test.exe ./internal/plugins/inputs/winnetflow # compile Windows-only collector and tests
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_IMPACTED="${UT_IMPACTED:-true}" UT_BASE_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" UT_PARALLEL="$UT_PARALLEL"
+    - bash scripts/test-pipeline-jit-ci.sh
   tags:
     - cloudcare-ft
 
@@ -122,6 +127,7 @@ ut-datakit-production:
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint GOLINT_BINARY="$GOLANGCI_LINT_BIN" AUTO_FIX=false
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_PARALLEL="$UT_PARALLEL"
+    - bash scripts/test-pipeline-jit-ci.sh
   tags:
     - cloudcare-ft
 
@@ -137,10 +143,13 @@ ut-datakit-testing:
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
     #- make lint GOLINT_BINARY="$GOLANGCI_LINT_BIN" AUTO_FIX=false
     #- make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
+    - bash scripts/test-pipeline-jit-ci.sh
   tags:
     - cloudcare-ft
 
 release-testing-guance: # release testing packages to guance
+  variables:
+    PIPELINE_JIT_ENABLED: "1"
   stage: _deploy_guance
   resource_group: production
   needs: [ut-datakit-testing]
@@ -157,6 +166,14 @@ release-testing-guance: # release testing packages to guance
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
     - export OSS_PATH="datakit-v2"
+    - |
+      bash scripts/download-pipeline-jit.sh || exit $?
+      case "${PIPELINE_JIT_ENABLED:-0}" in
+        1|true|on|yes)
+          PLATYPUS_JIT_EXPECTED_REVISION=$(cat "$PLATYPUS_JIT_RUNTIME_DIR/source-revision")
+          export PLATYPUS_JIT_EXPECTED_REVISION
+          ;;
+      esac
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH \
         VERSION="$CI_TESTING_VERSION" \
         BRAND="guance"
@@ -173,6 +190,8 @@ release-testing-guance: # release testing packages to guance
     - cloudcare-ft
 
 release-testing-tw: # release testing packages to truewatch
+  variables:
+    PIPELINE_JIT_ENABLED: "1"
   stage: _deploy_truewatch
   resource_group: production
   needs: [ut-datakit-testing]
@@ -189,6 +208,14 @@ release-testing-tw: # release testing packages to truewatch
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
     - export OSS_PATH="datakit-tw"
+    - |
+      bash scripts/download-pipeline-jit.sh || exit $?
+      case "${PIPELINE_JIT_ENABLED:-0}" in
+        1|true|on|yes)
+          PLATYPUS_JIT_EXPECTED_REVISION=$(cat "$PLATYPUS_JIT_RUNTIME_DIR/source-revision")
+          export PLATYPUS_JIT_EXPECTED_REVISION
+          ;;
+      esac
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_TESTING_VERSION" \
       BRAND="truewatch"
@@ -202,6 +229,8 @@ release-testing-tw: # release testing packages to truewatch
     - cloudcare-ft
 
 release-prod-guance: # CI for guance packages
+  variables:
+    PIPELINE_JIT_ENABLED: "1"
   stage: _deploy_guance
   resource_group: production
   needs: [ut-datakit-production]
@@ -217,6 +246,14 @@ release-prod-guance: # CI for guance packages
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
     - export OSS_PATH="datakit-v2"
+    - |
+      bash scripts/download-pipeline-jit.sh || exit $?
+      case "${PIPELINE_JIT_ENABLED:-0}" in
+        1|true|on|yes)
+          PLATYPUS_JIT_EXPECTED_REVISION=$(cat "$PLATYPUS_JIT_RUNTIME_DIR/source-revision")
+          export PLATYPUS_JIT_EXPECTED_REVISION
+          ;;
+      esac
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
       BRAND="guance" \
@@ -235,6 +272,8 @@ release-prod-guance: # CI for guance packages
     - cloudcare-ft
 
 release-prod-tw: # CI for truewatch packages
+  variables:
+    PIPELINE_JIT_ENABLED: "1"
   stage: _deploy_truewatch
   resource_group: production
   needs: [ut-datakit-production]
@@ -248,6 +287,14 @@ release-prod-tw: # CI for truewatch packages
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
     - export OSS_PATH="datakit-v2"
+    - |
+      bash scripts/download-pipeline-jit.sh || exit $?
+      case "${PIPELINE_JIT_ENABLED:-0}" in
+        1|true|on|yes)
+          PLATYPUS_JIT_EXPECTED_REVISION=$(cat "$PLATYPUS_JIT_RUNTIME_DIR/source-revision")
+          export PLATYPUS_JIT_EXPECTED_REVISION
+          ;;
+      esac
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
       BRAND="truewatch" \

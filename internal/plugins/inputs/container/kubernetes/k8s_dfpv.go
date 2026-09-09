@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -64,8 +63,6 @@ func (d *dfpv) gatherObject(ctx context.Context) {
 	pts := d.buildObjectPoints(list)
 	feedObject("k8s-dfpv-object", d.cfg.Feeder, pts, false)
 }
-
-func (*dfpv) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (d *dfpv) buildMetricPoints(list []*podVolumeInfo, timestamp int64) []*point.Point {
 	var pts []*point.Point

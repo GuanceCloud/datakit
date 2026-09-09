@@ -34,3 +34,25 @@ func TestLeaderGateDisabledElectionAllowsCollection(t *testing.T) {
 	gate.ConfigureElection(false)
 	assert.True(t, gate.Allowed())
 }
+
+func TestLeaderGateDeliversDecisionsBeforeCollectorStarts(t *testing.T) {
+	for _, leader := range []bool{false, true} {
+		t.Run(map[bool]string{false: "pause", true: "resume"}[leader], func(t *testing.T) {
+			gate := newLeaderGate()
+			if leader {
+				gate.Resume()
+			} else {
+				gate.Pause()
+			}
+			gate.ConfigureElection(true)
+			var observed bool
+			gate.Subscribe(func(allowed bool) { observed = allowed })
+			assert.Equal(t, leader, observed)
+			assert.Equal(t, leader, gate.Allowed())
+			gate.Pause()
+			assert.False(t, observed)
+			gate.Resume()
+			assert.True(t, observed)
+		})
+	}
+}

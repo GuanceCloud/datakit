@@ -6,6 +6,7 @@
 package plval
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/GuanceCloud/grok"
@@ -15,6 +16,7 @@ import (
 	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb/geoip"
 	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb/iploc"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
+	pljit "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/jit"
 )
 
 var pipelineDefaultCfg = &PipelineCfg{
@@ -42,6 +44,7 @@ type PipelineCfg struct {
 	Offload                *offload.OffloadConfig `toml:"offload"`
 	EnableDebugFields      bool                   `toml:"-"`
 	DefaultPipeline        map[string]string      `toml:"default_pipeline"`
+	JIT                    *JITCfg                `toml:"jit"`
 
 	DisableHTTPRequestFunc        bool     `toml:"disable_http_request_func"`
 	HTTPRequestHostWhitelist      []string `toml:"http_request_host_whitelist"`
@@ -49,6 +52,41 @@ type PipelineCfg struct {
 	HTTPRequestDisableInternalNet bool     `toml:"http_request_disable_internal_net"`
 
 	DeprecatedDisableAppendRunInfo bool `toml:"disable_append_run_info"`
+}
+
+type JITCfg struct {
+	Enabled           bool                   `toml:"enabled"`
+	RuntimePath       string                 `toml:"runtime_path"`
+	MaxCachedPrograms int                    `toml:"max_cached_programs"`
+	Mode              string                 `toml:"mode"`
+	OnInitError       string                 `toml:"on_init_error"` // Empty defaults to Go on initial runtime failure.
+	RuntimeSHA256     string                 `toml:"runtime_sha256"`
+	Allow             []pljit.AllowRule      `toml:"allow"`
+	ForceGo           []pljit.ScriptIdentity `toml:"force_go"`
+}
+
+func (cfg *JITCfg) Validate() error {
+	if cfg == nil {
+		return nil
+	}
+	if _, err := pljit.NewRolloutPolicy(cfg.Mode, cfg.Allow, cfg.ForceGo); err != nil {
+		return err
+	}
+	if cfg.OnInitError != "" && cfg.OnInitError != "error" && cfg.OnInitError != "go" {
+		return fmt.Errorf("pipeline.jit.on_init_error must be error or go")
+	}
+	if cfg.MaxCachedPrograms < 0 || cfg.MaxCachedPrograms > pljit.MaxRolloutEntries {
+		return fmt.Errorf("pipeline.jit.max_cached_programs must be between 0 (default) and %d", pljit.MaxRolloutEntries)
+	}
+	if cfg.RuntimeSHA256 != "" {
+		if _, err := pljit.ParseSHA256(cfg.RuntimeSHA256); err != nil {
+			return fmt.Errorf("pipeline.jit.runtime_sha256: %w", err)
+		}
+	}
+	if cfg.Enabled && cfg.Mode == "allowlist" && cfg.RuntimeSHA256 == "" {
+		return fmt.Errorf("pipeline JIT allowlist requires runtime_sha256 from the trusted release")
+	}
+	return nil
 }
 
 // InitIPdb init ipdb instance.
@@ -104,6 +142,7 @@ func LoadPatterns(patternDir string) error {
 
 	// 替换 ppl runtime 中的 patterns
 	runtime.DenormalizedGlobalPatterns = denormalizedGlobalPatterns
+	publishJITPatternRules(loadedPatterns)
 
 	return nil
 }

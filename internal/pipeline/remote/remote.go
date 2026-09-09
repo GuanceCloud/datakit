@@ -9,6 +9,8 @@ package remote
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -18,8 +20,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/pipeline-go/constants"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -207,12 +207,7 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 		return nil
 	}
 
-	spRelation := managerWkr.GetScriptRelation()
-	if spRelation == nil {
-		return nil
-	}
-
-	relationTS := spRelation.UpdateAt()
+	relationTS := managerWkr.RelationUpdateAt()
 
 	mFiles, pRelation, defaultPl, updateTime, relationUpdateTime, err := ipr.PullPipeline(localTS, relationTS)
 	if err != nil {
@@ -220,62 +215,122 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 		return err
 	}
 
-	if localTS == updateTime || updateTime <= 0 {
+	scriptsChanged := localTS != updateTime && updateTime > 0
+	relationChanged := relationUpdateTime != -1
+	if scriptsChanged && updateTime == deleteAll {
+		// A delete-all generation cannot retain relations to scripts that are
+		// removed by the same publication, even if the server omitted a
+		// separate relation update.
+		pRelation = map[point.Category]map[string]string{}
+		relationUpdateTime = 0
+		relationChanged = true
+	}
+	if !scriptsChanged {
 		l.Debugf("pipeline already up to date: %d", updateTime)
-	} else {
+	}
+	if !scriptsChanged && !relationChanged {
+		return nil
+	}
+
+	update := plval.RemoteManagerUpdate{
+		ReplaceRelation:  relationChanged,
+		RelationUpdateAt: relationUpdateTime,
+		Relation:         pRelation,
+	}
+	if scriptsChanged {
+		update.ReplaceScripts = true
+		update.ReplaceDefaults = true
 		if updateTime == deleteAll {
 			l.Debug("deleteAll")
-
-			// cleanup default pipeline
-			managerWkr.UpdateDefaultScript(
-				plval.GetLocalDefaultPipeline())
-			if m, ok := plval.GetManager(); ok && m != nil {
-				// cleanup all remote scripts
-				m.LoadScripts(constants.NSRemote, nil, nil)
-			}
-
-			// remove lcoal files
-			if err := removeLocalRemote(ipr); err != nil {
-				return err
-			}
+			update.Defaults = plval.GetLocalDefaultPipeline()
 		} else {
 			l.Infof("localTS = %d, updateTime = %d, so update", localTS, updateTime)
-
-			err := dumpFiles(mFiles, defaultPl, ipr)
-			if err != nil {
-				l.Errorf("dumpFiles failed: %s", err.Error())
-				return err
-			}
-
-			l.Debug("dumpFiles succeeded")
-
-			loadContentPipeline(mFiles)
-			combineLocal := plval.PreferLocalDefaultPipeline(defaultPl)
-			managerWkr.UpdateDefaultScript(combineLocal)
-
-			err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
-			if err != nil {
-				l.Errorf("updatePipelineRemoteConfig failed: %s", err.Error())
-				return err
-			}
-
-			l.Debugf("update completed: %d", updateTime)
+			update.Scripts = mFiles
+			update.Defaults = plval.PreferLocalDefaultPipeline(defaultPl)
 		}
 	}
 
-	if relationUpdateTime != -1 {
-		// 通常无正常状态的 pl 关系时，update time 不会更新，
-		// 中心不会返回最近（禁用/删除的）的关系的 ts 值，此时返回 ts 默认值 0
-		// 这种情况会将存储的 relation_update_at 置为 0
+	prepared, err := managerWkr.PrepareRemoteUpdate(update)
+	if err != nil {
+		return fmt.Errorf("compile remote pipeline generation: %w", err)
+	}
+	defer prepared.Abort()
 
-		l.Info("update remote pipeline relation map")
-		spRelation.UpdateRelation(relationUpdateTime, pRelation)
-		if err := dumpRelation(pathRelation, pRelation); err != nil {
-			l.Debug(err)
+	paths := []string{pathConfig, pathContent, pathRelation}
+	diskState, err := snapshotRemoteFiles(paths, ipr)
+	if err != nil {
+		return fmt.Errorf("snapshot remote pipeline files: %w", err)
+	}
+	rollback := func(cause error) error {
+		if rollbackErr := restoreRemoteFiles(diskState, ipr); rollbackErr != nil {
+			return errors.Join(cause, fmt.Errorf("rollback remote pipeline files: %w", rollbackErr))
+		}
+		return cause
+	}
+
+	if scriptsChanged {
+		if updateTime == deleteAll {
+			if err := removeLocalRemote(ipr); err != nil {
+				return rollback(err)
+			}
+		} else if err := dumpFiles(mFiles, defaultPl, ipr); err != nil {
+			return rollback(fmt.Errorf("dump remote pipeline files: %w", err))
+		}
+		if err := updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr); err != nil {
+			return rollback(fmt.Errorf("update remote pipeline config: %w", err))
 		}
 	}
+	if relationChanged {
+		if err := dumpRelation(pathRelation, pRelation, ipr); err != nil {
+			return rollback(fmt.Errorf("dump remote pipeline relation: %w", err))
+		}
+	}
+
+	if err := prepared.Commit(); err != nil {
+		return rollback(fmt.Errorf("publish remote pipeline generation: %w", err))
+	}
+	l.Debugf("remote pipeline generation published: scripts=%t relation=%t update_time=%d relation_time=%d",
+		scriptsChanged, relationChanged, updateTime, relationUpdateTime)
 
 	return nil
+}
+
+type remoteFileSnapshot struct {
+	path   string
+	exists bool
+	data   []byte
+}
+
+func snapshotRemoteFiles(paths []string, ipr IPipelineRemote) ([]remoteFileSnapshot, error) {
+	result := make([]remoteFileSnapshot, 0, len(paths))
+	for _, path := range paths {
+		state := remoteFileSnapshot{path: path, exists: ipr.FileExist(path)}
+		if state.exists {
+			data, err := ipr.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+			state.data = append([]byte(nil), data...)
+		}
+		result = append(result, state)
+	}
+	return result, nil
+}
+
+func restoreRemoteFiles(states []remoteFileSnapshot, ipr IPipelineRemote) error {
+	var restoreErrs []error
+	for _, state := range states {
+		if state.exists {
+			if err := ipr.WriteFile(state.path, state.data, os.ModePerm); err != nil {
+				restoreErrs = append(restoreErrs, fmt.Errorf("restore %s: %w", state.path, err))
+			}
+		} else if ipr.FileExist(state.path) {
+			if err := ipr.Remove(state.path); err != nil {
+				restoreErrs = append(restoreErrs, fmt.Errorf("remove %s: %w", state.path, err))
+			}
+		}
+	}
+	return errors.Join(restoreErrs...)
 }
 
 func removeLocalRemote(ipr IPipelineRemote) error {
@@ -318,18 +373,18 @@ type relationInfo struct {
 	Relation map[string]map[string]string `json:"relation"`
 }
 
-func dumpRelation(path string, relation map[point.Category]map[string]string) error {
+func dumpRelation(path string, relation map[point.Category]map[string]string, ipr IPipelineRemote) error {
 	rl := map[string]map[string]string{}
 	for c, r := range relation {
 		rl[c.String()] = r
 	}
 
-	if body, err := json.Marshal(&relationInfo{
+	if body, err := ipr.Marshal(&relationInfo{
 		Relation: rl,
 	}); err != nil {
 		return err
 	} else {
-		if err := os.WriteFile(path, body, os.ModePerm); err != nil {
+		if err := ipr.WriteFile(path, body, os.ModePerm); err != nil {
 			return err
 		}
 	}
@@ -426,18 +481,4 @@ func convertThreeMapToContentMap(in map[point.Category]map[string]string,
 	}
 
 	return out
-}
-
-func loadContentPipeline(in map[point.Category]map[string]string) {
-	managerWkr, ok := plval.GetManager()
-	if !ok || managerWkr == nil {
-		return
-	}
-
-	inS := map[point.Category]map[string]string{}
-
-	for cat, val := range in {
-		inS[cat] = val
-	}
-	managerWkr.LoadScripts(constants.NSRemote, inS, nil)
 }

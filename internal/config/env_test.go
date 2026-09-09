@@ -53,6 +53,15 @@ func TestLoadDatawayCompressionEnv(t *testing.T) {
 	assert.Equal(t, "zstd", c.Dataway.Compression)
 }
 
+func TestLoadElectionOperatorURLEnvDoesNotEnableElection(t *testing.T) {
+	t.Setenv("ENV_ELECTION_OPERATOR_URL", "https://datakit-operator.datakit.svc:443/")
+
+	c := DefaultConfig()
+	assert.NoError(t, c.LoadEnvs())
+	assert.False(t, c.Election.Enable)
+	assert.Equal(t, "https://datakit-operator.datakit.svc:443/", c.Election.OperatorURL)
+}
+
 func TestLoadEnv(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -172,6 +181,9 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_PIPELINE_OFFLOAD_RECEIVER":                  offload.DKRcv,
 				"ENV_PIPELINE_OFFLOAD_ADDRESSES":                 "http://aaa:123,http://1.2.3.4:1234",
 				"ENV_PIPELINE_DEFAULT_PIPELINE":                  `{"xxx":"a.p"}`,
+				"ENV_PIPELINE_JIT_ENABLED":                       "true",
+				"ENV_PIPELINE_JIT_RUNTIME_PATH":                  "/opt/datakit/lib/libplatypus_jit.so",
+				"ENV_PIPELINE_JIT_MAX_CACHED_PROGRAMS":           "64",
 				"ENV_PIPELINE_DISABLE_HTTP_REQUEST_FUNC":         "true",
 				"ENV_PIPELINE_HTTP_REQUEST_HOST_WHITELIST":       `["guance.com", "10.0.0.1"]`,
 				"ENV_PIPELINE_HTTP_REQUEST_CIDR_WHITELIST":       `["10.0.0.0/8"]`,
@@ -222,6 +234,9 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Pipeline.Offload.Addresses = []string{"http://aaa:123", "http://1.2.3.4:1234"}
 
 				cfg.Pipeline.DefaultPipeline = map[string]string{"xxx": "a.p"}
+				cfg.Pipeline.JIT.Enabled = true
+				cfg.Pipeline.JIT.RuntimePath = "/opt/datakit/lib/libplatypus_jit.so"
+				cfg.Pipeline.JIT.MaxCachedPrograms = 64
 				cfg.Pipeline.DisableHTTPRequestFunc = true
 				cfg.Pipeline.HTTPRequestHostWhitelist = []string{"guance.com", "10.0.0.1"}
 				cfg.Pipeline.HTTPRequestCIDRWhitelist = []string{"10.0.0.0/8"}

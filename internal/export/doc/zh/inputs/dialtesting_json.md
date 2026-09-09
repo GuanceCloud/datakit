@@ -1578,7 +1578,10 @@ BROWSER 拨测通过 DataKit 内置浏览器执行器执行浏览器脚本，并
       "status": "OK",
       "frequency": "1m",
       "schedule_type": "frequency",
-      "browser_config": "name: homepage\ntarget: https://example.com\ntimeout_ms: 30000\nsteps:\n  - name: open homepage\n    action: goto\n  - name: check title\n    action: assert_title\n    contains: Example\n"
+      "browser_config": "name: homepage\ntarget: https://example.com\ntimeout_ms: 30000\nsteps:\n  - name: open homepage\n    action: goto\n  - name: check title\n    action: assert_title\n    contains: Example\n",
+      "advance_options": {
+        "screenshot_on_failure": true
+      }
     }
   ]
 }
@@ -1600,7 +1603,7 @@ BROWSER 拨测通过 DataKit 内置浏览器执行器执行浏览器脚本，并
 
 ##### 截图支持 {#browser-screenshot}
 
-内置的 Lightpanda 不支持截图。Lightpanda 任务会忽略 `advance_options.screenshot_on_failure`。
+将 `advance_options.screenshot_on_failure` 设置为 `true` 后，浏览器步骤失败时会采集 PNG，DataKit 上传截图并将元数据写入 `steps[].screenshot`。Lightpanda 提供的是以文本为主的语义渲染，而不是像素级还原的 Chrome 截图。浏览器启动失败、进程退出或任务整体超时时，可能没有可用于截图的活动会话。
 
 Lightpanda HTTP 代理的生效优先级为：任务 `advance_options.proxy_url` > `browser_config` 中的 `proxy_url` > 拨测节点 `[inputs.dialtesting.browser].proxy_url`，详见[内网拨测与代理](dialtesting_browser.md#private-network-and-proxy)。
 

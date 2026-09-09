@@ -448,6 +448,72 @@ var (
 	traceOpts            = []point.Option{}
 )
 
+const (
+	samplingPriorityActionDrop   = "drop"
+	samplingPriorityActionBypass = "bypass"
+)
+
+func isRejectedSamplingPriority(priority int) bool {
+	switch priority {
+	case itrace.PriorityRuleSamplerReject, itrace.PriorityUserReject, itrace.PriorityAutoReject:
+		return true
+	default:
+		return false
+	}
+}
+
+func rejectedSamplingPriority(priority float64) (int, bool) {
+	value := int(priority)
+	return value, float64(value) == priority && isRejectedSamplingPriority(value)
+}
+
+func (ipt *Input) samplingPriorityDropExcluded(priority int) bool {
+	for _, excluded := range ipt.SamplingPriorityDropExcludes {
+		if excluded == priority {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ipt *Input) samplingPriorityDecision(trace DDTrace) (int, string, string, bool) {
+	var (
+		bypassPriority int
+		bypassService  string
+		bypassFound    bool
+	)
+
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+
+		value, ok := span.Metrics[keyPriority]
+		if !ok {
+			continue
+		}
+		priority, rejected := rejectedSamplingPriority(value)
+		if !rejected {
+			continue
+		}
+		if !ipt.samplingPriorityDropExcluded(priority) {
+			return priority, span.Service, samplingPriorityActionDrop, true
+		}
+		if !bypassFound {
+			bypassPriority = priority
+			bypassService = span.Service
+			bypassFound = true
+		}
+	}
+
+	if bypassFound {
+		return bypassPriority, bypassService, samplingPriorityActionBypass, true
+	}
+
+	return 0, "", "", false
+}
+
 func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.DatakitTrace {
 	var (
 		parentIDs, spanIDs = gatherSpansInfo(trace) // NOTE: we should gather before truncate
@@ -479,6 +545,15 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		// 统计指标。
 		traceMetric(trace, labels, values)
 	}
+	if priority, service, action, ok := ipt.samplingPriorityDecision(trace); ok {
+		priorityLabel := strconv.Itoa(priority)
+		samplingPriorityTraceDecision.WithLabelValues(priorityLabel, action, service).Inc()
+		samplingPrioritySpanDecision.WithLabelValues(priorityLabel, action, service).Add(float64(len(trace)))
+		if action == samplingPriorityActionDrop {
+			log.Debugf("drop trace due to sampling priority=%d service=%s", priority, service)
+			return []*itrace.DkSpan{}
+		}
+	}
 	for _, span := range trace {
 		values = values[:0]
 		if span == nil {
@@ -504,14 +579,12 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		spanKV = spanKV.AddTag(itrace.TagCollectorSourceIP, remoteIP)
 		priority, ok := span.Metrics[keyPriority]
 		if ok {
-			if priority == -1 || priority == -3 || priority == 0 {
-				log.Debugf("drop this traceID=%s service=%s", span.TraceID, span.Service)
-				return []*itrace.DkSpan{} // 此处应该返回空的数组。
-			}
-
-			if p, ok := itrace.DDPriorityMap[int(priority)]; ok {
-				// 在采样的结果放到行协议中，如果 DK 有配置采样，则需要该值进行过滤。
-				spanKV = spanKV.SetTag(itrace.SampleRateKey, p)
+			value, rejected := rejectedSamplingPriority(priority)
+			if !rejected || !ipt.samplingPriorityDropExcluded(value) {
+				if p, ok := itrace.DDPriorityMap[int(priority)]; ok {
+					// 在采样的结果放到行协议中，如果 DK 有配置采样，则需要该值进行过滤。
+					spanKV = spanKV.SetTag(itrace.SampleRateKey, p)
+				}
 			}
 		}
 
@@ -544,6 +617,11 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		meta, kvs := ipt.customTagsX.DDTraceRegexKey(span.Meta)
 		span.Meta = meta
 		spanKV = append(spanKV, kvs...)
+		// Fields and tags already written above are protected by kvs.Has. Protect
+		// the built-in keys written below as well, so selected metrics cannot
+		// prevent the canonical status and message values from being added.
+		span.Metrics, spanKV = ipt.customTagsX.DDTraceMetricFields(span.Metrics, spanKV,
+			itrace.TagHttpStatusClass, itrace.TagSpanStatus, itrace.FieldMessage)
 
 		if code := spanKV.GetTag(itrace.TagHttpStatusCode); code != "" {
 			spanKV = spanKV.AddTag(itrace.TagHttpStatusClass, itrace.GetClass(code))

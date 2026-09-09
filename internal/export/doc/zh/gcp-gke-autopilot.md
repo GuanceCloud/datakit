@@ -20,7 +20,7 @@ GKE Autopilot 不允许 DataKit 以传统 DaemonSet 方式挂载宿主机 `hostP
 - Kubernetes 资源指标和对象：通过 Kubernetes API 采集 Pod、Deployment、Service、Node 等资源。
 - GCP 认证：使用 Workload Identity，不需要 Service Account key 文件。
 
-该模式不支持宿主机指标、容器运行时 socket、本地容器文件日志和 eBPF。Cloud Monitoring 指标通常会有数分钟延迟。Cloud Logging 使用重叠时间窗口和 `timestamp + insertId` 去重，正常轮询不会重复；Pod 被替换或 leader 切换后，可能重新读取重叠窗口内日志，因此语义为至少一次。
+该模式不支持宿主机指标、容器运行时 socket、本地容器文件日志和 eBPF。Cloud Monitoring 指标通常会有数分钟延迟。Pod 被替换或 leader 切换后，Cloud Logging 中的近期日志可能被重复采集，日志投递语义为至少一次。
 
 ## 前置条件 {#prerequisites}
 

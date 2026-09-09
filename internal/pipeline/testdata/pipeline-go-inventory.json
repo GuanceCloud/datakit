@@ -1,0 +1,2764 @@
+{
+  "schema": 1,
+  "scope": "pipeline-go source inventory only; labels are candidates, not expanded or executed cases; no compatibility inferred",
+  "functions": [
+    {
+      "name": "add_key",
+      "file": "ptinput/funcs/all.go",
+      "line": 51,
+      "status": "unmapped"
+    },
+    {
+      "name": "add_pattern",
+      "file": "ptinput/funcs/all.go",
+      "line": 56,
+      "status": "unmapped"
+    },
+    {
+      "name": "adjust_timezone",
+      "file": "ptinput/funcs/all.go",
+      "line": 53,
+      "status": "unmapped"
+    },
+    {
+      "name": "agg_create",
+      "file": "ptinput/funcs/all.go",
+      "line": 46,
+      "status": "unmapped"
+    },
+    {
+      "name": "agg_metric",
+      "file": "ptinput/funcs/all.go",
+      "line": 47,
+      "status": "unmapped"
+    },
+    {
+      "name": "append",
+      "file": "ptinput/funcs/all.go",
+      "line": 48,
+      "status": "unmapped"
+    },
+    {
+      "name": "b64dec",
+      "file": "ptinput/funcs/all.go",
+      "line": 57,
+      "status": "unmapped"
+    },
+    {
+      "name": "b64enc",
+      "file": "ptinput/funcs/all.go",
+      "line": 58,
+      "status": "unmapped"
+    },
+    {
+      "name": "cache_get",
+      "file": "ptinput/funcs/all.go",
+      "line": 108,
+      "status": "unmapped"
+    },
+    {
+      "name": "cache_set",
+      "file": "ptinput/funcs/all.go",
+      "line": 109,
+      "status": "unmapped"
+    },
+    {
+      "name": "cast",
+      "file": "ptinput/funcs/all.go",
+      "line": 59,
+      "status": "unmapped"
+    },
+    {
+      "name": "cidr",
+      "file": "ptinput/funcs/all.go",
+      "line": 49,
+      "status": "unmapped"
+    },
+    {
+      "name": "conv_traceid_w3c_to_dd",
+      "file": "ptinput/funcs/all.go",
+      "line": 102,
+      "status": "unmapped"
+    },
+    {
+      "name": "cover",
+      "file": "ptinput/funcs/all.go",
+      "line": 88,
+      "status": "unmapped"
+    },
+    {
+      "name": "create_point",
+      "file": "ptinput/funcs/all.go",
+      "line": 103,
+      "status": "unmapped"
+    },
+    {
+      "name": "datetime",
+      "file": "ptinput/funcs/all.go",
+      "line": 60,
+      "status": "unmapped"
+    },
+    {
+      "name": "decode",
+      "file": "ptinput/funcs/all.go",
+      "line": 96,
+      "status": "unmapped"
+    },
+    {
+      "name": "default_time",
+      "file": "ptinput/funcs/all.go",
+      "line": 61,
+      "status": "unmapped"
+    },
+    {
+      "name": "default_time_with_fmt",
+      "file": "ptinput/funcs/all.go",
+      "line": 62,
+      "status": "unmapped"
+    },
+    {
+      "name": "delete",
+      "file": "ptinput/funcs/all.go",
+      "line": 52,
+      "status": "unmapped"
+    },
+    {
+      "name": "drop",
+      "file": "ptinput/funcs/all.go",
+      "line": 63,
+      "status": "unmapped"
+    },
+    {
+      "name": "drop_key",
+      "file": "ptinput/funcs/all.go",
+      "line": 64,
+      "status": "unmapped"
+    },
+    {
+      "name": "drop_origin_data",
+      "file": "ptinput/funcs/all.go",
+      "line": 65,
+      "status": "unmapped"
+    },
+    {
+      "name": "duration_precision",
+      "file": "ptinput/funcs/all.go",
+      "line": 92,
+      "status": "unmapped"
+    },
+    {
+      "name": "exit",
+      "file": "ptinput/funcs/all.go",
+      "line": 66,
+      "status": "unmapped"
+    },
+    {
+      "name": "format_int",
+      "file": "ptinput/funcs/all.go",
+      "line": 105,
+      "status": "unmapped"
+    },
+    {
+      "name": "geoip",
+      "file": "ptinput/funcs/all.go",
+      "line": 67,
+      "status": "unmapped"
+    },
+    {
+      "name": "get_key",
+      "file": "ptinput/funcs/all.go",
+      "line": 68,
+      "status": "unmapped"
+    },
+    {
+      "name": "gjson",
+      "file": "ptinput/funcs/all.go",
+      "line": 110,
+      "status": "unmapped"
+    },
+    {
+      "name": "grok",
+      "file": "ptinput/funcs/all.go",
+      "line": 50,
+      "status": "unmapped"
+    },
+    {
+      "name": "group_between",
+      "file": "ptinput/funcs/all.go",
+      "line": 69,
+      "status": "unmapped"
+    },
+    {
+      "name": "group_in",
+      "file": "ptinput/funcs/all.go",
+      "line": 70,
+      "status": "unmapped"
+    },
+    {
+      "name": "hash",
+      "file": "ptinput/funcs/all.go",
+      "line": 118,
+      "status": "unmapped"
+    },
+    {
+      "name": "http_request",
+      "file": "ptinput/funcs/all.go",
+      "line": 107,
+      "status": "unmapped"
+    },
+    {
+      "name": "json",
+      "file": "ptinput/funcs/all.go",
+      "line": 54,
+      "status": "unmapped"
+    },
+    {
+      "name": "json_all",
+      "file": "ptinput/funcs/all.go",
+      "line": 55,
+      "status": "unmapped"
+    },
+    {
+      "name": "kv_split",
+      "file": "ptinput/funcs/all.go",
+      "line": 71,
+      "status": "unmapped"
+    },
+    {
+      "name": "len",
+      "file": "ptinput/funcs/all.go",
+      "line": 73,
+      "status": "unmapped"
+    },
+    {
+      "name": "load_json",
+      "file": "ptinput/funcs/all.go",
+      "line": 74,
+      "status": "unmapped"
+    },
+    {
+      "name": "lowercase",
+      "file": "ptinput/funcs/all.go",
+      "line": 72,
+      "status": "unmapped"
+    },
+    {
+      "name": "match",
+      "file": "ptinput/funcs/all.go",
+      "line": 94,
+      "status": "unmapped"
+    },
+    {
+      "name": "mquery_refer_table",
+      "file": "ptinput/funcs/all.go",
+      "line": 90,
+      "status": "unmapped"
+    },
+    {
+      "name": "nullif",
+      "file": "ptinput/funcs/all.go",
+      "line": 75,
+      "status": "unmapped"
+    },
+    {
+      "name": "parse_date",
+      "file": "ptinput/funcs/all.go",
+      "line": 87,
+      "status": "unmapped"
+    },
+    {
+      "name": "parse_duration",
+      "file": "ptinput/funcs/all.go",
+      "line": 86,
+      "status": "unmapped"
+    },
+    {
+      "name": "parse_int",
+      "file": "ptinput/funcs/all.go",
+      "line": 104,
+      "status": "unmapped"
+    },
+    {
+      "name": "point_window",
+      "file": "ptinput/funcs/all.go",
+      "line": 111,
+      "status": "unmapped"
+    },
+    {
+      "name": "pt_kvs_del",
+      "file": "ptinput/funcs/all.go",
+      "line": 116,
+      "status": "unmapped"
+    },
+    {
+      "name": "pt_kvs_get",
+      "file": "ptinput/funcs/all.go",
+      "line": 115,
+      "status": "unmapped"
+    },
+    {
+      "name": "pt_kvs_keys",
+      "file": "ptinput/funcs/all.go",
+      "line": 117,
+      "status": "unmapped"
+    },
+    {
+      "name": "pt_kvs_set",
+      "file": "ptinput/funcs/all.go",
+      "line": 113,
+      "status": "unmapped"
+    },
+    {
+      "name": "pt_kvs_set_map",
+      "file": "ptinput/funcs/all.go",
+      "line": 114,
+      "status": "unmapped"
+    },
+    {
+      "name": "pt_name",
+      "file": "ptinput/funcs/all.go",
+      "line": 106,
+      "status": "unmapped"
+    },
+    {
+      "name": "query_refer_table",
+      "file": "ptinput/funcs/all.go",
+      "line": 89,
+      "status": "unmapped"
+    },
+    {
+      "name": "rename",
+      "file": "ptinput/funcs/all.go",
+      "line": 76,
+      "status": "unmapped"
+    },
+    {
+      "name": "replace",
+      "file": "ptinput/funcs/all.go",
+      "line": 91,
+      "status": "unmapped"
+    },
+    {
+      "name": "sample",
+      "file": "ptinput/funcs/all.go",
+      "line": 97,
+      "status": "unmapped"
+    },
+    {
+      "name": "set_measurement",
+      "file": "ptinput/funcs/all.go",
+      "line": 78,
+      "status": "unmapped"
+    },
+    {
+      "name": "set_tag",
+      "file": "ptinput/funcs/all.go",
+      "line": 77,
+      "status": "unmapped"
+    },
+    {
+      "name": "setopt",
+      "file": "ptinput/funcs/all.go",
+      "line": 123,
+      "status": "unmapped"
+    },
+    {
+      "name": "slice_string",
+      "file": "ptinput/funcs/all.go",
+      "line": 119,
+      "status": "unmapped"
+    },
+    {
+      "name": "sql_cover",
+      "file": "ptinput/funcs/all.go",
+      "line": 95,
+      "status": "unmapped"
+    },
+    {
+      "name": "strfmt",
+      "file": "ptinput/funcs/all.go",
+      "line": 79,
+      "status": "unmapped"
+    },
+    {
+      "name": "strlen",
+      "file": "ptinput/funcs/all.go",
+      "line": 121,
+      "status": "unmapped"
+    },
+    {
+      "name": "timestamp",
+      "file": "ptinput/funcs/all.go",
+      "line": 81,
+      "status": "unmapped"
+    },
+    {
+      "name": "trim",
+      "file": "ptinput/funcs/all.go",
+      "line": 80,
+      "status": "unmapped"
+    },
+    {
+      "name": "uppercase",
+      "file": "ptinput/funcs/all.go",
+      "line": 82,
+      "status": "unmapped"
+    },
+    {
+      "name": "url_decode",
+      "file": "ptinput/funcs/all.go",
+      "line": 84,
+      "status": "unmapped"
+    },
+    {
+      "name": "url_parse",
+      "file": "ptinput/funcs/all.go",
+      "line": 98,
+      "status": "unmapped"
+    },
+    {
+      "name": "use",
+      "file": "ptinput/funcs/all.go",
+      "line": 83,
+      "status": "unmapped"
+    },
+    {
+      "name": "user_agent",
+      "file": "ptinput/funcs/all.go",
+      "line": 85,
+      "status": "unmapped"
+    },
+    {
+      "name": "vaild_json",
+      "file": "ptinput/funcs/all.go",
+      "line": 100,
+      "status": "unmapped"
+    },
+    {
+      "name": "valid_json",
+      "file": "ptinput/funcs/all.go",
+      "line": 101,
+      "status": "unmapped"
+    },
+    {
+      "name": "value_type",
+      "file": "ptinput/funcs/all.go",
+      "line": 99,
+      "status": "unmapped"
+    },
+    {
+      "name": "window_hit",
+      "file": "ptinput/funcs/all.go",
+      "line": 112,
+      "status": "unmapped"
+    },
+    {
+      "name": "xml",
+      "file": "ptinput/funcs/all.go",
+      "line": 93,
+      "status": "unmapped"
+    }
+  ],
+  "tests": [
+    {
+      "name": "TestRunTrigger",
+      "file": "internal/command/arbitercheck/main_test.go",
+      "line": 18,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunMockDQL",
+      "file": "internal/command/arbitercheck/main_test.go",
+      "line": 42,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunMockDQLQueryFlagsFalse",
+      "file": "internal/command/arbitercheck/main_test.go",
+      "line": 75,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunChecksDQL",
+      "file": "internal/command/arbitercheck/main_test.go",
+      "line": 103,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunLiveDQL",
+      "file": "internal/command/arbitercheck/main_test.go",
+      "line": 136,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFunctionDocSearch",
+      "file": "internal/command/arbitercheck/main_test.go",
+      "line": 177,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunJSONMessage",
+      "file": "internal/command/pipelinecheck/main_test.go",
+      "line": 15,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunMissingRequiredKey",
+      "file": "internal/command/pipelinecheck/main_test.go",
+      "line": 55,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunResultIncludesChangedInputField",
+      "file": "internal/command/pipelinecheck/main_test.go",
+      "line": 79,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFunctionDocSearch",
+      "file": "internal/command/pipelinecheck/main_test.go",
+      "line": 101,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFunctionDocShow",
+      "file": "internal/command/pipelinecheck/main_test.go",
+      "line": 128,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestStatus",
+      "file": "lang/log_status_test.go",
+      "line": 50,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGetSetStatus",
+      "file": "lang/log_status_test.go",
+      "line": 118,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestScript",
+      "file": "lang/platypus/script_test.go",
+      "line": 18,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDrop",
+      "file": "lang/platypus/script_test.go",
+      "line": 73,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestScriptRunWithRuntimeOptsPrivate",
+      "file": "lang/platypus/script_test.go",
+      "line": 94,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestManger",
+      "file": "manager/manager_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "GetScriptName"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestScriptNameLLM",
+      "file": "manager/manager_test.go",
+      "line": 140,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParsePattern",
+      "file": "manager/patterns_test.go",
+      "line": 14,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLiteralAnchorIndexQuery",
+      "file": "manager/relation_anchor_test.go",
+      "line": 11,
+      "literal_case_labels": [
+        "plain.p",
+        "prod-two.p",
+        "prod-star.p",
+        "prod-api.p",
+        "tail.p"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLiteralAnchorIndexEquivalence",
+      "file": "manager/relation_anchor_test.go",
+      "line": 42,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRelation",
+      "file": "manager/relation_test.go",
+      "line": 19,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRelationWildcard",
+      "file": "manager/relation_test.go",
+      "line": 44,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRelationWildcardGenericAnchor",
+      "file": "manager/relation_test.go",
+      "line": 81,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRelationWildcardDirectAssignment",
+      "file": "manager/relation_test.go",
+      "line": 100,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRelationQueryConcurrent",
+      "file": "manager/relation_test.go",
+      "line": 118,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRelationUpdateAndQueryConcurrent",
+      "file": "manager/relation_test.go",
+      "line": 157,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestScriptLoadFunc",
+      "file": "manager/scriptstore_test.go",
+      "line": 27,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCmpCategory",
+      "file": "manager/scriptstore_test.go",
+      "line": 111,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPlScriptStore",
+      "file": "manager/scriptstore_test.go",
+      "line": 195,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPlDirStruct",
+      "file": "manager/scriptstore_test.go",
+      "line": 272,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestWkr",
+      "file": "offload/offload_test.go",
+      "line": 26,
+      "literal_case_labels": [
+        "t1"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDataKitHTTP",
+      "file": "offload/offload_test.go",
+      "line": 98,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFnAll",
+      "file": "pkg/arbiter/builtin-funcs/all_test.go",
+      "line": 7,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDocs",
+      "file": "pkg/arbiter/builtin-funcs/cases_test.go",
+      "line": 16,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDocsJSON",
+      "file": "pkg/arbiter/builtin-funcs/cases_test.go",
+      "line": 30,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAppend",
+      "file": "pkg/arbiter/builtin-funcs/fn_append_test.go",
+      "line": 7,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestB64Enc",
+      "file": "pkg/arbiter/builtin-funcs/fn_b64_test.go",
+      "line": 5,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestB64Dec",
+      "file": "pkg/arbiter/builtin-funcs/fn_b64_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCallFunc",
+      "file": "pkg/arbiter/builtin-funcs/fn_call_func_test.go",
+      "line": 29,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCIDR",
+      "file": "pkg/arbiter/builtin-funcs/fn_cidr_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDelete",
+      "file": "pkg/arbiter/builtin-funcs/fn_delete_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFuncDQLSeries",
+      "file": "pkg/arbiter/builtin-funcs/fn_dql_series_get_test.go",
+      "line": 13,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDQLSeriesFirstValue",
+      "file": "pkg/arbiter/builtin-funcs/fn_dql_series_get_test.go",
+      "line": 32,
+      "literal_case_labels": [
+        "column wins over tag on first point",
+        "tag fallback on first point",
+        "missing first point returns nil",
+        "missing first point tag returns nil",
+        "skip empty series",
+        "empty result returns nil",
+        "missing series returns nil",
+        "malformed series returns nil",
+        "bool value",
+        "list value",
+        "map value"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDQLSeriesFirstValueMatchesSeriesGetFirst",
+      "file": "pkg/arbiter/builtin-funcs/fn_dql_series_get_test.go",
+      "line": 201,
+      "literal_case_labels": [
+        "normal column",
+        "tag fallback",
+        "first non-empty series",
+        "missing field on first point"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFuncDQLSeriesFirstRuntimeEdgeCases",
+      "file": "pkg/arbiter/builtin-funcs/fn_dql_series_get_test.go",
+      "line": 294,
+      "literal_case_labels": [
+        "dql_series_first_runtime_types",
+        "dql_series_first_runtime_missing_first_point",
+        "dql_series_first_runtime_tag_fallback",
+        "dql_series_first_runtime_nil_value",
+        "dql_series_first_runtime_malformed_first_point",
+        "dql_series_first_runtime_empty_series",
+        "dql_series_first_runtime_missing_series"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFnDQL",
+      "file": "pkg/arbiter/builtin-funcs/fn_dql_test.go",
+      "line": 22,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFuncDQLLog",
+      "file": "pkg/arbiter/builtin-funcs/fn_dql_test.go",
+      "line": 52,
+      "literal_case_labels": [
+        "test",
+        "test"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDQLTimeRange",
+      "file": "pkg/arbiter/builtin-funcs/fn_dql_timerange_get_test.go",
+      "line": 10,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDumpJSON",
+      "file": "pkg/arbiter/builtin-funcs/fn_dump_json_test.go",
+      "line": 5,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestExit",
+      "file": "pkg/arbiter/builtin-funcs/fn_exit_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFnGepIp",
+      "file": "pkg/arbiter/builtin-funcs/fn_gep_ip_test.go",
+      "line": 38,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGJSON",
+      "file": "pkg/arbiter/builtin-funcs/fn_gjson_test.go",
+      "line": 10,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGrok",
+      "file": "pkg/arbiter/builtin-funcs/fn_grok_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestHash",
+      "file": "pkg/arbiter/builtin-funcs/fn_hash_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestHTTPRequest",
+      "file": "pkg/arbiter/builtin-funcs/fn_http_request_test.go",
+      "line": 20,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLen",
+      "file": "pkg/arbiter/builtin-funcs/fn_len_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLoadJSON",
+      "file": "pkg/arbiter/builtin-funcs/fn_load_json_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLowercase",
+      "file": "pkg/arbiter/builtin-funcs/fn_lowercase_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestMatch",
+      "file": "pkg/arbiter/builtin-funcs/fn_match_test.go",
+      "line": 12,
+      "literal_case_labels": [
+        "match"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParseDate",
+      "file": "pkg/arbiter/builtin-funcs/fn_parse_date_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParseDuration",
+      "file": "pkg/arbiter/builtin-funcs/fn_parse_duration_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParseInt",
+      "file": "pkg/arbiter/builtin-funcs/fn_parse_int_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFormatInt",
+      "file": "pkg/arbiter/builtin-funcs/fn_parse_int_test.go",
+      "line": 22,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPrintf",
+      "file": "pkg/arbiter/builtin-funcs/fn_printf_test.go",
+      "line": 5,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestReplace",
+      "file": "pkg/arbiter/builtin-funcs/fn_replace_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSetopt",
+      "file": "pkg/arbiter/builtin-funcs/fn_setopt_test.go",
+      "line": 10,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSqlCover",
+      "file": "pkg/arbiter/builtin-funcs/fn_sql_cover_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestStrJoin",
+      "file": "pkg/arbiter/builtin-funcs/fn_str_join_test.go",
+      "line": 5,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestStrSplit",
+      "file": "pkg/arbiter/builtin-funcs/fn_str_split_test.go",
+      "line": 5,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestStrfmt",
+      "file": "pkg/arbiter/builtin-funcs/fn_strfmt_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestTimestamp",
+      "file": "pkg/arbiter/builtin-funcs/fn_timnow_test.go",
+      "line": 13,
+      "literal_case_labels": [
+        "time_now_returns_current_time"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFnTrigger",
+      "file": "pkg/arbiter/builtin-funcs/fn_trigger_test.go",
+      "line": 9,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFnTriggerConvertsDimensionTagsToStrings",
+      "file": "pkg/arbiter/builtin-funcs/fn_trigger_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "trigger_converts_dimension_tags_to_strings"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestTrim",
+      "file": "pkg/arbiter/builtin-funcs/fn_trim_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestUppercase",
+      "file": "pkg/arbiter/builtin-funcs/fn_uppercase_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestURLParse",
+      "file": "pkg/arbiter/builtin-funcs/fn_url_parse_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestURLDecode",
+      "file": "pkg/arbiter/builtin-funcs/fn_urldecode_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestUserAgent",
+      "file": "pkg/arbiter/builtin-funcs/fn_useragent_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestValidJson",
+      "file": "pkg/arbiter/builtin-funcs/fn_valid_json_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestVauleType",
+      "file": "pkg/arbiter/builtin-funcs/fn_value_type_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestXML",
+      "file": "pkg/arbiter/builtin-funcs/fn_xml_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDQLCliKodoAlignTime",
+      "file": "pkg/arbiter/dql/dql_test.go",
+      "line": 14,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDQLCliOpenAPIAlignTime",
+      "file": "pkg/arbiter/dql/dql_test.go",
+      "line": 43,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestHostFilte",
+      "file": "pkg/arbiter/request/host_filter_test.go",
+      "line": 11,
+      "literal_case_labels": [
+        "test",
+        "test1",
+        "test2",
+        "test3",
+        "test4",
+        "test5",
+        "test6"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunStopsWhenSignalExits",
+      "file": "pkg/arbiter/siem_test.go",
+      "line": 19,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestTriggerConvertsDimensionTagsToStrings",
+      "file": "pkg/arbiter/trigger/trigger_test.go",
+      "line": 8,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDimensionTagValueToStringFallsBackWhenJSONUnsupported",
+      "file": "pkg/arbiter/trigger/trigger_test.go",
+      "line": 45,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSCriptName",
+      "file": "pl_test.go",
+      "line": 39,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAllDocEn",
+      "file": "ptinput/funcs/all_doc_en_test.go",
+      "line": 13,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAllDoc",
+      "file": "ptinput/funcs/all_doc_test.go",
+      "line": 13,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAddkey",
+      "file": "ptinput/funcs/fn_addkey_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "value type: string",
+        "value type: number(int64)",
+        "value type: number(float64)",
+        "value type: number(float64)",
+        "value type: bool",
+        "value type: bool",
+        "value type: bool",
+        "value type: nil",
+        "value type: list compatibility",
+        "value type: map compatibility"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAddkeyMessageMapCompatibility",
+      "file": "ptinput/funcs/fn_addkey_test.go",
+      "line": 156,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAddPattern",
+      "file": "ptinput/funcs/fn_addpattern_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "pattern: http version (-s)",
+        "pattern: http version (-d)",
+        "pattern: http version (-o)",
+        "pattern: http version (-fd)",
+        "pattern: http version (-fu)",
+        "pattern: http version (-fn)",
+        "pattern: http version (-opm)",
+        "pattern: http version (-opm2)",
+        "pattern: http version (-opm3)",
+        "pattern: http version (-opm4)"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAdjustTimezone",
+      "file": "ptinput/funcs/fn_adjust_timezone_test.go",
+      "line": 20,
+      "literal_case_labels": [
+        "time fmt: ANSIC"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDetectTimezone",
+      "file": "ptinput/funcs/fn_adjust_timezone_test.go",
+      "line": 111,
+      "literal_case_labels": [
+        "id 1, hour -2, minute -2, sec -2, nanosec -15",
+        "id 2, hour -2, minute 0, sec 0, nanosec +5",
+        "id 3, hour -2, minute +2, sec +1",
+        "id 3, hour -1, minute -58, sec 0"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAgg",
+      "file": "ptinput/funcs/fn_agg_test.go",
+      "line": 19,
+      "literal_case_labels": [
+        ""
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAppend",
+      "file": "ptinput/funcs/fn_append_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "append a float number",
+        "append a string",
+        "append a string",
+        "append by Identifier",
+        "append an array",
+        "append but not assign",
+        "append on point array via pt_kvs_get"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestB64dec",
+      "file": "ptinput/funcs/fn_b64dec_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestB64enc",
+      "file": "ptinput/funcs/fn_b64enc_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache",
+      "file": "ptinput/funcs/fn_cache_test.go",
+      "line": 13,
+      "literal_case_labels": [
+        "test_set_get_with_exp",
+        "test_set_get_without_exp"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCast",
+      "file": "ptinput/funcs/fn_cast_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "cast int",
+        "cast string",
+        "cast bool",
+        "cast float",
+        "cast float",
+        "cast float ",
+        "cast float ",
+        "cast int ",
+        "cast intx "
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCIDR",
+      "file": "ptinput/funcs/fn_cidr_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "ipv4_contains",
+        "ipv4_not_contains"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestConvW3CTraceID",
+      "file": "ptinput/funcs/fn_conv_traceid_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "value type: string",
+        "value type: string",
+        "value type: string",
+        "value type: string",
+        "value type: string",
+        "value type: string"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDz",
+      "file": "ptinput/funcs/fn_cover_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "odd range",
+        "invalid range",
+        "not enough args",
+        "invalid range",
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCreatePoint",
+      "file": "ptinput/funcs/fn_create_point_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "default",
+        "default-use",
+        "default-use",
+        "failed-use",
+        "L",
+        "L"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDateTime",
+      "file": "ptinput/funcs/fn_datetime_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "ANSIC s",
+        "ANSIC ms",
+        "UnixDate s",
+        "UnixDate ms",
+        "RubyDate ms",
+        "RubyDate s",
+        "RFC822 ms",
+        "RFC822 s",
+        "RFC822Z ms",
+        "RFC822Z s",
+        "RFC850 ms",
+        "RFC850 s",
+        "RFC1123 ms",
+        "RFC1123 s",
+        "RFC1123Z ms",
+        "RFC1123Z s",
+        "RFC3339 s",
+        "RFC3339 ms",
+        "RFC3339Nano s",
+        "RFC3339Nano ms",
+        "Kitchen ms",
+        "Kitchen s",
+        "udef_ms",
+        "udef_us",
+        "udef_ns",
+        "udef_ns_tz_1",
+        "udef_ns_tz_2"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDecode",
+      "file": "ptinput/funcs/fn_decoder_test.go",
+      "line": 27,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDefaultTime",
+      "file": "ptinput/funcs/fn_default_time_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
+        "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
+        "redis log datetime-tokyo",
+        "redis log datetime-default tz",
+        "redis log datetime no year",
+        "mysql, 171113 14:14:20",
+        "gin, 2021/02/27 - 14:14:20",
+        "apache,  Tue May 18 06:25:05.176170 2021",
+        "postgresql, 2021-05-27 06:54:14.760 UTC",
+        "Dec 2, 2021 11:55:34 AM",
+        "Dec 2, 2021",
+        "Dec 2, 2021 (tz: UTC)",
+        "dec 2, '21 (tz: UTC)",
+        "Dec. 2, 2021 (tz: UTC)",
+        "Dec. 2, 21 (tz: UTC)",
+        "Tue Dec  2 11:55:34 2021",
+        "Tue Dec  2 11:55:34 CST 2021",
+        "Tue Dec 02 11:55:34 +0800 2021",
+        "Tuesday, 02-Dec-21 11:55:34 CST",
+        "Tue, 02 Dec 2021 11:55:34 CST",
+        "Tue, 02 Dec 2021 11:55:34 +0800 (CST)",
+        "Tue, 02 Dec 2021 11:55:34 +0800",
+        "Tue 02 Dec 2021 11:55:34 AM CST",
+        "Tue Dec 2 11:55:34 UTC+0800 2021",
+        "Tue, 2 Dec 2021 11:55:34 +0800",
+        "Tue Dec 02 2021 11:55:34 GMT+0800 (GMT Daylight Time)",
+        "December 02, 2021 11:55:34am",
+        "December 02, 2021 at 11:55:34am CST+08",
+        "December 02, 2021 at 11:55:34am CST+08",
+        "December 02, 2021 at 11:55am CST+08",
+        "December 02, 2021, 11:55:34",
+        "December 2, 2021",
+        "December 2th, 2021",
+        "02 Dec 2021, 11:55",
+        "2 Dec 2021, 11:55",
+        "2 Dec 21",
+        "2 Dec 2021",
+        "02 December 2021",
+        "2 December 2021",
+        "2021-Dec-02",
+        "12/2/2021",
+        "12/02/2021",
+        "12/2/21",
+        "12/2/2021 11:55",
+        "12/02/2021 11:55",
+        "12/02/2021 11:55:43",
+        "12/02/2021 11:55:43 AM",
+        "12/02/2021 11:55 AM",
+        "12/02/2021 11:55 11:55:43",
+        "12/02/2021 11:55 11:55:43.9999999",
+        "2021:12:2",
+        "2021:12:02",
+        "2021:12:2 11:55",
+        "2021:12:02 11:55",
+        "2021:12:02 11:55:43",
+        "2021:12:2 12:55:43",
+        "2021:12:2 11:55:43",
+        "2021年11月02日",
+        "2021-12-2T11:55:43+0800",
+        "2021-12-2T11:55:43+08:00",
+        "2021-12-2T11:55:43",
+        "2021-12-2T3:55:43Z",
+        "2021-12-2 11:55:43.12223",
+        "2021-12-2 11:55:43.122230000",
+        "2021-12-2 11:55",
+        "2021-12-2 11:55:43",
+        "2021-12-2 11:55:43 UTC",
+        "2021-12-2 11:55:43 GMT",
+        "2021-12-2 11:55:43 CST",
+        "2021-12-2 11:55:43 AM",
+        "2021-12-2 11:55:43 +0800",
+        "2021-12-2 11:55:43 +0800 +08",
+        "2021-12-2 11:55:43 +08:00",
+        "2021-12-2 3:55:43.1 +0000 UTC",
+        "2021-12-2 11:55:43.1 +0800 UTC",
+        "2021-12-2 11:55:43 +0800 UTC",
+        "2021-12-2 11:55:43 +0800 GMT",
+        "2021-12-2 11:55:43 +0800 GMT m=+0.000000001",
+        "2021-12-2 11:55:43.0001 +0800 GMT m=+0.000000001",
+        "2021-12-2 11:55:43+08:00",
+        "2021-12-02",
+        "2021-12",
+        "2021",
+        "2021-12-2 11:55:43,212",
+        "12.2.2021",
+        "12.02.2021",
+        "12.02.21",
+        "2021.12",
+        "2021.12.02",
+        "20211202",
+        "20211202115543",
+        "1638417343",
+        "1638417343001",
+        "1638417343001002",
+        "1638417343001002003",
+        "Dec 2, 2021 (tz: UTC)",
+        "Tue Dec  2 11:55:34 CST 2021"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDefaultTimeWithFmt",
+      "file": "ptinput/funcs/fn_default_time_with_fmt_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "02/Jan/2006:15:04:05 -0700",
+        "02/Jan/2006:15:04:05 (Shanghai)",
+        "02/Jan/2006:15:04:05 (Local Shanghai)",
+        "02/Jan/2006:15:04:05 (Tokyo)"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDelete",
+      "file": "ptinput/funcs/fn_delete_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "delete_map",
+        "delete_map",
+        "delete_map",
+        "delete_map",
+        "delete_map",
+        "delete_map"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDropOriginData",
+      "file": "ptinput/funcs/fn_drop_origin_data_test.go",
+      "line": 16,
+      "literal_case_labels": [
+        "value type: string"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDrop",
+      "file": "ptinput/funcs/fn_drop_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "cast int"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDropKey",
+      "file": "ptinput/funcs/fn_dropkey_test.go",
+      "line": 16,
+      "literal_case_labels": [
+        "value type: string"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestDurationPrecision",
+      "file": "ptinput/funcs/fn_duration_precision_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "cast int",
+        "cast int",
+        "cast int",
+        "cast int"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestExit",
+      "file": "ptinput/funcs/fn_exit_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "cast int"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGeoIpFunc",
+      "file": "ptinput/funcs/fn_gep_ip_test.go",
+      "line": 54,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGetkey",
+      "file": "ptinput/funcs/fn_getkey_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "value type: string",
+        "value type: string"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGJSON",
+      "file": "ptinput/funcs/fn_gjson_test.go",
+      "line": 17,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGrok",
+      "file": "ptinput/funcs/fn_grok_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal_return_t",
+        "normal_return_f",
+        "normal_return_sample_t",
+        "normal_return_sample_f",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "trim_space",
+        "trim_space, enable",
+        "trim_space, disable"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGrokRunObserver",
+      "file": "ptinput/funcs/fn_grok_test.go",
+      "line": 225,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGrokRunObserverPanicDoesNotBreakGrok",
+      "file": "ptinput/funcs/fn_grok_test.go",
+      "line": 272,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGrokFastPathCompatibility",
+      "file": "ptinput/funcs/fn_grok_test.go",
+      "line": 299,
+      "literal_case_labels": [
+        "inverse_space_class_captures_whole_line_without_trim",
+        "inverse_space_class_captures_multiline",
+        "inverse_digit_class_preserves_punctuation_and_space",
+        "inverse_word_class_before_literal",
+        "dot_all_style_class_between_literals",
+        "greedydata_keeps_text_before_following_literal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGroupIn",
+      "file": "ptinput/funcs/fn_group_in_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGroup",
+      "file": "ptinput/funcs/fn_group_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestHash",
+      "file": "ptinput/funcs/fn_hash_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "md5",
+        "xx",
+        "sha1",
+        "sha256",
+        "sha512",
+        "sha512",
+        "sha512"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestFilter",
+      "file": "ptinput/funcs/fn_http_request_test.go",
+      "line": 20,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestBuildBody",
+      "file": "ptinput/funcs/fn_http_request_test.go",
+      "line": 153,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestHTTPRequest",
+      "file": "ptinput/funcs/fn_http_request_test.go",
+      "line": 207,
+      "literal_case_labels": [
+        "test_post",
+        "test_file",
+        "test_put",
+        "legacy_required_args_only",
+        "test_prefix",
+        "test_prefix_status_code",
+        "test_prefix_variable",
+        "test_named_prefix_skips_optional_args",
+        "invalid prefix type",
+        "invalid prefix type variable"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSON",
+      "file": "ptinput/funcs/fn_json_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "trim_space auto",
+        "trim_space disable",
+        "trim_space enable",
+        "path_with_dot_in_key",
+        "path_with_numeric_key",
+        "duplicate_key_uses_last_value",
+        "nested_duplicate_key_uses_last_value",
+        "path_with_wildcard_in_key",
+        "path_with_question_in_key",
+        "path_with_array_count_in_key",
+        "path_with_pipe_in_key",
+        "path_with_backslash_in_key",
+        "path_with_modifier_name_in_key",
+        "path_with_static_prefix_in_key",
+        "path_with_multipath_prefix_in_key",
+        "path_with_object_multipath_prefix_in_key",
+        "nested_path_with_multipath_prefix_in_key",
+        "nested_path_with_object_multipath_prefix_in_key",
+        "nested_path_with_dot_in_key",
+        "nested_path_with_wildcard_in_key",
+        "nested_path_with_question_in_key",
+        "nested_path_with_array_count_in_key",
+        "nested_path_with_pipe_in_key",
+        "nested_path_with_backslash_in_key",
+        "nested_path_with_modifier_name_in_key",
+        "nested_path_with_static_prefix_in_key",
+        "special_key_map_value",
+        "special_key_list_value",
+        "special_key_then_index",
+        "index_then_special_key",
+        "negative_index_then_special_key",
+        "source_replaced_between_json_calls",
+        "map_delete_after",
+        "map_delete_after1",
+        "list_delete_after1",
+        "list_delete_after2",
+        "list_delete_after3"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONIndexDoesNotMatchObjectNumericKey",
+      "file": "ptinput/funcs/fn_json_test.go",
+      "line": 370,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONNumericKeyDoesNotMatchArrayIndex",
+      "file": "ptinput/funcs/fn_json_test.go",
+      "line": 385,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllIncludeKeys",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 17,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllIncludeKeysPositional",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 67,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllKeyPatterns",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 87,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllWithoutKeysDoesNothing",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 122,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllDynamicIncludeKeys",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 140,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllTopLevelArray",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 169,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllEmptyIncludeKeys",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 195,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllInvalidJSONDoesNothing",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 213,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestJSONAllChecking",
+      "file": "ptinput/funcs/fn_jsonall_test.go",
+      "line": 229,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestKV",
+      "file": "ptinput/funcs/fn_kv_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal1",
+        "trim_value",
+        "trim_key_skip_empty_str_key",
+        "prefix",
+        "prefix",
+        "value_split_pattern"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLen",
+      "file": "ptinput/funcs/fn_len_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "len point array via pt_kvs_get"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLoadJson",
+      "file": "ptinput/funcs/fn_load_json_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestLowercase",
+      "file": "ptinput/funcs/fn_lowercase_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestMatch",
+      "file": "ptinput/funcs/fn_match_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestNullIf",
+      "file": "ptinput/funcs/fn_nullif_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParseDate",
+      "file": "ptinput/funcs/fn_parse_date_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "partial year",
+        "partial year",
+        "us",
+        "ns",
+        "ns for kwargs",
+        "missed second: use 0",
+        "normal",
+        "invalid hour",
+        "invalid hour",
+        "invalid minute",
+        "invalid minute",
+        "invalid second",
+        "invalid minute"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParseDuration",
+      "file": "ptinput/funcs/fn_parse_duration_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "invalid input string",
+        "too many args",
+        "invalid input type"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParseInt",
+      "file": "ptinput/funcs/fn_parse_int_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "format",
+        "parse",
+        "spanid-format",
+        "spanid-format-all-in-one",
+        "parse",
+        "parsex"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsGetInOperator",
+      "file": "ptinput/funcs/fn_pt_kvs_integration_test.go",
+      "line": 13,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsGetAppendLenChain",
+      "file": "ptinput/funcs/fn_pt_kvs_integration_test.go",
+      "line": 44,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMap",
+      "file": "ptinput/funcs/fn_pt_kvs_integration_test.go",
+      "line": 85,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMessageMapCompatibility",
+      "file": "ptinput/funcs/fn_pt_kvs_integration_test.go",
+      "line": 113,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsGetMapCompatibility",
+      "file": "ptinput/funcs/fn_pt_kvs_integration_test.go",
+      "line": 148,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsGetRawOption",
+      "file": "ptinput/funcs/fn_pt_kvs_integration_test.go",
+      "line": 171,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetRawOption",
+      "file": "ptinput/funcs/fn_pt_kvs_integration_test.go",
+      "line": 203,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsTag",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 19,
+      "literal_case_labels": [
+        "set1",
+        "set2",
+        "set4",
+        "set5",
+        "set6",
+        "set7",
+        "set8",
+        "set8"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSet",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 156,
+      "literal_case_labels": [
+        "set1",
+        "set2",
+        "set3",
+        "set4",
+        "set5",
+        "set6",
+        "set7",
+        "set8"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMapIncludeKeysAndWildcard",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 263,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMapWithoutKeysDoesNothing",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 309,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMapEmptyIncludeKeys",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 334,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMapDuplicateIncludeKeys",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 357,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMapDynamicIncludeKeys",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 381,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMapRawAndTag",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 409,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsSetMapChecking",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 440,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsGetComposite",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 451,
+      "literal_case_labels": [
+        "list"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtKvsKeysSkipsNonStringTag",
+      "file": "ptinput/funcs/fn_pt_kvs_test.go",
+      "line": 498,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtName",
+      "file": "ptinput/funcs/fn_pt_name_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "pt_name_set_and_get",
+        "pt_name_set_str_and_get",
+        "pt_name_set_int_1_and_get",
+        "pt_name_set_int_var_and_get",
+        "pt_name_get"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtWindow",
+      "file": "ptinput/funcs/fn_pt_window_test.go",
+      "line": 23,
+      "literal_case_labels": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRename",
+      "file": "ptinput/funcs/fn_rename_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestReplace",
+      "file": "ptinput/funcs/fn_replace_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "not enough args",
+        "invalid arg type"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSample",
+      "file": "ptinput/funcs/fn_sample_test.go",
+      "line": 16,
+      "literal_case_labels": [
+        "fifty-fifty",
+        "definite",
+        "expression as arg",
+        "negative probability",
+        "probability out of range"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSetMeasurement",
+      "file": "ptinput/funcs/fn_set_mesaurement_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "set_measurement 0",
+        "set_measurement 1"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSetTag",
+      "file": "ptinput/funcs/fn_set_tag_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "set_tag 0",
+        "set_tag 2",
+        "set_tag 1",
+        "set_tag 3",
+        "set_tag 3 int",
+        "set_tag list stringify",
+        "set_tag map stringify"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSetopt",
+      "file": "ptinput/funcs/fn_setopt_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "1",
+        "2",
+        "2",
+        "3",
+        "3.1",
+        "4",
+        "5"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSliceString",
+      "file": "ptinput/funcs/fn_slice_string_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal1",
+        "normal2",
+        "normal3",
+        "out of range1",
+        "out of range2",
+        "not integer1",
+        "not integer2",
+        "not string",
+        "not correct args",
+        "not correct args",
+        "panic"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestSqlCover",
+      "file": "ptinput/funcs/fn_sql_cover_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestStrlen",
+      "file": "ptinput/funcs/fn_str_len_test.go",
+      "line": 12,
+      "literal_case_labels": [
+        "t1",
+        "t2",
+        "t3",
+        "t4"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestStrfmt",
+      "file": "ptinput/funcs/fn_strfmt_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "normal",
+        "not enough arg",
+        "incorrect arg type"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestTimestamp",
+      "file": "ptinput/funcs/fn_timstamp_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "timestamp_default",
+        "time_now_ns",
+        "time_now_us",
+        "time_now_ms",
+        "time_now_s"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestTrim",
+      "file": "ptinput/funcs/fn_trim_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "trim space",
+        "trim ABC_-",
+        "trim ABC_"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestUppercase",
+      "file": "ptinput/funcs/fn_uppercase_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "too many args",
+        "invalid arg type"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestURLParse",
+      "file": "ptinput/funcs/fn_url_parse_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "port",
+        "host",
+        "port",
+        "path",
+        "arg1",
+        "arg2",
+        "with prefix",
+        "with prefix params",
+        "with prefix variable",
+        "with named prefix",
+        "empty prefix",
+        "relative path",
+        "too many args",
+        "invalid prefix type",
+        "invalid prefix type variable"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestURLDecode",
+      "file": "ptinput/funcs/fn_urldecode_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "non-existed key",
+        "invalid arg"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestUse",
+      "file": "ptinput/funcs/fn_use_test.go",
+      "line": 17,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestUserAgent",
+      "file": "ptinput/funcs/fn_useragent_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal",
+        "invalid arg type",
+        "with prefix",
+        "with prefix variable",
+        "with named prefix",
+        "empty prefix",
+        "missing key with prefix",
+        "invalid prefix type",
+        "invalid prefix type variable",
+        "too many args"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestValidJson",
+      "file": "ptinput/funcs/fn_valid_json_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "map",
+        "map",
+        "map",
+        "for-compatibility-with-older-versions"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestVauleType",
+      "file": "ptinput/funcs/fn_value_type_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "map",
+        "list",
+        "map_2",
+        "list-not-in",
+        "int-\u003efloat",
+        "float",
+        "int",
+        "bool",
+        "str",
+        "empty_nil",
+        "empty_nil"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestXML",
+      "file": "ptinput/funcs/fn_xml_test.go",
+      "line": 18,
+      "literal_case_labels": [
+        "normal",
+        "select array field",
+        "select attribute",
+        "node OrderNumber",
+        "node VendorNumber",
+        "not a valid XML",
+        "not a valid xpath expr"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestQueryReferTable",
+      "file": "ptinput/funcs/func_query_refer_table_test.go",
+      "line": 21,
+      "literal_case_labels": [
+        "test query",
+        "test query multi",
+        "test int",
+        "test string",
+        "test string 2",
+        "test float",
+        "test bool",
+        "test float but int",
+        "test query, key not find",
+        "test query, positional keyword",
+        "test-multi"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestTimestampHandle",
+      "file": "ptinput/funcs/handle_test.go",
+      "line": 16,
+      "literal_case_labels": [
+        "test-tz+0"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestIfelse",
+      "file": "ptinput/funcs/ifelse_test.go",
+      "line": 17,
+      "literal_case_labels": [
+        "valind-key-is-nil",
+        "if 1",
+        "if 1.1",
+        "if 0",
+        "if true",
+        "if string",
+        "if nil",
+        "if [123]",
+        "if LEN([123])",
+        "invalid-key-is-not-nil"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestNewFn",
+      "file": "ptinput/funcs/utils_fn_test.go",
+      "line": 24,
+      "literal_case_labels": [
+        "new_check_p",
+        "new_check_n",
+        "name",
+        "age",
+        "tags",
+        "new_check_r",
+        "name",
+        "age",
+        "fields",
+        "new_check_err_r",
+        "name",
+        "age",
+        "fields",
+        "new_check_err_0",
+        "name",
+        "age",
+        "tags",
+        "new_check_err_1",
+        "name",
+        "age",
+        "tags",
+        "tags",
+        "new_check_err_1",
+        "name",
+        "age",
+        "age",
+        "tags",
+        "new_check_err_2",
+        "name",
+        "age",
+        "opt",
+        "tags",
+        "new_check_err_3",
+        "name",
+        "age",
+        "tags",
+        "new_check_err_4",
+        "name",
+        "age",
+        "tags"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunFunc",
+      "file": "ptinput/funcs/utils_fn_test.go",
+      "line": 181,
+      "literal_case_labels": [
+        "msg",
+        "args",
+        "msg",
+        "args",
+        "pos_varp",
+        "err",
+        "pos_varp_1",
+        "named",
+        "named1",
+        "named2",
+        "p3",
+        "fn2",
+        "fn2-1",
+        "fn2-1-1",
+        "fn2-2",
+        "fn2-2-1",
+        "fn2-2-2",
+        "fn-run-failed"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestReIndexFuncArgs",
+      "file": "ptinput/funcs/utilts_test.go",
+      "line": 15,
+      "literal_case_labels": [
+        "t1",
+        "p1",
+        "p1",
+        "t1-fail-pos-after-kw",
+        "a",
+        "t1-fail-key-not-exist",
+        "x",
+        "t1-nil-param",
+        "b",
+        "t1-1",
+        "b",
+        "a",
+        "t2",
+        "p1",
+        "c",
+        "b",
+        "p1",
+        "t3",
+        "p1",
+        "c",
+        "p1",
+        "t3-fail",
+        "p1",
+        "c"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestParseIPCIDR",
+      "file": "ptinput/ipdb/ipdb_test.go",
+      "line": 14,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestISP",
+      "file": "ptinput/ipdb/ipip/ipip_test.go",
+      "line": 17,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGEO",
+      "file": "ptinput/ipdb/ipip/ipip_test.go",
+      "line": 26,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestGEOReload",
+      "file": "ptinput/ipdb/ipip/ipip_test.go",
+      "line": 118,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestIPloc",
+      "file": "ptinput/ipdb/iploc/iploc_test.go",
+      "line": 30,
+      "literal_case_labels": [
+        "SearchIsp",
+        "Geo"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestNewCache",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 11,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache_SetAndGet",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 16,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache_SetVisibleAfterReturn",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 34,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache_RemoveExpiredCache",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 47,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache_RemoveExpiredCacheMultipleItemsInSlot",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 59,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache_RemoveExpiredCacheWithCircle",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 74,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache_SetSameKeyRefreshesExpiration",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 89,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache_Stop",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 106,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCache",
+      "file": "ptinput/plcache/cache_test.go",
+      "line": 118,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAggBuckets",
+      "file": "ptinput/plmap/aggmap_test.go",
+      "line": 16,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAggBuckets2",
+      "file": "ptinput/plmap/aggmap_test.go",
+      "line": 47,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestAggMetric",
+      "file": "ptinput/plmap/aggmap_test.go",
+      "line": 100,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPt",
+      "file": "ptinput/point_test.go",
+      "line": 16,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPlPointGetRawComposite",
+      "file": "ptinput/point_test.go",
+      "line": 119,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPlPt",
+      "file": "ptinput/pt_test.go",
+      "line": 42,
+      "literal_case_labels": [
+        "t1"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPlPt2",
+      "file": "ptinput/pt_test.go",
+      "line": 68,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtGetRawComposite",
+      "file": "ptinput/pt_test.go",
+      "line": 177,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtSetPreserveComposite",
+      "file": "ptinput/pt_test.go",
+      "line": 196,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtSetPreserveMap",
+      "file": "ptinput/pt_test.go",
+      "line": 212,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtSetReplacesExistingField",
+      "file": "ptinput/pt_test.go",
+      "line": 229,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtSetPreservesExistingTag",
+      "file": "ptinput/pt_test.go",
+      "line": 242,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPtSetTagReplacesExistingField",
+      "file": "ptinput/pt_test.go",
+      "line": 257,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestBinSearch",
+      "file": "ptinput/refertable/query_test.go",
+      "line": 15,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestQuery",
+      "file": "ptinput/refertable/query_test.go",
+      "line": 82,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCheckUrl",
+      "file": "ptinput/refertable/runner_test.go",
+      "line": 18,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestRunner",
+      "file": "ptinput/refertable/runner_test.go",
+      "line": 61,
+      "status": "unmapped"
+    },
+    {
+      "name": "Test_buildCreateTableStmt",
+      "file": "ptinput/refertable/table_sqlite_test.go",
+      "line": 19,
+      "literal_case_labels": [
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "Test_buildInsertIntoStmts",
+      "file": "ptinput/refertable/table_sqlite_test.go",
+      "line": 56,
+      "literal_case_labels": [
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "Test_buildSelectStmt",
+      "file": "ptinput/refertable/table_sqlite_test.go",
+      "line": 85,
+      "literal_case_labels": [
+        "normal",
+        "normal",
+        "normal"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPlReferTablesSqlite_query",
+      "file": "ptinput/refertable/table_sqlite_test.go",
+      "line": 138,
+      "literal_case_labels": [
+        "select by id",
+        "select by id and name",
+        "no rows"
+      ],
+      "status": "unmapped"
+    },
+    {
+      "name": "TestTable",
+      "file": "ptinput/refertable/table_test.go",
+      "line": 12,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestPlChangeEvent",
+      "file": "stats/metric_event_test.go",
+      "line": 20,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestCap",
+      "file": "stats/metric_event_test.go",
+      "line": 79,
+      "status": "unmapped"
+    },
+    {
+      "name": "TestMetric",
+      "file": "stats/metric_event_test.go",
+      "line": 84,
+      "status": "unmapped"
+    }
+  ],
+  "datakit_registry_observations": [
+    {
+      "file": "internal/pipeline/plval/grok_fastpath.go",
+      "line": 26,
+      "enclosing_function": "installDisableGrokFastPath",
+      "kind": "entry_assignment",
+      "registry": "FuncsCheckMap",
+      "name": "grok",
+      "status": "unmapped"
+    },
+    {
+      "file": "internal/pipeline/plval/plval.go",
+      "line": 159,
+      "enclosing_function": "DisableExternalRequestsFunc",
+      "kind": "entry_assignment",
+      "registry": "FuncsMap",
+      "name": "http_request",
+      "status": "unmapped"
+    },
+    {
+      "file": "internal/pipeline/plval/plval.go",
+      "line": 182,
+      "enclosing_function": "InitPlVal",
+      "kind": "network_policy",
+      "name": "http_request",
+      "status": "unmapped"
+    }
+  ]
+}

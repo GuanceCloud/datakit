@@ -688,6 +688,19 @@ func TestDatawayIPFamilyConfig(t *T.T) {
 	assert.Equal(t, 400*time.Millisecond, c.Dataway.IPv4FallbackDelay)
 }
 
+func TestElectionOperatorURLConfig(t *T.T) {
+	c := DefaultConfig()
+	_, err := bstoml.Decode(`
+[election]
+  enable = true
+  operator_url = "datakit-operator.datakit.svc:443/"
+`, c)
+	require.NoError(t, err)
+	require.NoError(t, c.Election.Normalize())
+	assert.True(t, c.Election.Enable)
+	assert.Equal(t, "https://datakit-operator.datakit.svc:443", c.Election.OperatorURL)
+}
+
 func TestTryUpgradeCfg(t *T.T) {
 	t.Run(`basic`, func(t *T.T) {
 		pwd := t.TempDir()

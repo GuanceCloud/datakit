@@ -158,6 +158,8 @@ spec:
           value: statsd,dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,kubernetesprometheus
         - name: ENV_ENABLE_ELECTION
           value: enable
+        - name: ENV_ELECTION_OPERATOR_URL # Set this only after every DataKit supports Operator election
+          value: ""
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
         - name: HOST_PROC

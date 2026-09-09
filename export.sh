@@ -19,14 +19,6 @@ bind=0.0.0.0
 dca_version=$(cat gitlab-ci.yml | grep -w "DCA_CI_VERSION:" | awk -F'"' '{print $2}')
 dk_version=$(cat gitlab-ci.yml | grep -w "CI_VERSION:" | awk -F'"' '{print $2}')
 
-# manually set these versions
-ddtrace_java_ext_version="v1.55.10-ext"
-otel_java_ext_version="2.20.0-ext"
-flameshot_version="0.2.4"
-k8s_profilers_asyncprofile_version="0.6.0"
-k8s_profilers_pyspy_version="0.1.0"
-k8s_profilers_pprof_version="0.1.0"
-
 usage() {
     echo "" 1>&2
     echo "export.sh used to build/preview/release DataKit documents." 1>&2
@@ -112,7 +104,7 @@ LOGGER_PATH=$export_log GOFLAGS=-mod=vendor go run -tags with_inputs cmd/make/ma
     -export-doc-dir $guance_doc_dir/docs \
     -export-integration-dir $integration_dir \
     -ignore demo \
-    -versions-in-doc "datakit:${dk_version},dca:${dca_version},ddtrace-java-ext:${ddtrace_java_ext_version},otel-java-ext:${otel_java_ext_version},flameshot=${flameshot_version},k8s-profilers-asyncprofile:${k8s_profilers_asyncprofile_version},k8s-profilers-pyspy:${k8s_profilers_pyspy_version},k8s-profilers-pprof:${k8s_profilers_pprof_version}"
+    -versions-in-doc "datakit:${dk_version},dca:${dca_version}"
 
 if [ $? -ne 0 ]; then
     printf "${RED}[E] Export docs failed, see $export_log for details.${CLR}\n"

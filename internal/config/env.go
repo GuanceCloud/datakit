@@ -7,6 +7,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/aggr"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 const envManualHostname = "ENV_HOSTNAME"
@@ -194,7 +196,10 @@ func (c *Config) loadLogEnvs() {
 	}
 }
 
-func (c *Config) loadPipelineEnvs() {
+func (c *Config) loadPipelineEnvs() error {
+	if c.Pipeline == nil {
+		c.Pipeline = &plval.PipelineCfg{}
+	}
 	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
 		switch v {
 		case "iploc":
@@ -254,6 +259,37 @@ func (c *Config) loadPipelineEnvs() {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_PIPELINE_JIT_ENABLED"); v != "" {
+		if c.Pipeline.JIT == nil {
+			c.Pipeline.JIT = &plval.JITCfg{}
+		}
+		enabled, err := strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("parse ENV_PIPELINE_JIT_ENABLED: %w", err)
+		} else {
+			c.Pipeline.JIT.Enabled = enabled
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_JIT_RUNTIME_PATH"); v != "" {
+		if c.Pipeline.JIT == nil {
+			c.Pipeline.JIT = &plval.JITCfg{}
+		}
+		c.Pipeline.JIT.RuntimePath = v
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_JIT_MAX_CACHED_PROGRAMS"); v != "" {
+		if c.Pipeline.JIT == nil {
+			c.Pipeline.JIT = &plval.JITCfg{}
+		}
+		maxPrograms, err := strconv.Atoi(v)
+		if err != nil || maxPrograms <= 0 {
+			return fmt.Errorf("ENV_PIPELINE_JIT_MAX_CACHED_PROGRAMS must be a positive integer")
+		} else {
+			c.Pipeline.JIT.MaxCachedPrograms = maxPrograms
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_PIPELINE_DISABLE_HTTP_REQUEST_FUNC"); v != "" {
 		var err error
 		c.Pipeline.DisableHTTPRequestFunc, err = strconv.ParseBool(v)
@@ -285,6 +321,22 @@ func (c *Config) loadPipelineEnvs() {
 			l.Errorf("parse `ENV_PIPELINE_HTTP_REQUEST_DISABLE_INTERNAL_NET` failed: %s", err)
 		}
 	}
+	if c.Pipeline.JIT == nil {
+		c.Pipeline.JIT = &plval.JITCfg{}
+	}
+	for _, setting := range []struct {
+		name   string
+		target *string
+	}{
+		{"ENV_PIPELINE_JIT_MODE", &c.Pipeline.JIT.Mode},
+		{"ENV_PIPELINE_JIT_ON_INIT_ERROR", &c.Pipeline.JIT.OnInitError},
+		{"ENV_PIPELINE_JIT_RUNTIME_SHA256", &c.Pipeline.JIT.RuntimeSHA256},
+	} {
+		if value := datakit.GetEnv(setting.name); value != "" {
+			*setting.target = value
+		}
+	}
+	return c.Pipeline.JIT.Validate()
 }
 
 func (c *Config) loadPointPoolEnvs() {
@@ -568,6 +620,10 @@ func (c *Config) loadRemoteJobEnvs() {
 }
 
 func (c *Config) loadElectionEnvs() {
+	if v := datakit.GetEnv("ENV_ELECTION_OPERATOR_URL"); v != "" {
+		c.Election.OperatorURL = v
+	}
+
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v == "" {
 		return
 	}
@@ -914,7 +970,9 @@ func (c *Config) LoadEnvs() error {
 
 	c.loadIOEnvs()
 	c.loadRecorderEnvs()
-	c.loadPipelineEnvs()
+	if err := c.loadPipelineEnvs(); err != nil {
+		return err
+	}
 	c.loadHTTPAPIEnvs()
 	c.loadElectionEnvs()
 	c.loadAggregatorEnvs()

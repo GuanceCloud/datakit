@@ -14,10 +14,16 @@ import (
 var (
 	inputsPauseVec,
 	electionStatusSwitched,
-	inputsResumeVec *p8s.CounterVec
+	inputsResumeVec,
+	electionRequestErrorsVec,
+	electionTransitionsVec *p8s.CounterVec
 
 	electionInputs,
-	electionStatusVec *p8s.GaugeVec
+	electionStatusVec,
+	electionProviderInfoVec,
+	electionLastSuccessVec,
+	electionLeaseRemainingVec,
+	electionEpochVec *p8s.GaugeVec
 )
 
 func metricsSetup() {
@@ -85,12 +91,78 @@ func metricsSetup() {
 		},
 	)
 
+	electionProviderInfoVec = p8s.NewGaugeVec(
+		p8s.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "election",
+			Name:      "provider_info",
+			Help:      "Selected election provider for the process",
+		},
+		[]string{"provider", "namespace"},
+	)
+
+	electionLastSuccessVec = p8s.NewGaugeVec(
+		p8s.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "election",
+			Name:      "last_success_timestamp_seconds",
+			Help:      "Unix timestamp of the last successful leader response",
+		},
+		[]string{"provider", "namespace"},
+	)
+
+	electionLeaseRemainingVec = p8s.NewGaugeVec(
+		p8s.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "election",
+			Name:      "lease_remaining_seconds",
+			Help:      "Seconds remaining before the local safe lease deadline",
+		},
+		[]string{"provider", "namespace"},
+	)
+
+	electionEpochVec = p8s.NewGaugeVec(
+		p8s.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "election",
+			Name:      "epoch",
+			Help:      "Last election epoch observed from the selected provider",
+		},
+		[]string{"provider", "namespace"},
+	)
+
+	electionRequestErrorsVec = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "election",
+			Name:      "request_errors_total",
+			Help:      "Election request errors grouped by bounded reason",
+		},
+		[]string{"provider", "namespace", "operation", "reason"},
+	)
+
+	electionTransitionsVec = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "election",
+			Name:      "transitions_total",
+			Help:      "Election lifecycle transitions grouped by bounded reason",
+		},
+		[]string{"provider", "namespace", "from", "to", "reason"},
+	)
+
 	metrics.MustRegister(
 		inputsPauseVec,
 		inputsResumeVec,
 		electionStatusSwitched,
 		electionStatusVec,
 		electionInputs,
+		electionProviderInfoVec,
+		electionLastSuccessVec,
+		electionLeaseRemainingVec,
+		electionEpochVec,
+		electionRequestErrorsVec,
+		electionTransitionsVec,
 	)
 }
 

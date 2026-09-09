@@ -37,11 +37,13 @@ nav:
     - 'Collector Configuration': datakit-input-conf.md
     - 'Election Configuration': election.md
     - 'Proxy Configuration': datakit-proxy.md
+    # The Operator documents below are exported by the DataKit Operator project; navigation remains managed by DataKit.
     - 'Operator Configuration':
       - datakit-operator.md
       - 'Changelog': operator-changelog.md
       - 'Asyncprofile': operator-asyncprofile.md
       - 'DDTrace': operator-ddtrace.md
+      - 'OpenTelemetry': operator-otel.md
       - 'Flameshot': operator-flameshot.md
       - 'logfwd': operator-logfwd.md
       - 'logging': operator-logging.md

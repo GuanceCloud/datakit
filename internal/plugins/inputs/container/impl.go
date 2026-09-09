@@ -198,7 +198,14 @@ func newK8sCollectors(ipt *Input) (Collector, error) {
 	}
 
 	cfg := buildK8sConfig(ipt)
-	return kubernetes.NewKubeCollector(client, &cfg, ipt.chPause)
+	cfg.NodeName = ipt.localNodeName
+	cfg.LocalPodInformer = ipt.localPodInformer
+	collector, err := kubernetes.NewKubeCollector(client, &cfg)
+	if err != nil {
+		return nil, err
+	}
+	ipt.leaderGate().Subscribe(collector.SetLeader)
+	return collector, nil
 }
 
 func createECSFargateCollector(ipt *Input) (Collector, error) {
@@ -242,6 +249,7 @@ func createK8sClientIfNeeded(
 	})
 
 	podWatcher := newPodWatcher(client.KubernetesClientset(), logCoordinator, ipt.localNodeName)
+	ipt.localPodInformer = podWatcher.informer
 	podWatcherG.Go(func(_ context.Context) error {
 		startPodWatcher(podWatcher)
 		return nil

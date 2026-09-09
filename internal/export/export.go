@@ -135,13 +135,6 @@ type Params struct {
 	InputSample string
 
 	// versions used among docs.
-	FlameshotVersion,
-	DDTraceJavaExtVersion,
-	OTELJavaExtVersion,
-	K8sProfilersAsyncProfileVersion,
-	K8sProfilersPySpyVersion,
-	K8sProfilersPprofVersion,
-	DKOperatorVersion,
 	DCAVersion,
 	Version string // datakit version
 
@@ -174,15 +167,8 @@ type Params struct {
 
 func defaultParams(opt *exportOptions) *Params {
 	return &Params{
-		Version:                         opt.docVersions["datakit"],
-		DCAVersion:                      opt.docVersions["dca"],
-		DKOperatorVersion:               opt.docVersions["dkoperator"],
-		FlameshotVersion:                opt.docVersions["flameshot"],
-		DDTraceJavaExtVersion:           opt.docVersions["ddtrace-java-ext"],
-		OTELJavaExtVersion:              opt.docVersions["otel-java-ext"],
-		K8sProfilersAsyncProfileVersion: opt.docVersions["k8s-profilers-asyncprofile"],
-		K8sProfilersPySpyVersion:        opt.docVersions["k8s-profilers-pyspy"],
-		K8sProfilersPprofVersion:        opt.docVersions["k8s-profilers-pprof"],
+		Version:    opt.docVersions["datakit"],
+		DCAVersion: opt.docVersions["dca"],
 
 		ReleaseDate:     git.BuildAt,
 		ChangeManifests: changes.MustLoadAllManifest(),

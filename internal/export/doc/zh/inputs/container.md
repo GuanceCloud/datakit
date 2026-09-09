@@ -79,7 +79,7 @@ monitor:
 
 ???+ note
 
-    - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 60 秒，不支持配置
+    - 对象数据默认采集间隔是 5 分钟，指标数据默认采集间隔是 60 秒。
     - 采集到的日志，单行（包括经过 `multiline_match` 处理后）最大长度默认为 800KB 左右，超出部分会被分割成多条日志
 
 ### GKE Autopilot Cloud API 模式 {#gke-autopilot-cloud-api}
@@ -305,10 +305,12 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
     通过这种方式，可以灵活地控制 DataKit 采集的 Pod 指标范围，避免采集不需要的数据，从而优化系统性能和资源利用率。
 
 <!-- markdownlint-disable MD013 -->
-### NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
+### Kubernetes 权限检查 {#rbac-nodes-stats}
 <!-- markdownlint-enable MD013 -->
 
-`ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/stats` 权限。例如：
+<div id="rbac-pv-pvc"></div>
+
+默认安装 YAML 已包含 NODE_LOCAL 模式及 PV/PVC 对象采集所需的权限。使用旧版或自定义 YAML 时，确认 DataKit 的 ClusterRole 中包含以下规则：
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -317,57 +319,17 @@ metadata:
   name: datakit
 rules:
 - apiGroups: [""]
-  resources: ["nodes", "nodes/stats"]
+  resources: ["nodes", "nodes/stats", "persistentvolumes", "persistentvolumeclaims"]
   verbs: ["get", "list", "watch"]
 ```
 
-此外，DataKit Pod 还需要开启 `hostNetwork: true` 配置项。
-
-<!-- markdownlint-disable MD013 -->
-### 采集 PersistentVolumes 和 PersistentVolumeClaims 需要新的权限 {#rbac-pv-pvc}
-<!-- markdownlint-enable MD013 -->
-
-DataKit 在 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) 版本支持采集 Kubernetes PersistentVolume 和 PersistentVolumeClaim 的对象数据，采集这两种资源需要新的 RBAC 权限，详细见下：
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: datakit
-rules:
-- apiGroups: [""]
-  resources: ["persistentvolumes", "persistentvolumeclaims"]
-  verbs: ["get", "list", "watch"]
-```
+`ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐用于 DaemonSet 部署，需要访问 kubelet 并启用 `hostNetwork: true`。
 
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes 对象 YAML 字段过滤 {#yaml-filter-fields}
 <!-- markdownlint-enable MD013 -->
 
-DataKit 在采集 Kubernetes 对象数据时，会获取并存储对应资源的 YAML 配置。为了减少存储空间占用、提高传输效率并避免包含不必要或敏感的信息，DataKit 会对原始 YAML 进行字段过滤处理。
-
-过滤的字段类型如下：
-
-1. **Status 字段**：移除所有资源的 `status` 字段，因为该字段包含的是集群计算的运行时状态信息，并非用户定义的配置内容，且在 `kubectl apply` 时会被忽略。
-
-1. **系统生成的元数据**：移除以下自动生成的 metadata 字段：
-   - `metadata.creationTimestamp`
-   - `metadata.resourceVersion`
-   - `metadata.uid`
-   - `metadata.generation`
-   - `metadata.managedFields`
-
-1. **特定注解（Annotations）**：过滤掉以下前缀的注解，这些通常是平台管理工具（如 `Rancher`、`ArgoCD`、`Flux` 等）自动添加的运维注解，不包含业务配置信息：
-
-```text
-argocd.argoproj.io/*
-cattle.io/*
-field.cattle.io/*
-fluxcd.io/*
-rancher.io/*
-kubectl.kubernetes.io/*
-nginx.ingress.kubernetes.io/*
-```
+对象数据的 `yaml` 字段保存精简后的资源配置，会省略 `status`、系统生成的元数据和部分平台管理注解，并非原始 YAML 的完整副本。
 
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}

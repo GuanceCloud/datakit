@@ -37,11 +37,13 @@ nav:
     - '采集器配置': datakit-input-conf.md
     - '选举配置': election.md
     - '代理配置': datakit-proxy.md
+    # 以下 Operator 文档由 DataKit Operator 项目导出，导航仍由 DataKit 维护。
     - 'DataKit Operator':
       - datakit-operator.md
       - '更新日志': operator-changelog.md
       - 'Asyncprofile': operator-asyncprofile.md
       - 'DDTrace': operator-ddtrace.md
+      - 'OpenTelemetry': operator-otel.md
       - 'Flameshot': operator-flameshot.md
       - 'logfwd': operator-logfwd.md
       - 'logging': operator-logging.md

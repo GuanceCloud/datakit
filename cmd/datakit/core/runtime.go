@@ -77,7 +77,9 @@ func (c *Core) doRun() error {
 
 	// Start election and pipeline remote if dataway is configured
 	if c.cfg.Dataway != nil {
-		c.startElection()
+		if err := c.startElection(); err != nil {
+			return fmt.Errorf("start election: %w", err)
+		}
 
 		if len(c.cfg.Dataway.URLs) == 1 {
 			plRemote.StartPipelineRemote(c.cfg.Dataway.URLs, plRemote.DefaultPipelineRemote())
@@ -159,16 +161,40 @@ func (c *Core) gc(du time.Duration) {
 }
 
 // startElection starts the election process.
-func (c *Core) startElection() {
+func (c *Core) startElection() error {
+	provider, puller, err := c.selectElectionPuller()
+	if err != nil {
+		return err
+	}
+
 	electionsOpts := []election.ElectionOption{
 		election.WithElectionEnabled(c.cfg.Election.Enable),
 		election.WithElectionWhitelist(c.cfg.Election.NodeWhitelist),
 		election.WithID(datakit.DKHost),
 		election.WithNamespace(c.cfg.Election.Namespace),
+		election.WithPuller(provider, puller),
 	}
 
-	electionsOpts = append(electionsOpts, election.WithDatawayPuller(c.cfg.Dataway))
 	election.Start(electionsOpts...)
+	return nil
+}
+
+func (c *Core) selectElectionPuller() (election.Provider, election.Puller, error) {
+	if !c.cfg.Election.Enable {
+		return election.ProviderForOperatorURL(c.cfg.Election.OperatorURL), nil, nil
+	}
+
+	var token string
+	tokens := c.cfg.Dataway.GetTokens()
+	if len(tokens) > 0 {
+		token = tokens[0]
+	}
+
+	provider, puller, err := election.SelectPuller(c.cfg.Election.OperatorURL, token, c.cfg.Dataway)
+	if err != nil {
+		return "", nil, err
+	}
+	return provider, puller, nil
 }
 
 // startUsageTrace starts usage tracing.

@@ -15,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apibatchv1 "k8s.io/api/batch/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -29,13 +28,12 @@ func init() {
 }
 
 type job struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newJob(client k8sClient, cfg *Config) resource {
-	return &job{client: client, cfg: cfg, counter: make(map[string]int)}
+func newJob(_ k8sClient, cfg *Config) resource {
+	return &job{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (j *job) gatherMetric(ctx context.Context, timestamp int64) {
@@ -43,23 +41,12 @@ func (j *job) gatherMetric(ctx context.Context, timestamp int64) {
 		return
 	}
 
-	var continued string
-	for {
-		list, err := j.client.GetJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := j.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apibatchv1.Job](ctx, j.cfg, "job", func(items []apibatchv1.Job) {
+		pts := j.buildMetricPoints(&apibatchv1.JobList{Items: items}, timestamp)
 		feedMetric("k8s-job-metric", j.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
-
 	processCounter(j.cfg, "job", j.counter, timestamp)
 }
 
@@ -68,25 +55,11 @@ func (j *job) gatherObject(ctx context.Context) {
 		return
 	}
 
-	var continued string
-	for {
-		list, err := j.client.GetJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := j.buildObjectPoints(list)
+	cachedBatches[apibatchv1.Job](ctx, j.cfg, "job", func(items []apibatchv1.Job) {
+		pts := j.buildObjectPoints(&apibatchv1.JobList{Items: items})
 		feedObject("k8s-job-object", j.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
-
-func (*job) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*point.Point {
 	var pts []*point.Point

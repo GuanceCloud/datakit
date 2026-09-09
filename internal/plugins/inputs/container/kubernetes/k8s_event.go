@@ -23,8 +23,8 @@ const (
 	eventLoggingMeasurement = "kubernetes_events"
 )
 
-func (k *Kube) gatherEvent(ctx context.Context) {
-	list, err := k.client.GetEvents(allNamespaces).List(context.Background(), metav1.ListOptions{Limit: 1})
+func (k *Kube) gatherEvent(ctx context.Context, cfg *Config) {
+	list, err := k.client.GetEvents(allNamespaces).List(ctx, metav1.ListOptions{Limit: 1})
 	if err != nil {
 		klog.Warnf("query events failed, err: %s", err)
 		return
@@ -36,7 +36,7 @@ func (k *Kube) gatherEvent(ctx context.Context) {
 	klog.Infof("use event resourceVersion %s", resourceVersion)
 
 	watchFunc := func(opt metav1.ListOptions) (kubewatch.Interface, error) {
-		return k.client.GetEvents("").Watch(context.Background(), opt)
+		return k.client.GetEvents("").Watch(ctx, opt)
 	}
 
 	w, err := watch.NewRetryWatcher(resourceVersion, &cache.ListWatch{WatchFunc: watchFunc})
@@ -44,7 +44,10 @@ func (k *Kube) gatherEvent(ctx context.Context) {
 		klog.Warnf("watch events failed, err: %s", err)
 		return
 	}
-	defer w.Stop()
+	defer func() {
+		w.Stop()
+		<-w.Done()
+	}()
 
 	for {
 		select {
@@ -58,7 +61,7 @@ func (k *Kube) gatherEvent(ctx context.Context) {
 				return
 			}
 			pts := k.buildEventPoints(&event)
-			feedLogging("k8s-event", k.cfg.Feeder, pts)
+			feedLogging("k8s-event", cfg.Feeder, pts)
 		}
 	}
 }

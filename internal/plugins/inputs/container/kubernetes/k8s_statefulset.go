@@ -12,7 +12,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	apiappsv1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
@@ -34,56 +33,32 @@ func init() {
 }
 
 type statefulset struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newStatefulset(client k8sClient, cfg *Config) resource {
-	return &statefulset{client: client, cfg: cfg, counter: make(map[string]int)}
+func newStatefulset(_ k8sClient, cfg *Config) resource {
+	return &statefulset{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (s *statefulset) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := s.client.GetStatefulSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := s.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apiappsv1.StatefulSet](ctx, s.cfg, "statefulset", func(items []apiappsv1.StatefulSet) {
+		pts := s.buildMetricPoints(&apiappsv1.StatefulSetList{Items: items}, timestamp)
 		feedMetric("k8s-statefulset-metric", s.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(s.cfg, "statefulset", s.counter, timestamp)
 }
 
 func (s *statefulset) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := s.client.GetStatefulSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := s.buildObjectPoints(list)
+	cachedBatches[apiappsv1.StatefulSet](ctx, s.cfg, "statefulset", func(items []apiappsv1.StatefulSet) {
+		pts := s.buildObjectPoints(&apiappsv1.StatefulSetList{Items: items})
 		feedObject("k8s-statefulset-object", s.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
 
-func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Apps().V1().StatefulSets()
+func (s *statefulset) addChangeHandler(informer cache.SharedIndexInformer) {
 	if informer == nil {
 		klog.Warn("cannot get statefulset informer")
 		return
@@ -92,10 +67,10 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 	addFunc := func(newObj interface{}) {
 		obj, ok := newObj.(*apiappsv1.StatefulSet)
 		if !ok {
-			klog.Warnf("converting to StatefulSet object failed, %v", newObj)
+			klog.Warnf("converting to StatefulSet object failed, %T", newObj)
 			return
 		}
-		if obj.CreationTimestamp.After(controllerStartTime) {
+		if obj.CreationTimestamp.After(s.cfg.resourceCache.startedAt) {
 			diffs := createNoChangedFieldDiffs(changes.StatefulSetCreate, obj.Namespace, statefulsetType, obj.Name)
 			objectChangeCountVec.WithLabelValues(statefulsetType, "create").Inc()
 			processChange(s.cfg, statefulsetObjectClass, statefulsetObjectResourceKey, diffs, obj)
@@ -105,7 +80,7 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 	deleteFunc := func(oldObj interface{}) {
 		obj, ok := oldObj.(*apiappsv1.StatefulSet)
 		if !ok {
-			klog.Warnf("converting to StatefulSet object failed, %v", oldObj)
+			klog.Warnf("converting to StatefulSet object failed, %T", oldObj)
 			return
 		}
 
@@ -119,13 +94,13 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 
 		oldStatefulSetObj, ok := oldObj.(*apiappsv1.StatefulSet)
 		if !ok {
-			klog.Warnf("converting to StatefulSet object failed, %v", oldObj)
+			klog.Warnf("converting to StatefulSet object failed, %T", oldObj)
 			return
 		}
 
 		newStatefulSetObj, ok := newObj.(*apiappsv1.StatefulSet)
 		if !ok {
-			klog.Warnf("converting to StatefulSet object failed, %v", newObj)
+			klog.Warnf("converting to StatefulSet object failed, %T", newObj)
 			return
 		}
 
@@ -136,7 +111,7 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 		}
 	}
 
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	informer.AddEventHandler(s.cfg.resourceCache.changeHandler("statefulset", cache.ResourceEventHandlerFuncs{
 		AddFunc: func(newObj interface{}) {
 			addFunc(newObj)
 		},
@@ -146,7 +121,7 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			updateFunc(oldObj, newObj)
 		},
-	})
+	}))
 }
 
 func (s *statefulset) buildMetricPoints(list *apiappsv1.StatefulSetList, timestamp int64) []*point.Point {

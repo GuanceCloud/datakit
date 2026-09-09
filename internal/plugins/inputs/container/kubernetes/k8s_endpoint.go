@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -26,37 +25,25 @@ func init() {
 }
 
 type endpoint struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newEndpoint(client k8sClient, cfg *Config) resource {
-	return &endpoint{client: client, cfg: cfg, counter: make(map[string]int)}
+func newEndpoint(_ k8sClient, cfg *Config) resource {
+	return &endpoint{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (e *endpoint) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := e.client.GetEndpoints(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := e.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apicorev1.Endpoints](ctx, e.cfg, "endpoint", func(items []apicorev1.Endpoints) {
+		pts := e.buildMetricPoints(&apicorev1.EndpointsList{Items: items}, timestamp)
 		feedMetric("k8s-endpoint-metric", e.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(e.cfg, "endpoint", e.counter, timestamp)
 }
 
-func (*endpoint) gatherObject(_ context.Context)                      { /* nil */ }
-func (*endpoint) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
+func (*endpoint) gatherObject(_ context.Context) { /* nil */ }
 
 func (e *endpoint) buildMetricPoints(list *apicorev1.EndpointsList, timestamp int64) []*point.Point {
 	var pts []*point.Point

@@ -27,6 +27,13 @@ questions:
   type: string
   label: Dataway URL
   group: "Datakit Configuration"
+- variable: datakit.election_operator_url
+  required: false
+  default: ""
+  description: "DataKit Operator URL used for central election. Leave empty to keep DataWay/Kodo election."
+  type: string
+  label: Election Operator URL
+  group: "Datakit Configuration"
 - variable: datakit.default_enabled_inputs
   default: ""
   description: "Enable the default collector Configurations. For details, see https://docs.{{.BrandDomain}}/en/datakit/datakit-input-conf/#default-enabled-inputs"

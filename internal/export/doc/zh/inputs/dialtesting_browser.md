@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-浏览器拨测属于 `inputs.dialtesting` 采集器中的 `BROWSER` 任务类型，用于通过 Lightpanda 浏览器引擎模拟页面访问、交互和断言，并上报页面性能、步骤结果和失败原因。内置的 Lightpanda 不支持截图。
+浏览器拨测属于 `inputs.dialtesting` 采集器中的 `BROWSER` 任务类型，用于通过 Lightpanda 浏览器引擎模拟页面访问、交互和断言，并上报页面性能、步骤结果、失败原因及可选的失败截图。
 
 基础拨测节点配置请参考[网络拨测](dialtesting.md)。本文只说明浏览器拨测相关的额外配置、部署和排查方式。
 
@@ -72,12 +72,12 @@ DataKit 镜像内置 Lightpanda，可直接执行 `BROWSER` 任务。如需使�
 
 ### 安装 Lightpanda {#host-install-lightpanda}
 
-DataKit 镜像使用观测云发布的 Lightpanda `0.3.6-g2` 版本。在 x86_64 Linux 主机上安装相同版本：
+DataKit 镜像使用在 Ubuntu 22.04 上构建的 GuanceCloud Lightpanda `0.4.0-g1` 版本。在 x86_64 Linux 主机上安装相同版本：
 
 ```shell
 curl -fL -o lightpanda \
-  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g2/lightpanda-x86_64-linux
-echo "c68f7f340252156fa954fa1e2603769e3fcdb1dd6d07bce9d8b9f034545f09ba  lightpanda" | sha256sum -c -
+  https://github.com/GuanceCloud/browser/releases/download/0.4.0-g1/lightpanda-x86_64-linux
+echo "3da11a5e0ce793480648074b6dfcc3f91c5386fd394e904aece28270f410b756  lightpanda" | sha256sum -c -
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 rm lightpanda
 ```
@@ -86,8 +86,8 @@ arm64/aarch64 Linux 可使用：
 
 ```shell
 curl -fL -o lightpanda \
-  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g2/lightpanda-aarch64-linux
-echo "76f13c2debc88b5b7de91dbb1a540c0de97189fa134a8c84369097f7551e2566  lightpanda" | sha256sum -c -
+  https://github.com/GuanceCloud/browser/releases/download/0.4.0-g1/lightpanda-aarch64-linux
+echo "ee84aec580d936b843b07c968e64d6a92360f5d3cbdde4780031588f4e4abdfd  lightpanda" | sha256sum -c -
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 rm lightpanda
 ```
@@ -169,7 +169,7 @@ DataKit 默认禁止拨测内网地址。私有拨测节点需要访问 loopback
 
 DataKit 还会把该设置传给 Lightpanda。保持默认的 `disable_internal_network_task = true` 且未配置自定义 CIDR 列表时，Lightpanda 使用 `--block-private-networks` 启动。配置 `disabled_internal_network_cidr_list` 后，DataKit 会通过 `--block-cidrs` 精确阻断这些范围，不再阻断全部私网范围。将 `disable_internal_network_task` 设置为 `false` 时，Lightpanda 允许私网请求，无需另外配置引擎专用环境变量。
 
-Lightpanda `0.3.6-g2` 支持以下默认 HTTP 代理配置：
+Lightpanda `0.4.0-g1` 支持以下默认 HTTP 代理配置：
 
 ```toml
 [inputs.dialtesting.browser]
@@ -287,7 +287,10 @@ curl -s http://127.0.0.1:9529/metrics | grep datakit_dialtesting
       "status": "OK",
       "frequency": "1m",
       "post_url": "https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>",
-      "browser_config": "<browser_config YAML string>"
+      "browser_config": "<browser_config YAML string>",
+      "advance_options": {
+        "screenshot_on_failure": true
+      }
     }
   ]
 }
@@ -295,7 +298,9 @@ curl -s http://127.0.0.1:9529/metrics | grep datakit_dialtesting
 
 ## 截图支持 {#screenshot}
 
-内置的 Lightpanda 不支持截图。Lightpanda 任务会忽略 `advance_options.screenshot_on_failure`，不会生成 `steps[].screenshot`。
+将 `advance_options.screenshot_on_failure` 设置为 `true` 后，浏览器步骤失败时会采集 PNG。DataKit 上传图片并将元数据写入 `steps[].screenshot`；上传失败信息写入 `screenshot_upload_error`。
+
+Lightpanda 截图是以文本为主的语义渲染，并非像素级还原的浏览器画面。它适合检查失败时的页面内容和 DOM 状态，但不会完整呈现 CSS、图片、Canvas 等 Chrome 渲染细节。当 Lightpanda 无法启动、浏览器进程已经退出或浏览器会话达到整体超时时，无法采集截图。
 
 ## 排查方式 {#troubleshooting}
 
@@ -320,4 +325,4 @@ command -v lightpanda
 - 任务不上报：确认任务 `post_url` 可访问，且发送失败、缓存、丢弃相关指标未持续增长。
 - 浏览器无法启动：确认 `engine_path`、`LIGHTPANDA_EXECUTABLE_PATH` 或 `PATH` 中的 `lightpanda` 可被 DataKit 进程访问。
 - 浏览器依赖缺失：Kubernetes 中建议直接使用 `datakit:<version>` 镜像；主机部署时确认 Lightpanda 已正确安装。
-- 截图未上传：内置的 Lightpanda 不会生成截图。
+- 截图未上传：确认 `advance_options.screenshot_on_failure` 已设置为 `true`，并检查 `screenshot_upload_error`。浏览器启动失败、进程退出或任务整体超时时，可能没有可用于截图的活动会话。

@@ -6,6 +6,7 @@
 package io
 
 import (
+	"context"
 	stdio "io"
 	"net/http"
 	"net/http/httptest"
@@ -30,6 +31,52 @@ import (
 
 type mockFeederOutputer struct {
 	feeds []*feedData
+}
+
+func TestFeedCancellationPreservesCompletedDrop(t *T.T) {
+	previous, _ := plval.GetManager()
+	manager := plval.NewScriptManager(nil, nil)
+	plval.SetManager(manager)
+	t.Cleanup(func() { plval.SetManager(previous) })
+	if err := manager.LoadScriptWithCatChecked(point.Logging, constants.NSDefault,
+		map[string]string{"cancel.p": "if discard { drop(); exit() }\nfor ; repeat; {}\nadd_key(after, true)"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	fd := GetFeedData()
+	defer putFeedData(fd)
+	fd.cat = point.Logging
+	fd.disableFilter = true
+	fd.pts = []*point.Point{
+		newpt("cancel", nil, map[string]any{"discard": true, "repeat": false}, time.Now()),
+		newpt("cancel", nil, map[string]any{"discard": false, "repeat": true}, time.Now()),
+	}
+	WithPipelineContext(ctx)(fd)
+	after, created, _, err := (&dkIO{}).beforeFeed(fd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ctx.Err() != context.DeadlineExceeded {
+		t.Fatal("test did not cancel pipeline execution")
+	}
+	if len(after) != 1 || after[0] != fd.pts[1] {
+		t.Fatal("cancellation restored an already dropped point")
+	}
+	if after[0].Get("after") != nil || len(created) != 0 {
+		t.Fatal("published results after cancellation")
+	}
+}
+
+func TestFeedPoolClearsPipelineContext(t *T.T) {
+	fd := GetFeedData()
+	WithPipelineContext(context.Background())(fd)
+	putFeedData(fd)
+	next := GetFeedData()
+	defer putFeedData(next)
+	if next.pipelineContext != nil {
+		t.Fatal("pooled feed retains request context")
+	}
 }
 
 func (m *mockFeederOutputer) Write(fd *feedData) error {

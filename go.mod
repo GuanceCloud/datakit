@@ -24,6 +24,7 @@ require (
 	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v25.0.14+incompatible
 	github.com/dustin/go-humanize v1.0.1
+	github.com/ebitengine/purego v0.9.1
 	github.com/elastic/go-lumber v0.1.1
 	github.com/elazarl/goproxy v1.2.1
 	github.com/fatih/color v1.15.0
@@ -363,7 +364,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20260826073647-39604b666ac5
+	github.com/GuanceCloud/cliutils v1.1.22-0.20260909095846-ce14204e8799
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
@@ -381,7 +382,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.4.3
+	github.com/GuanceCloud/pipeline-go v1.4.6-0.20260909142234-d89e085ac667
 	github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/pinpoint-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/skywalking-gen-go v0.0.0-20260601093339-95d5c63392d4

@@ -8,6 +8,7 @@ package offload
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -103,6 +104,7 @@ func newDataChan() *dataChan {
 type OffloadWorker struct {
 	ch       *dataChan
 	stopChan chan struct{}
+	stopOnce sync.Once
 
 	sender Receiver
 }
@@ -141,6 +143,7 @@ func NewOffloader(cfg *OffloadConfig) (*OffloadWorker, error) {
 
 func (offload *OffloadWorker) Customer(ctx context.Context, cat point.Category) error {
 	flushTicker := time.NewTicker(flushInterval)
+	defer flushTicker.Stop()
 	var ch chan []*point.Point
 
 	switch cat { //nolint:exhaustive
@@ -234,7 +237,17 @@ func (offload *OffloadWorker) Send(cat point.Category, pts []*point.Point) error
 
 	switch cat { //nolint:exhaustive
 	case point.Logging:
-		offload.ch.logging <- pts
+		select {
+		case <-offload.stopChan:
+			return fmt.Errorf("offload worker stopped")
+		default:
+		}
+		select {
+		case offload.ch.logging <- pts:
+			return nil
+		case <-offload.stopChan:
+			return fmt.Errorf("offload worker stopped")
+		}
 	default:
 	}
 
@@ -242,9 +255,10 @@ func (offload *OffloadWorker) Send(cat point.Category, pts []*point.Point) error
 }
 
 func (offload *OffloadWorker) Stop() {
-	if offload.stopChan != nil {
-		close(offload.stopChan)
+	if offload == nil || offload.stopChan == nil {
+		return
 	}
+	offload.stopOnce.Do(func() { close(offload.stopChan) })
 }
 
 func init() { //nolint: gochecknoinits

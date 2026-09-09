@@ -1,0 +1,24 @@
+a={"a":1,"b":2,"c":3}
+result=0
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+a[key]+=1
+add_key(result,a[key])
+add_key(ok, a[key] == 22)

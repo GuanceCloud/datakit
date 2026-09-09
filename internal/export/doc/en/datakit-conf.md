@@ -364,7 +364,7 @@ $ systemctl status datakit
 
 ### Election Configuration {#election}
 
-See [here](election.md#config)
+See [Election Configuration](election.md#config) for both central election providers, DataWay/Kodo and DataKit Operator, and the shared election whitelist.
 
 ### Dataway Settings {#dataway-settings}
 
@@ -374,13 +374,66 @@ Dataway got following settings to be configured:
 - `max_retry_count`: Sets the number of retries to request Dataway (1 by default, max retry is 10) [:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
 - `retry_delay` : Set the basic step of the retry interval. The default value is 200ms. The so-called basic step is 200ms for the first time, 400ms for the second time, 800ms for the third time, and so on (in increments of $2^n$) [:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
 - `max_raw_body_size`: Set the maximum size of a single uploaded package (before compression), in bytes [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
-- `content_encoding` : v1 or v2 can be selected [:octicons-tag-24: Version-1.17.1](Changelog.md #cl-1.17.1)
-    - v1 is line-protocol (default: v1)
-    - v2 is the Protobuf protocol. Compared with v1, it has better performance in all aspects
-- `compression`: Compression for uploaded Point data. Supported values are `gzip` and `zstd`; the default is `gzip`. The legacy `gzip` option is used only when `compression` is not set
+- `content_encoding`: Encoding for uploaded Point data. Supported values are `v1` (line protocol) and `v2` (Protobuf); the current default is `v2` [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
+- `compression`: Select the compression algorithm for Point uploads. The default is `gzip`. See [Upload Compression](datakit-conf.md#dataway-compression) for supported values, configuration examples, and compatibility details
 - `payload_obfuscation`: Empty (disabled) by default. Only `gzip-caesar-v1` is supported and requires `compression = "gzip"`; invalid settings disable obfuscation without stopping DataKit. This is not encryption, so HTTPS is still required
 
 See [here](datakit-daemonset-deploy.md#env-dataway) for configuration under Kubernetes.
+
+#### Upload Compression {#dataway-compression}
+
+Use `[dataway].compression` or the `ENV_DATAWAY_COMPRESSION` environment variable to select the compression algorithm for Point uploads:
+
+- `gzip`: The default algorithm. With the default configuration, Point data is compressed with gzip before upload.
+- `zstd`: An optional algorithm available since DataKit [2.9.0](changelog-2026.md#cl-2.9.0). It must be explicitly configured, and the receiving endpoint must support zstd decompression.
+
+`content_encoding` controls data encoding, while `compression` controls the compression algorithm. These settings are independent. The current default is `v2` (Protobuf) + `gzip`. To select gzip or zstd, set only the compression algorithm; there is no need to change the encoding setting as well.
+
+=== "Host deployment"
+
+    Edit `conf.d/datakit.conf` and merge the following setting into the existing `[dataway]` section:
+
+    ```toml
+    [dataway]
+      compression = "gzip" # Default algorithm; change to "zstd" to use zstd
+    ```
+
+    For example, to use Protobuf + zstd with the default encoding, change the setting above to `compression = "zstd"`.
+
+    If the configuration explicitly sets `content_encoding = "v1"` and you want to use Protobuf, also change it to `content_encoding = "v2"`.
+
+    After saving the configuration, [restart DataKit](datakit-service-how-to.md#manage-service):
+
+    ```shell
+    datakit service restart
+    ```
+
+=== "Kubernetes"
+
+    Add or update the following environment variable in the DataKit container's `env` list, then update the Pods:
+
+    ```yaml
+    - name: ENV_DATAWAY_COMPRESSION
+      value: "gzip" # Default algorithm; change to "zstd" to use zstd
+    ```
+
+    `ENV_DATAWAY_CONTENT_ENCODING` maps to `content_encoding` and defaults to `v2`. It does not need to be set together with the compression variable. If it is explicitly set to `v1` and you want to use Protobuf, change it to `v2`. See [DataWay environment variables](datakit-daemonset-deploy.md#env-dataway) for the full parameter list.
+
+Configuration and compatibility rules:
+
+- Host deployments read `compression` from TOML. Docker/Kubernetes deployments use `ENV_DATAWAY_COMPRESSION`; in this mode, the main configuration comes from environment variables.
+- When `compression` is explicitly set, it takes precedence over the legacy `gzip` option, so an existing `gzip = true` can remain.
+- When `compression` is not set, the legacy `gzip` option applies: `true` enables gzip compression, and `false` disables compression.
+- If `compression` has an invalid value, DataKit logs a warning and uses gzip.
+
+DataKit selects compression from the configuration without capability negotiation and does not automatically switch algorithms when uploads fail. Before using zstd, confirm that the receiving endpoint supports decompression. To switch back to gzip, set `compression` or its environment variable to `gzip`, then restart DataKit or update the Pods.
+
+After restarting, check `effective` in the DataKit startup log for the algorithm in use. When gzip or zstd is explicitly selected, one of the following log messages appears:
+
+```text
+dataway compression: configured="gzip", effective="gzip"
+dataway compression: configured="zstd", effective="zstd"
+```
 
 #### DataWay IP Family Policy {#dataway-ip-family}
 
@@ -600,6 +653,30 @@ It can be configured in two ways:
     ```
 
 - Container deployment, you can use the environment variable, `ENV_PIPELINE_DEFAULT_PIPELINE`, its value is, for example, `{"logging":"abc.p","metric":"xyz.p"}`
+
+### Pipeline JIT acceleration (optional) {#pipeline-jit}
+
+Pipeline JIT accelerates script execution and is **disabled by default**. It requires a DataKit package that includes the JIT component. Supported platforms are Linux amd64/arm64 with glibc. Other platforms continue to use the Go executor.
+
+Add the following configuration to the main configuration file *datakit.conf*. If `[pipeline.jit]` already exists, update that section instead of adding it again:
+
+```toml
+[pipeline.jit]
+  enabled = true
+```
+
+Restart DataKit after saving the configuration. Existing collector configurations and Pipeline scripts do not need to change. JIT uses the shared library included in the installation package, so a custom library path is normally unnecessary.
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `enabled` | `false` | Enable JIT acceleration |
+| `mode` | `"auto"` | Automatically select the execution method; unsupported scripts use the Go executor before execution starts |
+| `on_init_error` | `"go"` | Continue with the Go executor if initial JIT setup fails; use `"error"` to return an initialization error instead |
+| `max_cached_programs` | `256` | Maximum number of cached compiled scripts; `0` also uses the default, and the maximum is `4096` |
+
+Omitting `on_init_error` is equivalent to setting it to `"go"`. Initial fallback is logged. This policy does not ignore invalid configuration or automatically rerun scripts with Go after an execution error.
+
+To disable JIT, set `enabled` to `false` and restart DataKit. Existing scripts and collector configurations remain unchanged.
 
 ### Set the Maximum Value of Open File Descriptor {#enable-max-fd}
 

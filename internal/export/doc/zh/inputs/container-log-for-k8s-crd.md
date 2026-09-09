@@ -347,7 +347,7 @@ Pod Annotations 配置优先级更高。如果一个容器同时匹配到 CRD �
 
 - 多个 ClusterLoggingConfig 匹配同一个 Pod 时如何处理？
 
-理论上会应用最先创建的、ResourceVersion 最小的 ClusterLoggingConfig，尽量避免此类情况。
+调整匹配条件，避免多个 ClusterLoggingConfig 同时匹配同一个 Pod，以免采集配置冲突。
 
 - 采集容器内的日志文件需要添加挂载吗？
 

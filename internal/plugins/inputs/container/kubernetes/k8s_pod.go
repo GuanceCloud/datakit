@@ -21,7 +21,6 @@ import (
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -72,44 +71,24 @@ func newPodLocal(client k8sClient, cfg *Config) resource {
 }
 
 func (local *podLocal) gatherMetric(ctx context.Context, timestamp int64) {
-	fieldSelector := "spec.nodeName=" + local.cfg.NodeName
-	local.pod.gatherMetric(ctx, fieldSelector, timestamp, false)
+	local.pod.gatherMetric(ctx, timestamp, false)
 }
 
 func (local *podLocal) gatherObject(ctx context.Context) {
-	fieldSelector := "spec.nodeName=" + local.cfg.NodeName
-	local.pod.gatherObject(ctx, fieldSelector, false)
+	local.pod.gatherObject(ctx, false)
 }
-
-func (*podLocal) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func newPodRemote(client k8sClient, cfg *Config) resource {
 	return &podRemote{pod: newPod(client, cfg)}
 }
 
 func (remote *podRemote) gatherMetric(ctx context.Context, timestamp int64) {
-	fieldSelector := ""
-	pending := false
-
-	if remote.cfg.NodeLocal {
-		fieldSelector = "status.phase==Pending"
-		pending = true
-	}
-	remote.pod.gatherMetric(ctx, fieldSelector, timestamp, pending)
+	remote.pod.gatherMetric(ctx, timestamp, remote.cfg.NodeLocal)
 }
 
 func (remote *podRemote) gatherObject(ctx context.Context) {
-	fieldSelector := ""
-	pending := false
-
-	if remote.cfg.NodeLocal {
-		fieldSelector = "status.phase==Pending"
-		pending = true
-	}
-	remote.pod.gatherObject(ctx, fieldSelector, pending)
+	remote.pod.gatherObject(ctx, remote.cfg.NodeLocal)
 }
-
-func (*podRemote) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 type pod struct {
 	client  k8sClient
@@ -121,36 +100,26 @@ func newPod(client k8sClient, cfg *Config) *pod {
 	return &pod{client: client, cfg: cfg, counter: make(map[string]map[string]int)}
 }
 
-func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp int64, pending bool) {
-	var continued string
-	for {
-		list, err := p.client.GetPods(allNamespaces).List(ctx, newListOptions(fieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
+func (p *pod) metricsClient(pending bool) (PodMetricsClient, nodeCapacity) {
+	if pending {
+		return nil, nodeCapacity{}
+	}
+	if p.cfg.NodeLocal {
+		return newPodMetricsFromKubelet(p.client), getCapacityFromNode(p.cfg.resourceCache, p.cfg.NodeName)
+	}
+	return newPodMetricsFromAPIServer(p.client), nodeCapacity{}
+}
 
-		var metricsClient PodMetricsClient
-		var nodeInfo nodeCapacity
-
-		if p.cfg.NodeLocal {
-			metricsClient = newPodMetricsFromKubelet(p.client)
-			nodeInfo = getCapacityFromNode(context.Background(), p.client, p.cfg.NodeName)
-		} else {
-			metricsClient = newPodMetricsFromAPIServer(p.client)
-		}
-
-		if pending {
-			metricsClient = nil
-		}
-
-		pts := p.buildMetricPoints(list, metricsClient, nodeInfo, timestamp)
+func (p *pod) gatherMetric(ctx context.Context, timestamp int64, pending bool) {
+	if p.cfg.EnablePodMetric && !pending && !p.cfg.resourceCache.synced("node") {
+		return
+	}
+	metricsClient, nodeInfo := p.metricsClient(pending)
+	if !cachedBatches[apicorev1.Pod](ctx, p.cfg, "pod", func(items []apicorev1.Pod) {
+		pts := p.buildMetricPoints(ctx, &apicorev1.PodList{Items: items}, metricsClient, nodeInfo, timestamp)
 		feedMetric("k8s-pod-metric", p.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 
 	var counterPts []*point.Point
@@ -171,54 +140,28 @@ func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp 
 	feedMetric("k8s-counter", p.cfg.Feeder, counterPts, true)
 }
 
-func (p *pod) gatherObject(ctx context.Context, fieldSelector string, pending bool) {
+func (p *pod) gatherObject(ctx context.Context, pending bool) {
+	if !pending && !p.cfg.resourceCache.synced("node") {
+		return
+	}
 	var promPods []promPodCandidate
-	var continued string
-
-	for {
-		list, err := p.client.GetPods(allNamespaces).List(ctx, newListOptions(fieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			return
-		}
-		continued = list.Continue
-
-		var metricsClient PodMetricsClient
-		var nodeInfo nodeCapacity
-
-		if p.cfg.NodeLocal {
-			metricsClient = newPodMetricsFromKubelet(p.client)
-			nodeInfo = getCapacityFromNode(context.Background(), p.client, p.cfg.NodeName)
-		} else {
-			metricsClient = newPodMetricsFromAPIServer(p.client)
-		}
-
-		if pending {
-			metricsClient = nil
-		}
-
-		pts := p.buildObjectPoints(list, metricsClient, nodeInfo)
+	metricsClient, nodeInfo := p.metricsClient(pending)
+	if !cachedBatches[apicorev1.Pod](ctx, p.cfg, "pod", func(items []apicorev1.Pod) {
+		list := &apicorev1.PodList{Items: items}
+		pts := p.buildObjectPoints(ctx, list, metricsClient, nodeInfo)
 		feedObject("k8s-pod-object", p.cfg.Feeder, pts, true)
-
 		if !pending {
 			promPods = append(promPods, p.newPromPods(list)...)
 		}
-
-		if continued == "" {
-			break
-		}
-	}
-
-	if pending {
+	}) {
 		return
 	}
-
-	if p.cfg.promPodPublisher != nil {
+	if !pending && p.cfg.promPodPublisher != nil {
 		p.cfg.promPodPublisher.publishPromPods(promPods)
 	}
 }
 
-func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetricsClient, nodeInfo nodeCapacity, timestamp int64) []*point.Point {
+func (p *pod) buildMetricPoints(ctx context.Context, list *apicorev1.PodList, metricsClient PodMetricsClient, nodeInfo nodeCapacity, timestamp int64) []*point.Point {
 	var pts []*point.Point
 	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
@@ -241,9 +184,9 @@ func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetric
 
 		if p.cfg.EnablePodMetric && shouldCollectPodMetrics(&list.Items[idx], metricsClient) {
 			if nodeInfo.nodeName != item.Spec.NodeName {
-				nodeInfo = getCapacityFromNode(context.Background(), p.client, item.Spec.NodeName)
+				nodeInfo = getCapacityFromNode(p.cfg.resourceCache, item.Spec.NodeName)
 			}
-			metKVs := queryPodMetrics(context.Background(), metricsClient, &list.Items[idx], nodeInfo)
+			metKVs := queryPodMetrics(ctx, metricsClient, &list.Items[idx], nodeInfo)
 			kvs = append(kvs, metKVs...)
 		}
 
@@ -261,7 +204,7 @@ func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetric
 	return pts
 }
 
-func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetricsClient, nodeInfo nodeCapacity) []*point.Point {
+func (p *pod) buildObjectPoints(ctx context.Context, list *apicorev1.PodList, metricsClient PodMetricsClient, nodeInfo nodeCapacity) []*point.Point {
 	var pts []*point.Point
 	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
@@ -301,9 +244,9 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 		// The Object does not require checking if EnablePodMetric is enabled.
 		if shouldCollectPodMetrics(&list.Items[idx], metricsClient) {
 			if nodeInfo.nodeName != item.Spec.NodeName {
-				nodeInfo = getCapacityFromNode(context.Background(), p.client, item.Spec.NodeName)
+				nodeInfo = getCapacityFromNode(p.cfg.resourceCache, item.Spec.NodeName)
 			}
-			metKVs := queryPodMetrics(context.Background(), metricsClient, &list.Items[idx], nodeInfo)
+			metKVs := queryPodMetrics(ctx, metricsClient, &list.Items[idx], nodeInfo)
 			kvs = append(kvs, metKVs...)
 		}
 

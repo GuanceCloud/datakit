@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apiappsv1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -33,56 +32,32 @@ func init() {
 }
 
 type daemonset struct {
-	client  k8sClient
 	cfg     *Config
 	counter map[string]int
 }
 
-func newDaemonset(client k8sClient, cfg *Config) resource {
-	return &daemonset{client: client, cfg: cfg, counter: make(map[string]int)}
+func newDaemonset(_ k8sClient, cfg *Config) resource {
+	return &daemonset{cfg: cfg, counter: make(map[string]int)}
 }
 
 func (d *daemonset) gatherMetric(ctx context.Context, timestamp int64) {
-	var continued string
-	for {
-		list, err := d.client.GetDaemonSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := d.buildMetricPoints(list, timestamp)
+	if !cachedBatches[apiappsv1.DaemonSet](ctx, d.cfg, "daemonset", func(items []apiappsv1.DaemonSet) {
+		pts := d.buildMetricPoints(&apiappsv1.DaemonSetList{Items: items}, timestamp)
 		feedMetric("k8s-daemonset-metric", d.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
+	}) {
+		return
 	}
 	processCounter(d.cfg, "daemonset", d.counter, timestamp)
 }
 
 func (d *daemonset) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := d.client.GetDaemonSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := d.buildObjectPoints(list)
+	cachedBatches[apiappsv1.DaemonSet](ctx, d.cfg, "daemonset", func(items []apiappsv1.DaemonSet) {
+		pts := d.buildObjectPoints(&apiappsv1.DaemonSetList{Items: items})
 		feedObject("k8s-daemonset-object", d.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
 
-func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Apps().V1().DaemonSets()
+func (d *daemonset) addChangeHandler(informer cache.SharedIndexInformer) {
 	if informer == nil {
 		klog.Warn("cannot get daemonset informer")
 		return
@@ -91,10 +66,10 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 	addFunc := func(newObj interface{}) {
 		obj, ok := newObj.(*apiappsv1.DaemonSet)
 		if !ok {
-			klog.Warnf("converting to DaemonSet object failed, %v", newObj)
+			klog.Warnf("converting to DaemonSet object failed, %T", newObj)
 			return
 		}
-		if obj.CreationTimestamp.After(controllerStartTime) {
+		if obj.CreationTimestamp.After(d.cfg.resourceCache.startedAt) {
 			diffs := createNoChangedFieldDiffs(changes.DaemonSetCreate, obj.Namespace, daemonsetType, obj.Name)
 			objectChangeCountVec.WithLabelValues(daemonsetType, "create").Inc()
 			processChange(d.cfg, daemonsetObjectClass, daemonsetObjectResourceKey, diffs, obj)
@@ -104,7 +79,7 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 	deleteFunc := func(oldObj interface{}) {
 		obj, ok := oldObj.(*apiappsv1.DaemonSet)
 		if !ok {
-			klog.Warnf("converting to DaemonSet object failed, %v", oldObj)
+			klog.Warnf("converting to DaemonSet object failed, %T", oldObj)
 			return
 		}
 
@@ -118,13 +93,13 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 
 		oldDaemonsetObj, ok := oldObj.(*apiappsv1.DaemonSet)
 		if !ok {
-			klog.Warnf("converting to DaemonSet object failed, %v", oldObj)
+			klog.Warnf("converting to DaemonSet object failed, %T", oldObj)
 			return
 		}
 
 		newDaemonsetObj, ok := newObj.(*apiappsv1.DaemonSet)
 		if !ok {
-			klog.Warnf("converting to DaemonSet object failed, %v", newObj)
+			klog.Warnf("converting to DaemonSet object failed, %T", newObj)
 			return
 		}
 
@@ -135,7 +110,7 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 		}
 	}
 
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	informer.AddEventHandler(d.cfg.resourceCache.changeHandler("daemonset", cache.ResourceEventHandlerFuncs{
 		AddFunc: func(newObj interface{}) {
 			addFunc(newObj)
 		},
@@ -145,7 +120,7 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			updateFunc(oldObj, newObj)
 		},
-	})
+	}))
 }
 
 func (d *daemonset) buildMetricPoints(list *apiappsv1.DaemonSetList, timestamp int64) []*point.Point {

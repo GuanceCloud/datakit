@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	statsv1alpha1 "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	v1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -20,17 +21,23 @@ type nodeCapacity struct {
 	memCapacity           int64 // unit Bytes
 }
 
-// getMemoryCapacityFromNode return memory capacity for node.
-func getCapacityFromNode(ctx context.Context, client k8sClient, nodeName string) (capacity nodeCapacity) {
-	node, err := client.GetNodes().Get(ctx, nodeName, metav1.GetOptions{ResourceVersion: "0"})
-	if err != nil {
+func getCapacityFromNode(c *resourceCache, nodeName string) (capacity nodeCapacity) {
+	if !c.synced("node") {
+		return
+	}
+	item, exists, err := c.resources["node"].GetStore().GetByKey(nodeName)
+	if err != nil || !exists {
+		return
+	}
+	node, ok := item.(*corev1.Node)
+	if !ok {
 		return
 	}
 
 	capacity.nodeName = nodeName
 
-	c := node.Status.Capacity["cpu"]
-	capacity.cpuCapacityMillicores = c.MilliValue()
+	cpu := node.Status.Capacity["cpu"]
+	capacity.cpuCapacityMillicores = cpu.MilliValue()
 
 	m := node.Status.Capacity["memory"]
 	capacity.memCapacity, _ = m.AsInt64()

@@ -14,3 +14,9 @@
 | datakit_election_status       | gauge | Datakit election status, if metric = 0, meas not elected, or the elected time(unix timestamp second) | elected_id,id,namespace,status |
 | datakit_election_inputs       | gauge | Datakit election input count                                                                         | namespace                      |
 | datakit_election              | gauge | Election latency(in millisecond)                                                                     | namespace,status               |
+| datakit_election_provider_info | gauge | Selected election provider for the process                                                          | provider,namespace             |
+| datakit_election_last_success_timestamp_seconds | gauge | Last successful leader response time                                                   | provider,namespace             |
+| datakit_election_lease_remaining_seconds | gauge | Time remaining before the local safe lease deadline                                         | provider,namespace             |
+| datakit_election_epoch        | gauge | Last epoch observed from the selected provider                                                       | provider,namespace             |
+| datakit_election_request_errors_total | count | Election request failures grouped by a bounded reason                                          | provider,namespace,operation,reason |
+| datakit_election_transitions_total | count | Leader lifecycle transitions grouped by a bounded reason                                         | provider,namespace,from,to,reason |

@@ -273,6 +273,7 @@ xpack
 xfsquota
 zabbix
 zhangsan
+zstd
 Proto
 proto
 hprof

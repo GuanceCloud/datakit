@@ -1,0 +1,23 @@
+x = {"a":1, "b":2, "c":3, "d":4}
+key = "a"
+v0 = x[key]
+v1 = x[key]
+v2 = x[key]
+v3 = x[key]
+v4 = x[key]
+v5 = x[key]
+v6 = x[key]
+v7 = x[key]
+v8 = x[key]
+v9 = x[key]
+v10 = x[key]
+v11 = x[key]
+v12 = x[key]
+v13 = x[key]
+v14 = x[key]
+v15 = x[key]
+v16 = x[key]
+v17 = x[key]
+v18 = x[key]
+v19 = x[key]
+add_key(ok, v19 == 1)

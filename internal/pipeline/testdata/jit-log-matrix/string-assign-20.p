@@ -1,0 +1,22 @@
+s0 = seed
+s1 = s0
+s2 = s1
+s3 = s2
+s4 = s3
+s5 = s4
+s6 = s5
+s7 = s6
+s8 = s7
+s9 = s8
+s10 = s9
+s11 = s10
+s12 = s11
+s13 = s12
+s14 = s13
+s15 = s14
+s16 = s15
+s17 = s16
+s18 = s17
+s19 = s18
+s20 = s19
+add_key(ok, s20 == seed)

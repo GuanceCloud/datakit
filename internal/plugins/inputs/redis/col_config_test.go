@@ -359,3 +359,54 @@ func Test_setCurrentNodeHostTag(t *T.T) {
 		assert.Equal(t, "127.0.0.1:6379", inst.mergedTags["server"])
 	})
 }
+
+func Test_serverTagOverride(t *T.T) {
+	cases := []struct {
+		name        string
+		tags        map[string]string
+		cluster     *redisCluster
+		masterSlave *redisMasterSlave
+	}{
+		{name: "standalone-default"},
+		{name: "standalone-custom", tags: map[string]string{"server": "redis.example:6379"}},
+		{name: "standalone-empty", tags: map[string]string{"server": ""}},
+		{name: "cluster", cluster: &redisCluster{}, tags: map[string]string{"server": "custom"}},
+		{name: "master-slave", masterSlave: &redisMasterSlave{}, tags: map[string]string{"server": "custom"}},
+		{
+			name:        "sentinel",
+			masterSlave: &redisMasterSlave{Sentinel: &redisSentinel{}},
+			tags:        map[string]string{"server": "custom"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *T.T) {
+			inst := newInstance()
+			inst.ipt = defaultInput()
+			inst.ipt.Tags, inst.ipt.Cluster, inst.ipt.MasterSlave = tc.tags, tc.cluster, tc.masterSlave
+			inst.host, inst.addr = "127.0.0.1", "127.0.0.1:16379"
+			inst.setup()
+
+			addresses := []string{inst.addr}
+			if tc.cluster != nil || tc.masterSlave != nil {
+				addresses = append(addresses, "127.0.0.1:16380")
+			}
+			for _, addr := range addresses {
+				// Replicated nodes can also report standalone in INFO.
+				inst.infoReservedTags("redis_mode", "standalone")
+				inst.setCurrentNode(nil, nil, inst.host, addr)
+				want := addr
+				if len(addresses) == 1 {
+					if server, ok := tc.tags["server"]; ok {
+						want = server
+					}
+				}
+				assert.Equal(t, want, inst.mergedTags["server"])
+				tags := inst.buildNodeTags(addr, inst.host)
+				pts := inst.parseConfigAll(map[string]string{"maxclients": "10000"}, tags, time.Unix(1700000000, 0))
+				if assert.Len(t, pts, 1) {
+					assert.Equal(t, want, pts[0].GetTag("server"))
+				}
+			}
+		})
+	}
+}

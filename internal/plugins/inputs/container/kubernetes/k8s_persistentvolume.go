@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
 )
 
 const (
@@ -30,38 +29,21 @@ func init() {
 }
 
 type persistentvolume struct {
-	client k8sClient
-	cfg    *Config
+	cfg *Config
 }
 
-func newPersistentvolume(client k8sClient, cfg *Config) resource {
-	return &persistentvolume{client: client, cfg: cfg}
+func newPersistentvolume(_ k8sClient, cfg *Config) resource {
+	return &persistentvolume{cfg: cfg}
 }
 
-func (p *persistentvolume) gatherMetric(ctx context.Context, timestamp int64) {
-	// nil
-}
+func (*persistentvolume) gatherMetric(_ context.Context, _ int64) { /* nil */ }
 
 func (p *persistentvolume) gatherObject(ctx context.Context) {
-	var continued string
-	for {
-		list, err := p.client.GetPersistentVolumes().List(ctx, newListOptions(emptyFieldSelector, continued))
-		if err != nil {
-			klog.Warn(err)
-			break
-		}
-		continued = list.Continue
-
-		pts := p.buildObjectPoints(list)
+	cachedBatches[apicorev1.PersistentVolume](ctx, p.cfg, "persistentvolume", func(items []apicorev1.PersistentVolume) {
+		pts := p.buildObjectPoints(&apicorev1.PersistentVolumeList{Items: items})
 		feedObject("k8s-persistentvolume-object", p.cfg.Feeder, pts, true)
-
-		if continued == "" {
-			break
-		}
-	}
+	})
 }
-
-func (*persistentvolume) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeList) []*point.Point {
 	var pts []*point.Point

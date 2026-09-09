@@ -358,6 +358,13 @@ func (c *Config) SetCommandLineMode(on bool) {
 }
 
 func (c *Config) ApplyMainConfig() error {
+	if c.Election == nil {
+		return fmt.Errorf("election config is empty")
+	}
+	if err := c.Election.Normalize(); err != nil {
+		return fmt.Errorf("invalid election Operator URL: %w", err)
+	}
+
 	c.setLogging()
 
 	l = logger.SLogger("config")

@@ -89,7 +89,11 @@ func redisRoleStatus(role string) int64 {
 
 // supplementInfoFromConfigCache supplements missing fields in INFO from CONFIG cache.
 func (i *instance) supplementInfoFromConfigCache(kvs point.KVs) point.KVs {
-	nodeAddr := i.mergedTags["server"]
+	// CONFIG caches use connection addresses, not the configurable server tag.
+	nodeAddr := i.addr
+	if i.curRepplica != nil {
+		nodeAddr = i.curRepplica.addr
+	}
 	if nodeAddr == "" || i.infoConfigCache == nil {
 		return kvs
 	}

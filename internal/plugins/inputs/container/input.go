@@ -8,9 +8,10 @@ package container
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
+
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
@@ -78,12 +79,13 @@ type Input struct {
 	Tags map[string]string `toml:"tags"`
 	DeprecatedConf
 
-	Feeder  dkio.Feeder
-	Tagger  datakit.GlobalTagger
-	chPause chan bool
-	leader  *leaderGate
+	Feeder     dkio.Feeder
+	Tagger     datakit.GlobalTagger
+	leader     *leaderGate
+	leaderOnce sync.Once
 
-	localNodeName string
+	localNodeName    string
+	localPodInformer cache.SharedIndexInformer
 }
 
 func (*Input) SampleConfig() string              { return sampleCfg }
@@ -205,9 +207,6 @@ func (ipt *Input) setup() error {
 
 	electionEnabled := config.Cfg != nil && config.Cfg.Election != nil && config.Cfg.Election.Enable
 	ipt.leaderGate().ConfigureElection(electionEnabled)
-	if !electionEnabled {
-		ipt.trySendPause(false)
-	}
 
 	return nil
 }
@@ -218,43 +217,21 @@ func (ipt *Input) Terminate() {
 
 func (ipt *Input) Pause() error {
 	ipt.leaderGate().Pause()
-	tick := time.NewTicker(time.Second * 3)
-	defer tick.Stop()
-	select {
-	case ipt.chPause <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	return nil
 }
 
 func (ipt *Input) Resume() error {
 	ipt.leaderGate().Resume()
-	tick := time.NewTicker(time.Second * 3)
-	defer tick.Stop()
-	select {
-	case ipt.chPause <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	return nil
 }
 
 func (ipt *Input) leaderGate() *leaderGate {
-	if ipt.leader == nil {
-		ipt.leader = newLeaderGate()
-	}
+	ipt.leaderOnce.Do(func() {
+		if ipt.leader == nil {
+			ipt.leader = newLeaderGate()
+		}
+	})
 	return ipt.leader
-}
-
-func (ipt *Input) trySendPause(paused bool) {
-	if ipt.chPause == nil {
-		return
-	}
-	select {
-	case ipt.chPause <- paused:
-	default:
-	}
 }
 
 func newInput() *Input {
@@ -277,7 +254,6 @@ func newInput() *Input {
 		GCPCloudLoggingOverlap:    2 * time.Minute,
 		Feeder:                    dkio.DefaultFeeder(),
 		Tagger:                    datakit.DefaultGlobalTagger(),
-		chPause:                   make(chan bool, 8),
 		leader:                    newLeaderGate(),
 	}
 }

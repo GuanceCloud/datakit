@@ -490,7 +490,8 @@ Operating environment requirements:
 
 - Linux system
     - CPU architecture: x86_64 or arm64
-    - C standard library: glibc 2.4 and above, or musl
+    - The standard DataKit package is statically built and supports glibc 2.4 or later and musl
+    - Pipeline JIT acceleration requires Linux amd64/arm64 with glibc
     - Java 8 and above
     - Python 3.7 and above
     - PHP 7 and above
