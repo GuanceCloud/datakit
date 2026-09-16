@@ -42,8 +42,8 @@ var (
 		`linux/arm64`,
 
 		// Darwin
-		// NOTE: currently we apply amd64 arch for arm64 on Mac M1
 		`darwin/amd64`,
+		`darwin/arm64`,
 
 		// Windows
 		`windows/amd64`,

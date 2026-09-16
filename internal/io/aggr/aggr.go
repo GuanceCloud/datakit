@@ -57,7 +57,9 @@ type ProcessResult struct {
 	BatchPackages int
 	// TailSamplingPackages is the count of tail-sampling packages selected.
 	TailSamplingPackages int
-	Consumed             bool
+	// TailSamplingPoints is the count of points in selected tail-sampling packages.
+	TailSamplingPoints int
+	Consumed           bool
 }
 
 func (ag *Aggregator) StartAggr() {
@@ -206,7 +208,8 @@ func (ag *Aggregator) Process(cat point.Category, input string, pts []*point.Poi
 		}
 
 		packages := ag.pickTraceWithConfig(input, pts, snapshot.tailSamplingConfig)
-		res.SelectedPoints += countTailSamplingPoints(packages)
+		res.TailSamplingPoints = countTailSamplingPoints(packages)
+		res.SelectedPoints += res.TailSamplingPoints
 		res.TailSamplingPackages = countTailSamplingPackages(packages)
 		if err := ag.SendTailSamplingPackages(packages); err != nil {
 			log.Errorf("process tracing points failed: %v", err)
@@ -223,11 +226,12 @@ func (ag *Aggregator) Process(cat point.Category, input string, pts []*point.Poi
 		}
 
 		packages, passedThrough := ag.pickLoggingWithConfig(input, pts, snapshot.tailSamplingConfig)
-		res.SelectedPoints += countTailSamplingPoints(packages)
+		res.TailSamplingPoints = countTailSamplingPoints(packages)
+		res.SelectedPoints += res.TailSamplingPoints
 		res.TailSamplingPackages = countTailSamplingPackages(packages)
 		if err := ag.SendTailSamplingPackages(packages); err != nil {
 			log.Errorf("process logging points failed: %v", err)
-			return nil, err
+			return res, err
 		}
 		log.Debugf("process logging points done: input=%s pts=%d packages=%d passthrough=%d", input, len(pts), len(packages), len(passedThrough))
 		res.Points = passedThrough
@@ -239,11 +243,12 @@ func (ag *Aggregator) Process(cat point.Category, input string, pts []*point.Poi
 		}
 
 		packages, passedThrough := ag.pickRUMWithConfig(input, pts, snapshot.tailSamplingConfig)
-		res.SelectedPoints += countTailSamplingPoints(packages)
+		res.TailSamplingPoints = countTailSamplingPoints(packages)
+		res.SelectedPoints += res.TailSamplingPoints
 		res.TailSamplingPackages = countTailSamplingPackages(packages)
 		if err := ag.SendTailSamplingPackages(packages); err != nil {
 			log.Errorf("process rum points failed: %v", err)
-			return nil, err
+			return res, err
 		}
 		log.Debugf("process rum points done: input=%s pts=%d packages=%d passthrough=%d", input, len(pts), len(packages), len(passedThrough))
 		res.Points = passedThrough

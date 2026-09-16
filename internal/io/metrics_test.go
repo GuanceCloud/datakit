@@ -147,3 +147,26 @@ func TestAggrProcessCostMetric(t *T.T) {
 		MetricsReset()
 	})
 }
+
+func TestTailSamplingFallbackMetrics(t *T.T) {
+	MetricsReset()
+	t.Cleanup(MetricsReset)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(Metrics()...)
+
+	recordTailSamplingFallback("ddtrace", point.Tracing.String(), 2, 7)
+
+	mfs, err := reg.Gather()
+	require.NoError(t, err)
+
+	packages := metrics.GetMetricOnLabels(mfs,
+		"datakit_io_aggr_tail_sampling_fallback_package_total", point.Tracing.String(), "ddtrace")
+	require.NotNil(t, packages)
+	assert.Equal(t, float64(2), packages.GetCounter().GetValue())
+
+	points := metrics.GetMetricOnLabels(mfs,
+		"datakit_io_aggr_tail_sampling_fallback_point_total", point.Tracing.String(), "ddtrace")
+	require.NotNil(t, points)
+	assert.Equal(t, float64(7), points.GetCounter().GetValue())
+}

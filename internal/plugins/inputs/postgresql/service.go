@@ -262,6 +262,13 @@ func (c *pgxConn) Exec(ctx context.Context, sql string, args ...any) error {
 	return err
 }
 
+// ExecExtended enforces a single statement even without bound parameters.
+// pgx.Exec falls back to the simple protocol when there are no arguments.
+func (c *pgxConn) ExecExtended(ctx context.Context, sql string) error {
+	_, err := c.Conn.Conn().PgConn().ExecParams(ctx, sql, nil, nil, nil, nil).Close()
+	return err
+}
+
 func (c *pgxConn) Close() {
 	if c.Conn == nil {
 		return

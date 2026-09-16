@@ -19,6 +19,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 
@@ -452,11 +453,12 @@ func GetContentType(req *http.Request) string {
 }
 
 type TraceParameters struct {
-	URLPath  string
-	Media    string
-	Encode   string
-	RemoteIP string
-	Body     *bytes.Buffer
+	URLPath    string
+	Media      string
+	Encode     string
+	RemoteIP   string
+	ObservedAt time.Time
+	Body       *bytes.Buffer
 }
 
 func GetClass(code string) string {

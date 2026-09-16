@@ -17,7 +17,7 @@ Minimum OS requirements for `2.x`:
 
 - Linux: kernel >= `3.2`
 - Windows: `Windows 10` / `Windows Server 2016` or newer
-- macOS: `macOS 12` or newer
+- macOS: `macOS 12` or newer, on Intel (amd64) or Apple Silicon (arm64)
 
 `2.x` and `1.x` use separate install sources. Use `datakit-v2` (recommended):
 
@@ -40,20 +40,14 @@ Log in to the workspace, click "Integration" on the left and select "DataKit" at
 
 > Note that the following Linux/Mac/Windows installer can automatically identify the hardware platform (arm/x86, 32bit/64bit) without making a hardware platform selection.
 
+On macOS, the installation script selects the native arm64 package on Apple Silicon, including when run from a Rosetta terminal, and the amd64 package on Intel Macs.
+
 === "Linux/macOS"
 
-    The installation command supports `bash` and `ash`([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)), and the command is roughly as follows:
+    The current 2.x installation script requires Bash. Make sure `bash` is installed:
 
-    - `bash`
-    
     ```shell
 {{ InstallCmd 4 (.WithPlatform "unix") }}
-    ```
-
-    - `ash`
-
-    ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithShell "ash") }}
     ```
 
     After the installation is completed, you will see a prompt that the installation is successful at the terminal.
@@ -134,16 +128,16 @@ DataKit ELinker only contains collectors as below:
 
 ### Install Specific Version {#version-install}
 
-We can install specific DataKit version, for example 1.2.3:
+You can install a specific DataKit version, for example 2.12.0:
 
 ```shell
-{{ InstallCmd 0 (.WithPlatform "unix") (.WithVersion "-1.2.3") }}
+{{ InstallCmd 0 (.WithPlatform "unix") (.WithVersion "-2.12.0") }}
 ```
 
 And the same as Windows:
 
 ```powershell
-{{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
+{{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-2.12.0") }}
 ```
 
 ## Extra Environments {#extra-envs}
@@ -153,15 +147,14 @@ If you need to define some DataKit configuration during the installation phase, 
 === "Linux/macOS"
 
     ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_NAMESPACE" "[NAMESPACE]" ) }}
     ```
 
 === "Windows"
 
     ```powershell
-{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_NAMESPACE" "[NAMESPACE]" ) }}
     ```
----
 
 The setting format of the two environment variables is:
 
@@ -177,7 +170,7 @@ The environment variables supported by the installation script are as follows (s
 
 ???+ note
 
-    These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#with-datakit) and [setting local installation address](datakit-offline-install.md#with-nginx).
+    These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#install-via-proxy) and [setting local installation address](datakit-offline-install.md#offline-advanced).
 
 ### Most Commonly Used Environment Variables {#common-envs}
 
@@ -401,7 +394,7 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 ???+ note "Notes"
 
-    Since [:octicons-tag-24: Version-1.95.0](changelog-2026.md#cl-1.95.0), DataKit Sinker headers apply as follows:
+    Since [:octicons-tag-24: Version-2.0.0](changelog-2026.md#cl-2.0.0), DataKit Sinker headers apply as follows:
 
     - Only point upload requests (`/v1/write/*`) carry Dataway Sinker headers.
     - Profiling upload (`/v1/upload/profiling`) and RUM replay (`/v1/write/rum/replay`) keep their explicit `X-Global-Tags` behavior.

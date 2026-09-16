@@ -34,6 +34,9 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "ApmtelemetryRouteEnable", Type: doc.Boolean, Default: `true`, Desc: "Enable route `/telemetry/proxy/api/v2/apmtelemetry` and collect JVM metadata.", DescZh: "开启路由 `/telemetry/proxy/api/v2/apmtelemetry` 并接收 JVM 数据"},
 		{FieldName: "TracingMetricTagBlacklist", Type: doc.JSON, Example: "`'[\"tag_a\", \"tag_b\"]'`", Desc: "Blacklist of tags in the metric: \"tracing_metrics\"", DescZh: "指标集 tracing_metrics 中标签的黑名单"},
 		{FieldName: "TracingMetricTagWhitelist", Type: doc.JSON, Example: "`'[\"tag_c\", \"tag_d\"]'`", Desc: "Whitelist of tags in the metric: \"tracing_metrics\"", DescZh: "指标集 tracing_metrics 中标签的白名单"},
+		{FieldName: "TracingMetricQPSEnable", ENVName: "TRACING_METRIC_QPS_ENABLE", Type: doc.Boolean, Default: `false`, Desc: "Collect one-second QPS from spans containing http.method or http.status_code.", DescZh: "从包含 http.method 或 http.status_code 的 span 采集秒级 QPS"},
+		{FieldName: "TracingMetricQPSTags", ENVName: "TRACING_METRIC_QPS_TAGS", Type: doc.JSON, Example: "`'[\"service\", \"env\", \"http_method\"]'`", Desc: "Tags used to group tracing QPS.", DescZh: "tracing QPS 的分组标签"},
+		{FieldName: "TracingMetricQPSMaxSeries", ENVName: "TRACING_METRIC_QPS_MAX_SERIES", Type: doc.Int, Default: `1000`, Desc: "Maximum QPS tag combinations per reporting window.", DescZh: "每个上报窗口中 QPS 标签组合的最大数量"},
 		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: "`'[\"404\", \"403\", \"400\"]'`", Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
 		{FieldName: "CloseResource", Type: doc.JSON, Example: "`'{\"service1\":[\"resource1\",\"other\"],\"service2\":[\"resource2\",\"other\"]}'`", Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
 		{FieldName: "Sampler", Type: doc.Float, Example: `0.3`, Desc: "Global sampling rate", DescZh: "全局采样率"},
@@ -71,6 +74,9 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_DDTRACE_TRACING_METRIC_ENABLE",
 		"ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_BLACKLIST",
 		"ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_WHITELIST",
+		"ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_ENABLE",
+		"ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_TAGS",
+		"ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_MAX_SERIES",
 		"ENV_INPUT_DDTRACE_APMTELEMETRY_ROUTE_ENABLE",
 		"ENV_INPUT_DDTRACE_SAMPLING_PRIORITY_DROP_EXCLUDES",
 	} {
@@ -91,6 +97,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.MaxTraceBodyMB = n
+			}
+		case "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_MAX_SERIES":
+			if n, err := strconv.ParseInt(value, 10, 64); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricQPSMaxSeries = int(n)
 			}
 
 		case "ENV_INPUT_DDTRACE_ENDPOINTS":
@@ -196,6 +208,19 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.TracingMetricEnable = ok
+			}
+		case "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_ENABLE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricQPSEnable = ok
+			}
+		case "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_TAGS":
+			var list []string
+			if err := json.Unmarshal([]byte(value), &list); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricQPSTags = list
 			}
 		case "ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_BLACKLIST":
 			var list []string

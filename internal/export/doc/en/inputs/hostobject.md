@@ -194,7 +194,7 @@ The basic structure of the `message` field is as follows:
 
 ???+ attention
 
-    `conntrack` 仅 Linux 平台支持
+    `conntrack` is supported only on Linux.
 
 <!-- markdownlint-enable MD046 -->
 

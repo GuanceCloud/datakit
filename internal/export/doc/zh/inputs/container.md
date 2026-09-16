@@ -88,7 +88,7 @@ monitor:
 
     Cloud API 采集容器指标、对象和日志的功能需要 DataKit 2.3.0 及以上版本。
 
-GKE Autopilot 不允许挂载容器运行时 socket 和宿主机目录，需要使用 `datakit-gke-autopilot` Chart 以 Deployment 方式部署，通过 Cloud API 采集数据。安装配置和采集能力详见 [GCP GKE Autopilot 集成](../datakit/gcp-gke-autopilot.md)。
+Cloud API 模式使用 `datakit-gke-autopilot` Chart 以 Deployment 方式采集，安装步骤见 [Cloud API 部署](../datakit/gcp-gke-autopilot.md#cloud-api)。与节点级 Partner 模式的能力比较和部署选择，见 [GCP GKE Autopilot 部署](../datakit/gcp-gke-autopilot.md)。
 
 ### Docker 和 Containerd sock 文件配置 {#sock-config}
 

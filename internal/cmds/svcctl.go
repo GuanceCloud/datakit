@@ -42,7 +42,7 @@ func RunService(opts ServiceOptions) error {
 	switch opts.Action {
 	case ServiceActionRestart:
 		if err := RestartDatakit(); err != nil {
-			return fmt.Errorf("restart DataKit failed: %w; using command to restart: %s", err, errMsg[runtime.GOOS])
+			return fmt.Errorf("restart DataKit failed: %w; using command to restart: %s", err, serviceCommandHint(runtime.GOOS, opts.Action))
 		}
 		cp.Infof("Restart DataKit OK\n")
 		return nil
@@ -54,7 +54,7 @@ func RunService(opts ServiceOptions) error {
 		return nil
 	case ServiceActionStart:
 		if err := startDatakit(); err != nil {
-			return fmt.Errorf("start DataKit failed: %w; using command to stop : %s", err, errMsg[runtime.GOOS])
+			return fmt.Errorf("start DataKit failed: %w; using command to start: %s", err, serviceCommandHint(runtime.GOOS, opts.Action))
 		}
 		cp.Infof("Start DataKit OK\n")
 		return nil
@@ -73,6 +73,24 @@ func RunService(opts ServiceOptions) error {
 		return nil
 	default:
 		return fmt.Errorf("unknown service action: %s", opts.Action)
+	}
+}
+
+func serviceCommandHint(goos string, action ServiceAction) string {
+	switch goos {
+	case datakit.OSWindows:
+		if action == ServiceActionRestart {
+			return "Restart-Service -Name datakit"
+		}
+		return "Start-Service -Name datakit"
+	case datakit.OSDarwin:
+		const start = "sudo launchctl load -w /Library/LaunchDaemons/com.datakit.plist"
+		if action == ServiceActionRestart {
+			return "sudo launchctl unload -w /Library/LaunchDaemons/com.datakit.plist && " + start
+		}
+		return start
+	default:
+		return "systemctl " + string(action) + " datakit"
 	}
 }
 
@@ -109,13 +127,18 @@ func stopDatakit() error {
 		return err
 	}
 
-	status, err := svc.Status()
-	if err != nil {
-		return err
-	}
+	return stopService(svc)
+}
 
-	if status == service.StatusStopped {
-		return nil
+func stopService(svc service.Service) error {
+	if svc.Platform() != "linux-systemd" {
+		status, err := svc.Status()
+		if err != nil {
+			return err
+		}
+		if status == service.StatusStopped {
+			return nil
+		}
 	}
 
 	l.Info("stoping datakit...")
@@ -123,7 +146,7 @@ func stopDatakit() error {
 	errChan := make(chan error, 1)
 
 	g.Go(func(ctx context.Context) error {
-		errChan <- service.Control(svc, "stop")
+		errChan <- svc.Stop()
 		return nil
 	})
 
@@ -149,6 +172,16 @@ func startDatakit() error {
 		return err
 	}
 
+	return startService(svc)
+}
+
+func startService(svc service.Service) error {
+	// systemd can start failed units. The service library reports that state as
+	// an error, so a Status preflight would prevent recovery before Start runs.
+	if svc.Platform() == "linux-systemd" {
+		return svc.Start()
+	}
+
 	status, err := svc.Status()
 	if err != nil {
 		return err
@@ -163,7 +196,7 @@ func startDatakit() error {
 		l.Warnf("install service failed: %s, ignored", err)
 	}
 
-	if err := service.Control(svc, "start"); err != nil {
+	if err := svc.Start(); err != nil {
 		return err
 	}
 
@@ -176,15 +209,29 @@ func RestartDatakit() error {
 		return cmd.Run()
 	}
 
-	if err := stopDatakit(); err != nil {
+	if err := isRoot(); err != nil {
+		return err
+	}
+	svc, err := dkservice.NewService()
+	if err != nil {
 		return err
 	}
 
-	if err := startDatakit(); err != nil {
+	return restartService(svc)
+}
+
+func restartService(svc service.Service) error {
+	// Let systemd manage the restart job and its configured stop timeout,
+	// including recovery from a unit that is already in the failed state.
+	if svc.Platform() == "linux-systemd" {
+		return svc.Restart()
+	}
+
+	if err := stopService(svc); err != nil {
 		return err
 	}
 
-	return nil
+	return startService(svc)
 }
 
 func uninstallDatakit() error {

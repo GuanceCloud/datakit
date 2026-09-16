@@ -90,7 +90,7 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 
     Collecting container metrics, objects, and logs through Cloud APIs requires DataKit 2.3.0 or later.
 
-GKE Autopilot does not allow mounting the container runtime socket and host directories. Use the `datakit-gke-autopilot` chart, which deploys DataKit as a Deployment and collects data through Cloud APIs. See [GCP GKE Autopilot Integration](../datakit/gcp-gke-autopilot.md) for installation, configuration, and capabilities.
+Cloud API mode uses the `datakit-gke-autopilot` chart to run a Deployment; see [Cloud API deployment](../datakit/gcp-gke-autopilot.md#cloud-api) for installation. To compare it with node-level Partner collection and choose a mode, see the [GCP GKE Autopilot deployment guide](../datakit/gcp-gke-autopilot.md).
 
 ### Docker and Containerd Sock File Configuration {#sock-config}
 

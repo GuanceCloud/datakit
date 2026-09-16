@@ -138,6 +138,21 @@ This section configures the **DataKit receiver**. Configure the SDK's destinatio
 
 The DataKit self-monitoring metrics `datakit_input_ddtrace_sampling_priority_trace_total` and `datakit_input_ddtrace_sampling_priority_span_total` record these decisions with `priority`, `action` (`drop` or `bypass`), and `service` labels. They prove how much data DataKit received and then dropped or bypassed, but cannot prove that a priority=0 value originated from W3C `traceparent`.
 
+### HTTP QPS {#qps}
+
+Enable the following options in the existing `[[inputs.ddtrace]]` configuration to report the `qps` field in the `tracing_metrics` measurement with `source=ddtrace`. This feature is disabled by default and is independent of `tracing_metric_enable`:
+
+```toml
+tracing_metric_qps_enable = true
+tracing_metric_qps_tags = ["service", "env", "version", "span_kind", "http_method", "http_status_code"]
+tracing_metric_qps_max_series = 1000
+```
+
+- Counts HTTP spans received by DataKit when either `http.method` or `http.status_code` is nonempty, including the corresponding underscore field names. Both client and server spans count, without an entry-span restriction, so this is not a count of unique business requests.
+- Counts before DataKit truncates traces, samples them, or drops them based on `sampling_priority`. Spans that the application never sends cannot be counted.
+- Groups spans by second and reports in batches every 60 seconds. Each point's `qps` is the span count for that second; empty seconds do not produce zero-valued points. Buckets normally use receive time, or consumption time when local storage is enabled, rather than span start time. SDK batching or storage backlogs can concentrate counts in particular seconds.
+- `tracing_metric_qps_tags` controls grouping. Once `tracing_metric_qps_max_series` is reached, new tag combinations are merged into a series with `qps_overflow=true`. Avoid high-cardinality tags such as URLs and user IDs.
+
 ### Notes on Multi-Tool Trace Propagation {#trace_propagator}
 
 A traditional DDTrace Trace ID is a 64-bit integer, whereas W3C `tracecontext` uses a 128-bit, 32-character hexadecimal Trace ID. DDTrace places the upper 64 bits in `_dd.p.tid`; DataKit uses that field to reconstruct the full 128-bit ID.

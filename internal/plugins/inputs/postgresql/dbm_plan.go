@@ -218,9 +218,10 @@ func (ipt *Input) runExplain(datname, statement, obfuscatedStatement string) (st
 		}
 	}
 
-	query := fmt.Sprintf("SELECT %s($stmt$%s$stmt$)", "datakit.explain_statement", statement)
+	// Bind sampled SQL so its contents cannot terminate an outer SQL string literal.
+	query := "SELECT datakit.explain_statement($1)"
 	var explainResult string
-	rows, err = conn.Query(ctx, query)
+	rows, err = conn.Query(ctx, query, statement)
 	if err != nil {
 		return "", fmt.Errorf("query failed: %w", err)
 	}

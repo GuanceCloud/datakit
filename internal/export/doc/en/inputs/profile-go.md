@@ -208,7 +208,7 @@ Set the collection frequency, where 1/rate events are collected. Values set to 0
 ### Field introduction {#fields-info}
 
 - `url`: net/http/pprof listening address, such as `http://localhost:6060`
-- `interval`: upload interval, 最小 10s
+- `interval`: upload interval, minimum 10s
 - `service`:  your service name
 - `env`:  your app running env
 - `version`: your app version

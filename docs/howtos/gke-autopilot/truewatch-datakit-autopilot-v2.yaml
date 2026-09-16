@@ -1,0 +1,75 @@
+# DataKit GKE Autopilot Partner allowlist v2.
+# This immutable revision generalizes DataKit configuration environment
+# variable names without changing security exemptions, capabilities, host
+# namespaces, host paths, containers, or security contexts.
+apiVersion: auto.gke.io/v1
+kind: WorkloadAllowlist
+minGKEVersion: 1.35.6-gke.1258000
+metadata:
+  name: truewatch-datakit-autopilot-v2
+  annotations:
+    # DataKit does not require exec, attach, or port-forward access.
+    autopilot.gke.io/no-connect: "true"
+# Autopilot requires this exemption for the hostPath volumes declared below.
+# It does not grant access to any host path that is not explicitly listed.
+exemptions:
+  - autogke-no-write-mode-hostpath
+matchingCriteria:
+  containers:
+    - name: datakit
+      image: pubrepo.truewatch.com/truewatch/datakit
+      env:
+        # Kubernetes and host-derived values do not use DataKit's ENV_ prefix.
+        - name: POD_NAME
+        - name: HOST_IP
+        - name: HOST_ROOT
+        # DataKit configuration variables use this scoped namespace. Values
+        # may be literals, Secret references, or ConfigMap key references.
+        - name: ^ENV_[A-Z0-9_]+$
+      # DataKit runs non-privileged and drops every Linux capability.
+      securityContext:
+        capabilities:
+          drop:
+            - ALL
+        privileged: false
+      volumeMounts:
+        # The containerd directory is mounted read-only. Socket access is
+        # required for CRI version, inventory, status, and statistics queries.
+        - mountPath: /var/run/containerd
+          name: containerd
+          readOnly: true
+        # Read-only host procfs is required for node-local container and
+        # process metadata.
+        - mountPath: /rootfs/proc
+          name: proc
+          readOnly: true
+        # Read-only Kubernetes pod logs provide container stdout and stderr.
+        - mountPath: /rootfs/var/log/pods
+          name: pod-logs
+          readOnly: true
+        # This cache is backed by container-local emptyDir storage.
+        - mountPath: /usr/local/datakit/cache
+          name: cache
+  volumes:
+    # This path exposes containerd.sock for the CRI queries described above.
+    - hostPath:
+        path: /var/run/containerd
+      name: containerd
+    # This path exposes only host procfs, not the host root filesystem.
+    - hostPath:
+        path: /proc
+      name: proc
+    # This path exposes only Kubernetes-managed pod log files.
+    - hostPath:
+        path: /var/log/pods
+      name: pod-logs
+    # A volume without hostPath matches the canonical emptyDir cache.
+    - name: cache
+# These digests support approved multi-architecture images from alternate
+# mirror repositories; the canonical repository is matched above.
+containerImageDigests:
+  - containerName: datakit
+    imageDigests:
+      - f0459853c6da20e5f17629069c2707647e21928fa01a76c11ed3bd1d94ff5a8e
+      - 40d40f6a10ee166ec621975f356031146a725ecff0ea3ca18565c8eb0b171a92
+      - 89cef4189cae258c1fff5321bd8309549b03a1264ba639952ede83f2ae44d511

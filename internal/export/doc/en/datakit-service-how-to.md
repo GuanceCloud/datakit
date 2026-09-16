@@ -4,15 +4,13 @@ After [installing DataKit](datakit-install.md), it is necessary to provide some 
 
 ## Introduction to DataKit Directories {#install-dir}
 
-DataKit currently supports three mainstream platforms: Linux, Windows, and Mac:
+DataKit 2.x supports the following platforms. For older systems, see the [version policy](datakit-install.md#major-version) and choose a compatible 1.x release:
 
 | Operating System                      | Architecture        | Installation Path                                                              |
 | ---------                             | ---                 | ------                                                                         |
-| Linux kernel version 2.6.23 or higher | amd64/386/arm/arm64 | `/usr/local/datakit`                                                           |
-| macOS version 10.13 or higher[^1]     | amd64               | `/usr/local/datakit`                                                           |
-| Windows 7, Server 2008R2 or higher    | amd64/386           | 64-bit: `C:\Program Files\datakit`<br />32-bit: `C:\Program Files(32)\datakit` |
-
-[^1]: Golang 1.18 requires macOS-amd64 version 10.13.
+| Linux kernel version 3.2 or higher    | amd64/386/arm/arm64 | `/usr/local/datakit`                                                           |
+| macOS version 12 or higher           | amd64/arm64         | `/usr/local/datakit`                                                           |
+| Windows 10, Server 2016 or higher     | amd64/386           | 64-bit: `C:\Program Files\datakit`<br />32-bit: `C:\Program Files(32)\datakit` |
 
 After the installation is complete, the DataKit directory list is roughly as follows:
 

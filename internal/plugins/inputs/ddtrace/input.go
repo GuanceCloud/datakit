@@ -107,6 +107,19 @@ const (
   ## Whitelist of metric tags: There are many labels in the metric: "tracing_metrics".
   # tracing_metric_tag_whitelist = []
 
+  ## Collect the QPS of spans that contain http.method or http.status_code.
+  ## The points use one-second buckets and are reported every 60 seconds.
+  # tracing_metric_qps_enable = false
+
+  ## Tags used to group QPS. Avoid high-cardinality tags such as http_url and user ID.
+  # tracing_metric_qps_tags = ["service", "env", "version", "span_kind", "http_method", "http_status_code"]
+
+  ## Maximum distinct QPS tag combinations kept in one reporting window.
+  ## Additional combinations are aggregated into qps_overflow=true.
+  ## If metric output remains blocked, each shard retains at most 120 second buckets.
+  ## Older data is counted by datakit_input_ddtrace_qps_dropped_spans_total.
+  # tracing_metric_qps_max_series = 1000
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -170,6 +183,9 @@ type Input struct {
 	ApmTelemetryRouteEnable      bool                         `toml:"apmtelemetry_route_enable"`    // 是否接收 api/apmtelemetry 的JVM 数据。
 	TracingMetricTagBlacklist    []string                     `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
 	TracingMetricTagWhitelist    []string                     `toml:"tracing_metric_tag_whitelist"` // 指标白名单。
+	TracingMetricQPSEnable       bool                         `toml:"tracing_metric_qps_enable"`
+	TracingMetricQPSTags         []string                     `toml:"tracing_metric_qps_tags"`
+	TracingMetricQPSMaxSeries    int                          `toml:"tracing_metric_qps_max_series"`
 	DelMessage                   bool                         `toml:"del_message"`
 	KeepRareResource             bool                         `toml:"keep_rare_resource"`
 	OmitErrStatus                []string                     `toml:"omit_err_status"`
@@ -192,6 +208,7 @@ type Input struct {
 	maxTraceBody        int64
 	customTagsX         *itrace.CustomTags
 	lambdaDeduper       *lambdaSpanDeduper
+	qpsAggregator       *qpsAggregator
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -204,7 +221,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&itrace.TraceMeasurement{Name: inputName},
 		&jvmTelemetry{},
-		&itrace.TracingMetricMeasurement{Source: "ddtrace", Name: "DDTrace"},
+		&itrace.TracingMetricMeasurement{Source: "ddtrace", Name: "DDTrace", EnableQPS: true},
 	}
 }
 
@@ -229,6 +246,9 @@ func (ipt *Input) RegHTTPHandler() {
 		labels = itrace.AddLabels(itrace.DefaultLabelNames, ipt.TracingMetricTagWhitelist)
 		labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 		initP8SMetrics(labels)
+	}
+	if ipt.TracingMetricQPSEnable {
+		ipt.qpsAggregator = newQPSAggregator(ipt.TracingMetricQPSTags, ipt.Tags, ipt.TracingMetricQPSMaxSeries)
 	}
 	ipt.customTagsX = itrace.NewCustomTags(ipt.CustomerTags, ddTags)
 	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
@@ -342,12 +362,12 @@ func (ipt *Input) RegHTTPHandler() {
 	for _, endpoint := range ipt.Endpoints {
 		switch endpoint {
 		case v1, v2, v3, v4, v5:
-			httpapi.RegHTTPHandler(http.MethodPost, endpoint,
+			httpapi.RegHTTPHandler(http.MethodPost, endpoint, markTraceReceivedAt(
 				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleDDTraces)))
-			httpapi.RegHTTPHandler(http.MethodPut, endpoint,
+					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleDDTraces))))
+			httpapi.RegHTTPHandler(http.MethodPut, endpoint, markTraceReceivedAt(
 				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleDDTraces)))
+					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleDDTraces))))
 			isReg = true
 			log.Debugf("### pattern %s registered for %s agent", endpoint, inputName)
 		default:
@@ -383,6 +403,7 @@ func (ipt *Input) normalizeSamplingPriorityDropExcludes() {
 
 func (ipt *Input) Run() {
 	ticker := time.NewTicker(time.Second * 60)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -396,7 +417,7 @@ func (ipt *Input) Run() {
 
 			return
 		case <-ticker.C:
-			if ipt.TracingMetricEnable {
+			if ipt.TracingMetricEnable || ipt.TracingMetricQPSEnable {
 				ipt.gatherMetrics()
 			}
 		}
@@ -444,20 +465,32 @@ func (ipt *Input) Terminate() {
 
 func (ipt *Input) gatherMetrics() {
 	startTime := time.Now()
-	// 发送指标
-	pts := itrace.GatherPoints(reg, ipt.Tags)
-	if len(pts) > 0 {
-		err := ipt.feeder.Feed(point.Metric, pts,
+	var pts []*point.Point
+	if ipt.TracingMetricEnable {
+		pts = itrace.GatherPoints(reg, ipt.Tags)
+	}
+	if ipt.qpsAggregator != nil {
+		pts = append(pts, ipt.qpsAggregator.Drain(startTime)...)
+	}
+
+	const maxMetricFeedBatch = 1000
+	for len(pts) > 0 {
+		batchSize := len(pts)
+		if batchSize > maxMetricFeedBatch {
+			batchSize = maxMetricFeedBatch
+		}
+		if err := ipt.feeder.Feed(point.Metric, pts[:batchSize],
 			dkio.WithSource(dkio.FeedSource(inputName, itrace.TracingMetricName)),
 			dkio.WithCollectCost(time.Since(startTime)),
-
-			dkio.WithInput(inputName))
-		if err != nil {
+			dkio.WithInput(inputName)); err != nil {
 			log.Errorf("ddtrace send metrics points error: %v", err)
+			break
 		}
+		pts = pts[batchSize:]
 	}
-	// reset
-	reset()
+	if ipt.TracingMetricEnable {
+		reset()
+	}
 }
 
 func (ipt *Input) string() string {
@@ -480,6 +513,8 @@ func defaultInput() *Input {
 		spanBase:                  10,
 		ApmTelemetryRouteEnable:   true,
 		TracingMetricTagBlacklist: []string{"resource", "operation"},
+		TracingMetricQPSTags:      defaultQPSTagNames(),
+		TracingMetricQPSMaxSeries: defaultQPSMaxSeries,
 		lambdaDeduper:             newLambdaSpanDeduper(1024),
 	}
 }

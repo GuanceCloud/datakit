@@ -9,6 +9,7 @@ tags      :
 __int_icon: 'icon/ddtrace'
 ---
 
+For Ruby Continuous Profiling setup, see [Profiling Ruby](profile-ruby.md).
 
 ## Install Dependencies {#dependence}
 

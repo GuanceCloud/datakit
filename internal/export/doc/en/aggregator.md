@@ -339,7 +339,7 @@ When tail sampling data transmission returns status code `412`, DataKit automati
 
 ## Runtime Metrics {#metrics}
 
-`Aggregator` now exposes the following Prometheus metrics (full prefix: `datakit_io_`):
+`Aggregator` exposes the following Prometheus metrics (full prefix: `datakit_io_`). The default-enabled `inputs.dk` collects them and reports them to the center in the `dk` measurement:
 
 | Metric Name | Type | Labels | Description |
 | --- | --- | --- | --- |
@@ -348,12 +348,17 @@ When tail sampling data transmission returns status code `412`, DataKit automati
 | `aggr_send_points_total` | Counter | `type`, `category` | Number of points successfully sent by Aggregator |
 | `aggr_lost_points_total` | Counter | `type`, `category`, `reason` | Number of points lost due to send failures |
 | `aggr_send_latency_seconds` | Summary | `type`, `category` | Send latency in seconds |
+| `aggr_tail_sampling_fallback_package_total` | Counter | `name`, `category` | Original tail-sampling packages rerouted to the main Dataway after a tail-sampling send failure; HTTP fragments are not counted repeatedly |
+| `aggr_tail_sampling_fallback_point_total` | Counter | `name`, `category` | Points rerouted to the main Dataway after a tail-sampling send failure; for `tracing`, this is the number of spans |
 
 Label notes:
 
 - `type`: currently includes `metric`, `tail_sampling`, `config`
-- `category`: currently mainly `unknown` on send paths (`config` for config push)
+- `category`: the actual data category, such as `tracing`, `logging`, or `rum`, for the tail-sampling fallback metrics; mainly `unknown` for the other send metrics (`config` for config push)
 - `reason`: currently includes `marshal`, `transport`, `network`, `server`, `other`
+- `name`: input source that triggered processing of the batch
+
+The fallback metrics count data when fallback is triggered, regardless of the final send result from the main Dataway. If a send failure causes the entire selected tail-sampling batch to fall back, all packages and points in that batch are counted. Normal pass-through data sent to the main Dataway is excluded from these two metrics.
 
 Troubleshooting hints:
 

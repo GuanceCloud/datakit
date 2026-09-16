@@ -1,0 +1,9 @@
+# Install this cluster-scoped synchronizer before the Partner DaemonSet.
+# GKE downloads and manages the reviewed WorkloadAllowlist v2.
+apiVersion: auto.gke.io/v1
+kind: AllowlistSynchronizer
+metadata:
+  name: truewatch-datakit
+spec:
+  allowlistPaths:
+    - TrueWatch/datakit/truewatch-datakit-autopilot-v2.yaml

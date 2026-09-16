@@ -5,7 +5,7 @@ This document describes how to install DataKit in K8s via DaemonSet.
 
 For Helm-based installation, see [Helm Installation](datakit-helm.md).
 
-GKE Autopilot requires a Deployment form that does not depend on host mounts. See [GCP GKE Autopilot Integration](gcp-gke-autopilot.md).
+To deploy DataKit on GKE Autopilot, start with the [GCP GKE Autopilot deployment guide](gcp-gke-autopilot.md), choose Partner DaemonSet or Cloud API Deployment, and follow its installation steps.
 
 ## Installation {#install}
 
@@ -500,7 +500,7 @@ The placeholder is resolved only when DataKit starts. Restart DataKit after the 
 
 ### Recorder {#env-recorder}
 
-[:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
+[:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)
 
 For more info about recorder, see [here](datakit-tools-how-to.md#record-and-replay).
 
@@ -543,7 +543,7 @@ In the regular Kubernetes DaemonSet mode, the container input and the Kubernetes
 
 #### ENV_K8s_CLUSTER_NODE_NAME {#env-rename-node}
 
-[:octicons-tag-24: Version-1.36.0](changelog.md#1.36.0)
+[:octicons-tag-24: Version-1.36.0](changelog.md#cl-1.36.0)
 
 When multiple clusters share a workspace and contain nodes with identical names, the `ENV_K8S_CLUSTER_NODE_NAME` environment variable can be used to manually customize the collected node name. During deployment, add a new configuration section **after** the `ENV_K8S_NODE_NAME` section in your `datakit.yaml` file:
 

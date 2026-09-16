@@ -74,68 +74,83 @@ func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 type TracingMetricMeasurement struct {
 	Name,
 	Source string
+	EnableQPS bool
 }
 
 func (m TracingMetricMeasurement) Info() *inputs.MeasurementInfo {
+	tags := map[string]interface{}{
+		TagService:           &inputs.TagInfo{Desc: "Service name."},
+		TagSource:            &inputs.TagInfo{Desc: fmt.Sprintf("Source, always `%s`", m.Source)},
+		TagOperation:         &inputs.TagInfo{Desc: "Span name"},
+		TagEnv:               &inputs.TagInfo{Desc: "Application environment info(if set in span)."},
+		TagSpanStatus:        &inputs.TagInfo{Desc: "Span status(`ok/error`)"},
+		TagVersion:           &inputs.TagInfo{Desc: "Application version info."},
+		FieldResource:        &inputs.TagInfo{Desc: "Application resource name."},
+		TagHost:              &inputs.TagInfo{Desc: "Hostname."},
+		TagHttpStatusCode:    &inputs.TagInfo{Desc: "HTTP response code"},
+		TagHttpStatusClass:   &inputs.TagInfo{Desc: "HTTP response code class, such as `2xx/3xx/4xx/5xx`"},
+		TagHttpMethod:        &inputs.TagInfo{Desc: "HTTP request method"},
+		TagSpanKind:          &inputs.TagInfo{Desc: "Span role, such as `server/client/internal`"},
+		TagPodName:           &inputs.TagInfo{Desc: "Pod name(if set in span)."},
+		TagPodNamespace:      &inputs.TagInfo{Desc: "Pod namespace(if set in span)."},
+		TagProject:           &inputs.TagInfo{Desc: "Project name(if set in span)."},
+		TagCollectorSourceIP: &inputs.TagInfo{Desc: "Remote agent IP."},
+	}
+	fields := map[string]interface{}{
+		"hits": &inputs.FieldInfo{
+			Type: inputs.NCount, DataType: inputs.Int,
+			Unit: inputs.NCount, Desc: "Count of spans.",
+		},
+		"hits_by_http_status": &inputs.FieldInfo{
+			Type: inputs.Gauge, DataType: inputs.Int,
+			Unit: inputs.NCount, Desc: "Represent the count of hits for a given span group by HTTP status code.",
+		},
+		"latency_bucket": &inputs.FieldInfo{
+			Type: inputs.Histogram, DataType: inputs.Int,
+			Unit: inputs.NCount,
+			Desc: "Represent the latency distribution for all services, resources, and versions across different environments and additional primary tags." +
+				" Recommended for all latency measurement use cases. Use the 'le' tag for filtering",
+		},
+		"latency_sum": &inputs.FieldInfo{
+			Type: inputs.Gauge, DataType: inputs.Int,
+			Unit: inputs.DurationUS,
+			Desc: "The total latency of all web spans, corresponding to the 'latency_count'",
+		},
+		"latency_count": &inputs.FieldInfo{
+			Type: inputs.NCount, DataType: inputs.Int,
+			Unit: inputs.NCount,
+			Desc: "The number of spans is equal to the number of web type spans.",
+		},
+		"errors": &inputs.FieldInfo{
+			Type: inputs.Gauge, DataType: inputs.Int,
+			Unit: inputs.NCount, Desc: "Represent the count of errors for spans.",
+		},
+		"errors_by_http_status": &inputs.FieldInfo{
+			Type: inputs.Gauge, DataType: inputs.Int,
+			Unit: inputs.NCount, Desc: "Represent the count of errors for a given span group by HTTP status code.",
+		},
+		"apdex": &inputs.FieldInfo{
+			Type: inputs.Gauge, DataType: inputs.Float,
+			Unit: inputs.NoUnit, Desc: "Measures the Apdex score for each web service. The currently set satisfaction threshold is 2 seconds." +
+				"The tags for this metric are fixed: `service/env/version/resource/source`. The value range is 0~1.",
+		},
+	}
+	if m.EnableQPS {
+		tags["http_direction"] = &inputs.TagInfo{Desc: "HTTP span direction derived from span_kind: inbound/outbound/unknown."}
+		tags["qps_overflow"] = &inputs.TagInfo{Desc: "Whether tag combinations exceeded the configured QPS series limit."}
+		fields["qps"] = &inputs.FieldInfo{
+			Type: inputs.Gauge, DataType: inputs.Int,
+			Unit: inputs.RequestsPerSec,
+			Desc: "Number of HTTP spans observed in a one-second bucket. An HTTP span contains http.method or http.status_code.",
+		}
+	}
+
 	return &inputs.MeasurementInfo{
 		Name:   TracingMetricName,
 		Desc:   fmt.Sprintf("Based on %s's span data, we count span count, span cost metrics", m.Name),
 		DescZh: fmt.Sprintf("基于 %s 统计得到的指标数据，它记录了所产生的 span 计数、span 耗时等指标", m.Name),
 		Cat:    point.Metric,
-		Tags: map[string]interface{}{
-			TagService:           &inputs.TagInfo{Desc: "Service name."},
-			TagSource:            &inputs.TagInfo{Desc: fmt.Sprintf("Source, always `%s`", m.Source)},
-			TagOperation:         &inputs.TagInfo{Desc: "Span name"},
-			TagEnv:               &inputs.TagInfo{Desc: "Application environment info(if set in span)."},
-			TagSpanStatus:        &inputs.TagInfo{Desc: "Span status(`ok/error`)"},
-			TagVersion:           &inputs.TagInfo{Desc: "Application version info."},
-			FieldResource:        &inputs.TagInfo{Desc: "Application resource name."},
-			TagHost:              &inputs.TagInfo{Desc: "Hostname."},
-			TagHttpStatusCode:    &inputs.TagInfo{Desc: "HTTP response code"},
-			TagHttpStatusClass:   &inputs.TagInfo{Desc: "HTTP response code class, such as `2xx/3xx/4xx/5xx`"},
-			TagPodName:           &inputs.TagInfo{Desc: "Pod name(if set in span)."},
-			TagPodNamespace:      &inputs.TagInfo{Desc: "Pod namespace(if set in span)."},
-			TagProject:           &inputs.TagInfo{Desc: "Project name(if set in span)."},
-			TagCollectorSourceIP: &inputs.TagInfo{Desc: "Remote agent IP."},
-		},
-		Fields: map[string]interface{}{
-			"hits": &inputs.FieldInfo{
-				Type: inputs.NCount, DataType: inputs.Int,
-				Unit: inputs.NCount, Desc: "Count of spans.",
-			},
-			"hits_by_http_status": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int,
-				Unit: inputs.NCount, Desc: "Represent the count of hits for a given span group by HTTP status code.",
-			},
-			"latency_bucket": &inputs.FieldInfo{
-				Type: inputs.Histogram, DataType: inputs.Int,
-				Unit: inputs.NCount,
-				Desc: "Represent the latency distribution for all services, resources, and versions across different environments and additional primary tags." +
-					" Recommended for all latency measurement use cases. Use the 'le' tag for filtering",
-			},
-			"latency_sum": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int,
-				Unit: inputs.DurationUS,
-				Desc: "The total latency of all web spans, corresponding to the 'latency_count'",
-			},
-			"latency_count": &inputs.FieldInfo{
-				Type: inputs.NCount, DataType: inputs.Int,
-				Unit: inputs.NCount,
-				Desc: "The number of spans is equal to the number of web type spans.",
-			},
-			"errors": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int,
-				Unit: inputs.NCount, Desc: "Represent the count of errors for spans.",
-			},
-			"errors_by_http_status": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int,
-				Unit: inputs.NCount, Desc: "Represent the count of errors for a given span group by HTTP status code.",
-			},
-			"apdex": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float,
-				Unit: inputs.NoUnit, Desc: "Measures the Apdex score for each web service. The currently set satisfaction threshold is 2 seconds." +
-					"The tags for this metric are fixed: `service/env/version/resource/source`. The value range is 0~1.",
-			},
-		},
+		Tags:   tags,
+		Fields: fields,
 	}
 }

@@ -171,7 +171,7 @@ func PubDatakit() error {
 
 	// Darwin release not under CI, so disable upload `version' file under darwin,
 	// only upload darwin related files.
-	if Archs != datakit.OSArchDarwinAmd64 || runtime.GOOS != datakit.OSDarwin {
+	if shouldPublishVersion(runtime.GOOS, curArchs) {
 		basics = append(basics, ossFile{"version", path.Join(DistDir, ReleaseType, "version")})
 	}
 
@@ -268,6 +268,20 @@ func PubDatakit() error {
 
 	l.Infof("Done!(elapsed: %v)", time.Since(start))
 	return nil
+}
+
+func shouldPublishVersion(goos string, archs []string) bool {
+	if goos != datakit.OSDarwin {
+		return true
+	}
+
+	for _, arch := range archs {
+		if !strings.HasPrefix(arch, datakit.OSDarwin+"/") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func ossRetryUpload(local, remote string, retry int) error {

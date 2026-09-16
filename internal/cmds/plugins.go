@@ -20,6 +20,7 @@ var ExternalInstallDir = map[string]string{
 	datakit.OSArchLinuxAmd64:  `/usr/local/`,
 	datakit.OSArchLinux386:    `/usr/local/`,
 	datakit.OSArchDarwinAmd64: `/usr/local/`,
+	datakit.OSArchDarwinArm64: `/usr/local/`,
 }
 
 type InstallOptions struct {

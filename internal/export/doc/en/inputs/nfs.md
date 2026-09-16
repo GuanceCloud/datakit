@@ -49,7 +49,7 @@ NFS metrics collector that collects the following data:
 
     Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
 
-{{ CodeBlock .InputENVSampleZh 4 }}
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable MD046 -->
 

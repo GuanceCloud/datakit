@@ -76,7 +76,8 @@ func (e *ExplainParameterizedQueries) setPlanCacheMode(ctx context.Context, conn
 //nolint:lll
 func (e *ExplainParameterizedQueries) createPreparedStatement(ctx context.Context, conn Conn, statement, obfuscatedStatement, querySignature string) error {
 	query := fmt.Sprintf(prepareStatementQuery, querySignature, statement)
-	err := conn.Exec(ctx, query)
+	// Sampled SQL must use the extended protocol so PostgreSQL rejects extra statements.
+	err := conn.ExecExtended(ctx, query)
 	if err != nil {
 		return fmt.Errorf("create prepared statement error: %w", err)
 	}
@@ -161,17 +162,13 @@ func (e *ExplainParameterizedQueries) executeQueryAndFetchRows(ctx context.Conte
 }
 
 func isParameterizedQuery(statement string) bool {
-	matches := parameterizedQueryPattern.FindAllStringIndex(statement, -1)
-	if len(matches) == 0 {
-		return false
-	}
-
-	for _, match := range matches {
+	// Check for adjacent single quotes around the entire parameter number.
+	for _, match := range parameterizedQueryPattern.FindAllStringIndex(statement, -1) {
 		start, end := match[0], match[1]
-		leftQuote := strings.LastIndex(statement[:start], "'")
-		rightQuote := strings.Index(statement[end:], "'")
-
-		if leftQuote == -1 || (rightQuote != -1 && leftQuote%2 == 0) {
+		if start > 0 && statement[start-1] == '\'' {
+			continue
+		}
+		if end == len(statement) || statement[end] != '\'' {
 			return true
 		}
 	}

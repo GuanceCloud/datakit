@@ -265,6 +265,7 @@ type Conn interface {
 	Close()
 	Query(context.Context, string, ...any) (Rows, error)
 	Exec(context.Context, string, ...any) error
+	ExecExtended(context.Context, string) error
 }
 
 type Service interface {

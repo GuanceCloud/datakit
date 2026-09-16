@@ -475,6 +475,7 @@ func (x *dkIO) doFeed(fd *feedData) error {
 	}
 
 	consumed := false
+	var tailSamplingFallbackPackages, tailSamplingFallbackPoints int
 	if x.Aggr != nil {
 		processedPts := fd.pts
 		processStart := time.Now()
@@ -482,6 +483,10 @@ func (x *dkIO) doFeed(fd *feedData) error {
 		aggrProcessCostVec.WithLabelValues(fd.input, fd.cat.String()).Observe(time.Since(processStart).Seconds())
 		if err != nil {
 			log.Warnf("aggr process err=%v", err)
+			if result != nil {
+				tailSamplingFallbackPackages = result.TailSamplingPackages
+				tailSamplingFallbackPoints = result.TailSamplingPoints
+			}
 		} else if result != nil {
 			if result.SelectedPoints > 0 {
 				aggrSelectedPtsVec.WithLabelValues(fd.input, fd.cat.String()).Add(float64(result.SelectedPoints))
@@ -532,6 +537,10 @@ func (x *dkIO) doFeed(fd *feedData) error {
 			return nil
 		}
 
+		if tailSamplingFallbackPackages > 0 || tailSamplingFallbackPoints > 0 {
+			recordTailSamplingFallback(fd.input, fd.cat.String(),
+				tailSamplingFallbackPackages, tailSamplingFallbackPoints)
+		}
 		return x.foDataway.Write(fd)
 	}
 	if consumed {

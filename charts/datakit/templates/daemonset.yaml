@@ -2,11 +2,26 @@
 {{- /* Keep this template path stable while supporting both workload kinds. */ -}}
 {{- $isDeployment := eq .Values.workload.kind "Deployment" -}}
 {{- $isDaemonSet := eq .Values.workload.kind "DaemonSet" -}}
+{{- $isAutopilotCloud := .Values.gkeAutopilot.enabled -}}
+{{- $partnerConfig := .Values.gkeAutopilotPartner | default dict -}}
+{{- $isAutopilotPartner := $partnerConfig.enabled | default false -}}
 {{- if not (or $isDeployment $isDaemonSet) -}}
 {{- fail "workload.kind must be either DaemonSet or Deployment" -}}
 {{- end -}}
-{{- if and .Values.gkeAutopilot.enabled (not $isDeployment) -}}
+{{- if and $isAutopilotCloud $isAutopilotPartner -}}
+{{- fail "gkeAutopilot.enabled and gkeAutopilotPartner.enabled are mutually exclusive" -}}
+{{- end -}}
+{{- if and $isAutopilotCloud (not $isDeployment) -}}
 {{- fail "gkeAutopilot.enabled requires workload.kind=Deployment" -}}
+{{- end -}}
+{{- if and $isAutopilotPartner (not $isDaemonSet) -}}
+{{- fail "gkeAutopilotPartner.enabled requires workload.kind=DaemonSet" -}}
+{{- end -}}
+{{- if and $isAutopilotPartner (or .Values.iploc.enable .Values.dkconfig (and .Values.git_repos.enable (ne .Values.git_repos.git_key_path "-"))) -}}
+{{- fail "GKE Autopilot Partner v2 does not support iploc, dkconfig mounts, or Git SSH key mounts; use extraEnvs for configuration" -}}
+{{- end -}}
+{{- if and $isAutopilotPartner (empty $partnerConfig.allowlistName) -}}
+{{- fail "gkeAutopilotPartner.enabled requires gkeAutopilotPartner.allowlistName" -}}
 {{- end }}
 ---
 apiVersion: apps/v1
@@ -27,22 +42,30 @@ spec:
   template:
     metadata:
       annotations:
+        {{- if $isAutopilotPartner }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | quote }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum | quote }}
+        {{- else }}
         checksum/config: {{ randAlphaNum 5 | quote }}
+        {{- end }}
       {{- with .Values.podAnnotations }}
       {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         app: {{ include "datakit.fullname" . }}
     {{- include "datakit.selectorLabels" . | nindent 8 }}
+      {{- if $isAutopilotPartner }}
+        cloud.google.com/matching-allowlist: {{ $partnerConfig.allowlistName | quote }}
+      {{- end }}
     spec:
-      {{- if .Values.gkeAutopilot.enabled }}
+      {{- if or $isAutopilotCloud $isAutopilotPartner }}
       hostNetwork: false
       dnsPolicy: ClusterFirst
       {{- else }}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       {{- end }}
-      {{- if and .Values.gkeAutopilot.enabled .Values.gkeAutopilot.runAsNonRoot }}
+      {{- if and $isAutopilotCloud .Values.gkeAutopilot.runAsNonRoot }}
       securityContext:
         runAsNonRoot: true
         runAsUser: {{ .Values.gkeAutopilot.runAsUser }}
@@ -91,7 +114,16 @@ spec:
               value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
-            {{- if not .Values.gkeAutopilot.enabled }}
+            {{- if $isAutopilotPartner }}
+            - name: HOST_ROOT
+              value: /rootfs
+            - name: ENV_INPUT_CONTAINER_ENDPOINTS
+              value: unix:///var/run/containerd/containerd.sock
+            - name: ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED
+              value: "false"
+            - name: ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL
+              value: "true"
+            {{- else if not $isAutopilotCloud }}
             - name: HOST_PROC
               value: /rootfs/proc
             - name: HOST_SYS
@@ -129,17 +161,31 @@ spec:
             - name: ENV_GIT_INTERVAL
               value: {{ .Values.git_repos.git_interval | quote  }}
             {{- end }}
-            {{- if .Values.extraEnvs }}
-            {{- range .Values.extraEnvs }}
-            {{- with . }}
-            - name : {{ .name }}
-              value : {{ .value | quote }}
-          {{- end }}
-          {{- end }}
-          {{- end }}
+            {{- with .Values.extraEnvs }}
+            {{- if $isAutopilotPartner }}
+            {{- range . }}
+            {{- if not (regexMatch "^ENV_[A-Z0-9_]+$" (.name | default "")) }}
+            {{- fail "gkeAutopilotPartner extraEnvs names must match ^ENV_[A-Z0-9_]+$" }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- range . }}
+            - name: {{ .name }}
+            {{- if and $isAutopilotPartner (hasKey . "valueFrom") }}
+              valueFrom:
+              {{- toYaml .valueFrom | nindent 16 }}
+            {{- else }}
+              value: {{ .value | quote }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if $isAutopilotPartner }}
+          name: datakit
+          {{- else }}
           name: {{ .Chart.Name }}
+          {{- end }}
           ports:
           - containerPort: {{.Values.service.port }}
             name: {{.Values.service.targetPortName }}
@@ -155,7 +201,7 @@ spec:
             protocol: TCP
           resources: {{ toYaml .Values.resources | nindent 12 }}
           {{- if .Values.componentHealthLivenessProbe }}
-          {{- if and .Values.componentHealthLivenessProbe.enabled (not .Values.gkeAutopilot.enabled) }}
+          {{- if and .Values.componentHealthLivenessProbe.enabled (not $isAutopilotCloud) }}
           livenessProbe:
             httpGet:
               path: /v1/health
@@ -167,7 +213,7 @@ spec:
             failureThreshold: {{ .Values.componentHealthLivenessProbe.failureThreshold }}
           {{- end }}
           {{- end }}
-          {{- if .Values.gkeAutopilot.enabled }}
+          {{- if or $isAutopilotCloud $isAutopilotPartner }}
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
@@ -179,7 +225,20 @@ spec:
             privileged: true
           {{- end }}
           volumeMounts:
-            {{- if .Values.gkeAutopilot.enabled }}
+            {{- if $isAutopilotPartner }}
+            - mountPath: /var/run/containerd
+              name: containerd
+              readOnly: true
+            - mountPath: /rootfs/proc
+              name: proc
+              readOnly: true
+            - mountPath: /rootfs/var/log/pods
+              name: pod-logs
+              readOnly: true
+            - mountPath: /usr/local/datakit/cache
+              name: cache
+              readOnly: false
+            {{- else if $isAutopilotCloud }}
             - mountPath: /usr/local/datakit/cache
               name: cache
               readOnly: false
@@ -215,7 +274,7 @@ spec:
           {{- end }}
           {{- end }}
           workingDir: /usr/local/datakit
-      {{- if .Values.gkeAutopilot.enabled }}
+      {{- if or $isAutopilotCloud $isAutopilotPartner }}
       hostIPC: false
       hostPID: false
       {{- else }}
@@ -240,7 +299,7 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-      {{ toYaml . | indent 6 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.image.imagePullSecrets }}
       imagePullSecrets: {{ toYaml .Values.image.imagePullSecrets | nindent 8 }}
@@ -248,7 +307,22 @@ spec:
       serviceAccount: {{ include "datakit.fullname" . }}
       serviceAccountName: {{ include "datakit.fullname" . }}
       volumes:
-        {{- if .Values.gkeAutopilot.enabled }}
+        {{- if $isAutopilotPartner }}
+        - hostPath:
+            path: /var/run/containerd
+            type: Directory
+          name: containerd
+        - hostPath:
+            path: /proc
+            type: Directory
+          name: proc
+        - hostPath:
+            path: /var/log/pods
+            type: Directory
+          name: pod-logs
+        - emptyDir: {}
+          name: cache
+        {{- else if $isAutopilotCloud }}
         - emptyDir: {}
           name: cache
         {{- else }}

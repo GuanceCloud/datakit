@@ -12,12 +12,14 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/araddon/dateparse"
 
 	"github.com/DataDog/datadog-agent/pkg/obfuscate"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
+
+// Match the TO_CHAR format used for both LAST_ACTIVE_TIME_STR and the initial cursor.
+const slowQueryTimeLayout = "2006-01-02 15:04:05"
 
 const SQLSlow = `SELECT 
 	sa.FIRST_LOAD_TIME,
@@ -242,12 +244,14 @@ func (ipt *Input) collectSlowQuery(ptsTime time.Time) {
 
 	obfuscator := obfuscate.NewObfuscator(obfuscate.Config{})
 	for _, r := range rows {
-		gotlastActiveTime, err := dateparse.ParseAny(r.LAST_ACTIVE_TIME.String)
+		// Compare database clock values on both sides. The raw driver value may
+		// include a timezone, while the cursor used by TO_DATE has none.
+		gotlastActiveTime, err := time.Parse(slowQueryTimeLayout, r.LAST_ACTIVE_TIME_STR.String)
 		if err != nil {
-			l.Warnf("parse LAST_ACTIVE_TIME(%s) failed: %s, ignored", r.LAST_ACTIVE_TIME.String, err.Error())
+			l.Warnf("parse LAST_ACTIVE_TIME_STR(%s) failed: %s, ignored", r.LAST_ACTIVE_TIME_STR.String, err.Error())
 			continue
 		}
-		savedLastActiveTime, err := dateparse.ParseAny(ipt.lastActiveTime)
+		savedLastActiveTime, err := time.Parse(slowQueryTimeLayout, ipt.lastActiveTime)
 		if err != nil {
 			l.Warnf("parse lastActiveTime(%s) failed: %s, ingored", ipt.lastActiveTime, err.Error())
 			continue
@@ -255,6 +259,9 @@ func (ipt *Input) collectSlowQuery(ptsTime time.Time) {
 		if gotlastActiveTime.After(savedLastActiveTime) {
 			ipt.lastActiveTime = r.LAST_ACTIVE_TIME_STR.String // update saved.
 		}
+		l.Debugf("slow_query_cursor: server=%s:%d sql_id=%s raw=%q db_time=%q cursor_before=%q cursor_after=%q",
+			ipt.Host, ipt.Port, r.SQL_ID.String, r.LAST_ACTIVE_TIME.String, r.LAST_ACTIVE_TIME_STR.String,
+			savedLastActiveTime.Format(slowQueryTimeLayout), ipt.lastActiveTime)
 
 		kvs := ipt.getKVs()
 

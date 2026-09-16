@@ -20,6 +20,8 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/lang"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -31,6 +33,23 @@ import (
 
 type mockFeederOutputer struct {
 	feeds []*feedData
+}
+
+func prometheusCounterValue(t *T.T, counter prometheus.Counter) float64 {
+	t.Helper()
+	metric := &dto.Metric{}
+	require.NoError(t, counter.Write(metric))
+	return metric.GetCounter().GetValue()
+}
+
+func resetTailSamplingFallbackMetrics(t *T.T) {
+	t.Helper()
+	tailSamplingFallbackPkgVec.Reset()
+	tailSamplingFallbackPtsVec.Reset()
+	t.Cleanup(func() {
+		tailSamplingFallbackPkgVec.Reset()
+		tailSamplingFallbackPtsVec.Reset()
+	})
 }
 
 func TestFeedCancellationPreservesCompletedDrop(t *T.T) {
@@ -284,6 +303,8 @@ func TestRunpl(t *T.T) {
 }
 
 func TestFeedRunsPipelineBeforeLoggingTailSampling(t *T.T) {
+	resetTailSamplingFallbackMetrics(t)
+
 	loadPipelineTestScript(t, constants.NSRemote, point.Logging,
 		"extract-trace-id.p", "add_key('trace_id', 'trace-from-pipeline')")
 
@@ -345,6 +366,10 @@ func TestFeedRunsPipelineBeforeLoggingTailSampling(t *T.T) {
 		ordinaryPoints += len(feed.pts)
 	}
 	assert.Zero(t, ordinaryPoints)
+	assert.Equal(t, float64(0), prometheusCounterValue(t,
+		tailSamplingFallbackPkgVec.WithLabelValues("logging", point.SLogging)))
+	assert.Equal(t, float64(0), prometheusCounterValue(t,
+		tailSamplingFallbackPtsVec.WithLabelValues("logging", point.SLogging)))
 }
 
 func TestFeedRunsMetricAggregationAfterPipeline(t *T.T) {
@@ -467,6 +492,8 @@ func TestFeedDoesNotTailSamplePointsDroppedByPipeline(t *T.T) {
 }
 
 func TestFeedFallsBackWithProcessedPointsWhenTailSamplingFails(t *T.T) {
+	resetTailSamplingFallbackMetrics(t)
+
 	loadPipelineTestScript(t, constants.NSConfd, point.Logging, "prepare-tail-log.p", `
 add_key("trace_id", "trace-from-pipeline")
 create_point("pipeline_metric", {"origin": "logging"}, {"value": 1}, 0, "M")
@@ -504,6 +531,11 @@ create_point("pipeline_metric", {"origin": "logging"}, {"value": 1}, 0, "M")
 	assert.Equal(t, "trace-from-pipeline", categoryPoints[point.Logging][0].Get("trace_id"))
 	require.Len(t, categoryPoints[point.Metric], 1)
 	assert.Equal(t, "pipeline_metric", categoryPoints[point.Metric][0].Name())
+
+	assert.Equal(t, float64(1), prometheusCounterValue(t,
+		tailSamplingFallbackPkgVec.WithLabelValues("logging", point.SLogging)))
+	assert.Equal(t, float64(1), prometheusCounterValue(t,
+		tailSamplingFallbackPtsVec.WithLabelValues("logging", point.SLogging)))
 }
 
 func Test_correctPointTime(t *T.T) {

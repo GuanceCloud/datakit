@@ -19,6 +19,7 @@ var (
 	proxyTelemetryBody            *p8s.SummaryVec
 	samplingPriorityTraceDecision *p8s.CounterVec
 	samplingPrioritySpanDecision  *p8s.CounterVec
+	droppedQPSSpans               *p8s.CounterVec
 )
 
 func metricsSetup() {
@@ -82,6 +83,16 @@ func metricsSetup() {
 		},
 		[]string{"priority", "action", "service"},
 	)
+
+	droppedQPSSpans = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_ddtrace",
+			Name:      "qps_dropped_spans_total",
+			Help:      "DDTrace QPS spans dropped to keep pending aggregation memory bounded",
+		},
+		[]string{"reason"},
+	)
 }
 
 // nolint: gochecknoinits
@@ -95,5 +106,6 @@ func init() {
 		proxyTelemetryBody,
 		samplingPriorityTraceDecision,
 		samplingPrioritySpanDecision,
+		droppedQPSSpans,
 	)
 }

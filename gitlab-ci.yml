@@ -1,6 +1,6 @@
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "2.12.0"
+  CI_VERSION: "2.13.0"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DCA_CI_VERSION: "0.1.9"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
@@ -34,7 +34,8 @@ before_script:
     export GO_VERSION_NORMALIZED="${DK_GO_VERSION#go}"
     export GO_DIST_TARBALL="go${GO_VERSION_NORMALIZED}.linux-${GO_DIST_ARCH}.tar.gz"
     export GO_DIST_URL="https://dl.google.com/go/${GO_DIST_TARBALL}"
-    export GO_CACHE_ROOT="/tmp/datakit-ci/go"
+    # Isolate concurrent jobs and keep Go sources outside repository-wide lint scans.
+    export GO_CACHE_ROOT="${CI_PROJECT_DIR}.go-toolchain"
     export GOROOT="${GO_CACHE_ROOT}/${GO_VERSION_NORMALIZED}"
     mkdir -p "$GO_CACHE_ROOT"
     rm -rf "$GOROOT"
@@ -88,6 +89,20 @@ ci_lint_and_ut:
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go test -c -o /tmp/winnetflow.test.exe ./internal/plugins/inputs/winnetflow # compile Windows-only collector and tests
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_IMPACTED="${UT_IMPACTED:-true}" UT_BASE_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" UT_PARALLEL="$UT_PARALLEL"
     - bash scripts/test-pipeline-jit-ci.sh
+  tags:
+    - cloudcare-ft
+
+ci_darwin_arm64_build:
+  stage: _deploy_guance
+  resource_group: production
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE =~ /^(\[Draft\]|\(Draft\)|Draft:)/
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    # Reuse release compilation, including all DataKit variants and installer/upgrader.
+    # The local target builds only; publishing stays in the testing/production jobs.
+    - env -u ROBOT_TOKEN make local LOCAL_ARCHS=darwin/arm64 DIST_DIR=dist/darwin-arm64-ci SKIP_HELM=1 BRAND=guance VERSION="$CI_VERSION-ci.$CI_COMMIT_SHORT_SHA"
   tags:
     - cloudcare-ft
 

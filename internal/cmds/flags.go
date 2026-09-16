@@ -21,15 +21,6 @@ var (
 	InputsReleaseType string
 	Lite              bool
 	ELinker           bool
-	windowsCmdErrMsg  = "Stop-Service -Name datakit"
-	darwinCmdErrMsg   = "sudo launchctl unload -w /Library/LaunchDaemons/com.datakit.plist"
-	linuxCmdErrMsg    = "systemctl stop datakit"
-
-	errMsg = map[string]string{
-		datakit.OSWindows: windowsCmdErrMsg,
-		datakit.OSLinux:   linuxCmdErrMsg,
-		datakit.OSDarwin:  darwinCmdErrMsg,
-	}
 )
 
 func tryLoadMainCfg() {

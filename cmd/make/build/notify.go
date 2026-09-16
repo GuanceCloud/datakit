@@ -160,7 +160,8 @@ func buildNotifyContent(ver, cdn, release string, archs []string) string {
 			`linux/amd64`,
 			`linux/arm`,
 			`linux/arm64`,
-			`darwin/amd64`:
+			`darwin/amd64`,
+			`darwin/arm64`:
 			platform = "unix"
 			x = append(x, "``` shell")
 

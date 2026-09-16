@@ -31,7 +31,7 @@ Already tested version:
 - [x] Oracle 12c
 - [x] Oracle 11g
 
-Starting from DataKit [1.32.0 版本](../datakit/changelog.md#cl-1.32.0), support is provided for collecting Oracle metrics using both direct collection through DataKit and via external collectors.
+Starting from DataKit [version 1.32.0](../datakit/changelog.md#cl-1.32.0), support is provided for collecting Oracle metrics using both direct collection through DataKit and via external collectors.
 
 ## Configuration {#config}
 

@@ -138,6 +138,21 @@ DataKit 的 `ddtrace` 采集器是一个 **DataDog Trace 协议接收端**：应
 
 DataKit 自身指标 `datakit_input_ddtrace_sampling_priority_trace_total` 和 `datakit_input_ddtrace_sampling_priority_span_total` 通过 `priority`、`action` (`drop`/`bypass`) 和 `service` 标签记录这一决策。它们能证明 DataKit 收到并删除或放行了多少数据，但不能证明 priority=0 的值一定来自 W3C `traceparent`。
 
+### HTTP QPS 统计 {#qps}
+
+在已有的 `[[inputs.ddtrace]]` 配置中启用以下选项，即可向 `tracing_metrics` 指标集上报 `qps` 字段（`source=ddtrace`）。该功能默认关闭，独立于 `tracing_metric_enable`：
+
+```toml
+tracing_metric_qps_enable = true
+tracing_metric_qps_tags = ["service", "env", "version", "span_kind", "http_method", "http_status_code"]
+tracing_metric_qps_max_series = 1000
+```
+
+- 统计 DataKit 收到的 HTTP span：只要 `http.method` 或 `http.status_code` 非空即计数，兼容对应的下划线字段名。客户端和服务端 span 都会计数，不限于入口 span，因此不等于去重后的业务请求数。
+- 在 DataKit 的 trace 截断、采样和 `sampling_priority` 丢弃之前计数；应用侧未上报的 span 无法统计。
+- 按秒统计，每 60 秒批量上报，每个点的 `qps` 是该秒内的 span 数量；没有数据的秒不补零。通常按接收时间分桶，启用本地缓存时按消费时间统计，不使用 span 的开始时间。SDK 批量发送或缓存积压可能使数据集中在某些秒内。
+- `tracing_metric_qps_tags` 决定分组维度。达到 `tracing_metric_qps_max_series` 限制后，新增标签组合会合并到带有 `qps_overflow=true` 的序列中。避免使用 URL、用户 ID 等高基数标签。
+
 ### 多线路工具串联注意事项 {#trace_propagator}
 
 DDTrace 传统 Trace ID 为 64 位整数；W3C `tracecontext` 使用 128 位、32 个十六进制字符的 Trace ID。DDTrace 载荷会把高 64 位放在 `_dd.p.tid` 中，DataKit 需要据此重建完整的 128 位 ID。

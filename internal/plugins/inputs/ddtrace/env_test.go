@@ -51,6 +51,9 @@ func TestReadEnv(t *testing.T) {
 				"ENV_INPUT_DDTRACE_MAX_SPANS":                       `10`,
 				"ENV_INPUT_DDTRACE_MAX_BODY_MB":                     `11`,
 				"ENV_INPUT_DDTRACE_SAMPLING_PRIORITY_DROP_EXCLUDES": `[0, -1, 0, 2]`,
+				"ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_ENABLE":       `true`,
+				"ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_TAGS":         `["service", "http_method"]`,
+				"ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_MAX_SERIES":   `123`,
 			},
 			expected: &Input{
 				Endpoints:                    []string{"/v0.3/traces", "/v0.4/traces", "/v0.5/traces"},
@@ -66,6 +69,9 @@ func TestReadEnv(t *testing.T) {
 				TraceMaxSpans:                10,
 				MaxTraceBodyMB:               11,
 				SamplingPriorityDropExcludes: []int{0, -1},
+				TracingMetricQPSEnable:       true,
+				TracingMetricQPSTags:         []string{"service", "http_method"},
+				TracingMetricQPSMaxSeries:    123,
 			},
 		},
 	}
@@ -89,4 +95,21 @@ func TestReadEnv(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestQPSEnvDocNames(t *testing.T) {
+	ipt := &Input{}
+	want := map[string]string{
+		"TracingMetricQPSEnable":    "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_ENABLE",
+		"TracingMetricQPSTags":      "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_TAGS",
+		"TracingMetricQPSMaxSeries": "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_MAX_SERIES",
+	}
+
+	for _, info := range ipt.GetENVDoc() {
+		if envName, ok := want[info.FieldName]; ok {
+			assert.Equal(t, envName, info.ENVName)
+			delete(want, info.FieldName)
+		}
+	}
+	assert.Empty(t, want)
 }

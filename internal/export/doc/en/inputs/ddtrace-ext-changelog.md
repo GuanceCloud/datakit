@@ -317,7 +317,7 @@ Historical entries preserve their release-time meaning. A newer version does not
 
 - Fix bug for Redis not has Spans.
 - Delete Info logging of Dubbo.
-- Add 4 个 JVM metric:`jvm.total_thread_count`, `jvm.peak_thread_count`, `jvm.daemon_thread_count`, `jvm.gc.code_cache.used`.
+- Add four JVM metrics: `jvm.total_thread_count`, `jvm.peak_thread_count`, `jvm.daemon_thread_count`, `jvm.gc.code_cache.used`.
 
 ## v1.17.1-ext (2023/7/11) {#cl-1.17.1-ext}
 

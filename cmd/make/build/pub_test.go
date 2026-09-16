@@ -13,6 +13,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestShouldPublishVersion(t *testing.T) {
+	cases := []struct {
+		name, goos string
+		archs      []string
+		want       bool
+	}{
+		{"mac-intel", "darwin", []string{"darwin/amd64"}, false},
+		{"mac-arm", "darwin", []string{"darwin/arm64"}, false},
+		{"mac-both", "darwin", []string{"darwin/amd64", "darwin/arm64"}, false},
+		{"mac-mixed", "darwin", []string{"darwin/amd64", "linux/arm64"}, true},
+		{"linux-ci", "linux", []string{"darwin/amd64", "darwin/arm64", "linux/amd64"}, true},
+		{"linux-cross-build", "linux", []string{"darwin/arm64"}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, shouldPublishVersion(tc.goos, tc.archs))
+		})
+	}
+}
+
 func TestAddOSSFiles(t *testing.T) {
 	cases := []struct {
 		name          string

@@ -6,15 +6,13 @@
 
 ## DataKit 目录介绍 {#install-dir}
 
-DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
+DataKit 2.x 支持以下平台；旧系统请参见[版本说明](datakit-install.md#major-version)选择兼容的 1.x 版本：
 
 | 操作系统                            | 架构                | 安装路径                                                                       |
 | ---------                           | ---:                | ------                                                                         |
-| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                           |
-| macOS 10.13 或更高版本[^1]          | amd64               | `/usr/local/datakit`                                                           |
-| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64-bit：`C:\Program Files\datakit`<br />32-bit：`C:\Program Files(32)\datakit` |
-
-[^1]: Golang 1.18 要求 macOS-amd64 版本为 10.13。
+| Linux 内核 3.2 或更高版本           | amd64/386/arm/arm64 | `/usr/local/datakit`                                                           |
+| macOS 12 或更高版本                | amd64/arm64         | `/usr/local/datakit`                                                           |
+| Windows 10, Server 2016 或更高版本  | amd64/386           | 64-bit：`C:\Program Files\datakit`<br />32-bit：`C:\Program Files(32)\datakit` |
 
 安装完成以后，DataKit 目录列表大概如下：
 

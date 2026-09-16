@@ -222,7 +222,7 @@ helm uninstall datakit -n datakit
 
 ## GKE Autopilot {#gke-autopilot}
 
-GKE Autopilot uses the separately published `datakit-gke-autopilot` chart, which installs a Deployment by default. The regular `datakit` chart installs a DaemonSet by default. For full installation steps, Workload Identity configuration, root/non-root mode, and collection capabilities, see [GCP GKE Autopilot Integration](gcp-gke-autopilot.md).
+For Partner DaemonSet and Cloud API Deployment modes, chart selection, and Helm/YAML installation, see the [GCP GKE Autopilot deployment guide](gcp-gke-autopilot.md).
 
 ```shell
 helm repo add datakit-gke https://pubrepo.truewatch.com/chartrepo/truewatch

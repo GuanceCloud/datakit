@@ -18,6 +18,11 @@ gkeAutopilot:
   runAsGroup: 10001
   fsGroup: 10001
 
+## Google-approved node agent. Load the bundled values-gke-autopilot-partner.yaml
+## to select the v2 allowlist, reviewed mounts, and TrueWatch image repository.
+gkeAutopilotPartner:
+  enabled: false
+
 #
 datakit:
   ## Datakit will send the indicator data to dataway. Please be sure to change the parameters

@@ -51,6 +51,7 @@ Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程
 - [Java](profile-java.md)
 - [Go](profile-go.md)
 - [Python](profile-python.md)
+- [Ruby](profile-ruby.md)
 - [C/C++](profile-cpp.md)
 - [NodeJS](profile-nodejs.md)
 - [.NET](profile-dotnet.md)

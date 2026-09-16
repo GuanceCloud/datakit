@@ -21,6 +21,8 @@ var (
 	aggrSelectedPtsVec,
 	aggrBatchPkgVec,
 	tailSamplingPkgVec,
+	tailSamplingFallbackPkgVec,
+	tailSamplingFallbackPtsVec,
 	inputsFilteredPtsVec *prometheus.CounterVec
 
 	feedCost,
@@ -188,6 +190,32 @@ func metricsSetup() {
 		},
 	)
 
+	tailSamplingFallbackPkgVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "aggr_tail_sampling_fallback_package_total",
+			Help:      "Tail-sampling packages rerouted to the main Dataway after aggregation send failures",
+		},
+		[]string{
+			"name",
+			"category",
+		},
+	)
+
+	tailSamplingFallbackPtsVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "aggr_tail_sampling_fallback_point_total",
+			Help:      "Tail-sampling points rerouted to the main Dataway after aggregation send failures",
+		},
+		[]string{
+			"name",
+			"category",
+		},
+	)
+
 	inputsLastFeedVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -272,6 +300,8 @@ func Metrics() []prometheus.Collector {
 		aggrSelectedPtsVec,
 		aggrBatchPkgVec,
 		tailSamplingPkgVec,
+		tailSamplingFallbackPkgVec,
+		tailSamplingFallbackPtsVec,
 		inputsLastFeedVec,
 		inputsCollectLatencyVec,
 		aggrProcessCostVec,
@@ -292,6 +322,8 @@ func MetricsReset() {
 	aggrSelectedPtsVec.Reset()
 	aggrBatchPkgVec.Reset()
 	tailSamplingPkgVec.Reset()
+	tailSamplingFallbackPkgVec.Reset()
+	tailSamplingFallbackPtsVec.Reset()
 
 	inputsCollectLatencyVec.Reset()
 	aggrProcessCostVec.Reset()
@@ -303,6 +335,15 @@ func MetricsReset() {
 	flushVec.Reset()
 	adjustPointTimeVec.Reset()
 	flushWorkersVec.Reset()
+}
+
+func recordTailSamplingFallback(input, category string, packages, points int) {
+	if packages > 0 {
+		tailSamplingFallbackPkgVec.WithLabelValues(input, category).Add(float64(packages))
+	}
+	if points > 0 {
+		tailSamplingFallbackPtsVec.WithLabelValues(input, category).Add(float64(points))
+	}
 }
 
 // A CollectorStatus used to describe a input's status.

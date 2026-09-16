@@ -1600,6 +1600,20 @@ func (ipt *Input) startStreamWatcher() {
 		})
 	}
 
+	// Cancel the HTTP request even while its response headers or SSE body are
+	// blocked. Checking Exit only between connections cannot stop a live stream.
+	exit := datakit.Exit.Wait()
+	stop := ipt.stopWaitChan()
+	g.Go(func(_ context.Context) error {
+		select {
+		case <-exit:
+		case <-stop:
+		case <-ctx.Done():
+		}
+		cancel()
+		return nil
+	})
+
 	g.Go(func(_ context.Context) error {
 		defer cleanup()
 		ipt.watchStreamLoop(ctx)

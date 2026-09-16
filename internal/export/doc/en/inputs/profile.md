@@ -43,3 +43,15 @@ At present, DataKit collects profiling data in two ways:
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable MD046 -->
+
+### Application Configuration {#app-config}
+
+Configure each application according to its programming language:
+
+- [Java](profile-java.md)
+- [Go](profile-go.md)
+- [Python](profile-python.md)
+- [Ruby](profile-ruby.md)
+- [C/C++](profile-cpp.md)
+- [NodeJS](profile-nodejs.md)
+- [.NET](profile-dotnet.md)

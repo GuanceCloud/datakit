@@ -6,10 +6,10 @@ tags:
   - 'NETWORK'
 __int_icon      : 'icon/dialtesting'
 dashboard :
-  - desc  : '暂无'
+  - desc  : 'N/A'
     path  : '-'
 monitor   :
-  - desc  : '暂无'
+  - desc  : 'N/A'
     path  : '-'
 ---
 

@@ -6,7 +6,7 @@
 
 如需通过 Helm 安装 DataKit，请参见 [Helm 安装](datakit-helm.md)。
 
-GKE Autopilot 需要使用不依赖宿主机挂载的 Deployment 形态，参见 [GCP GKE Autopilot 集成](gcp-gke-autopilot.md)。
+在 GKE Autopilot 上部署 DataKit，请从 [GCP GKE Autopilot 部署](gcp-gke-autopilot.md) 选择 Partner DaemonSet 或 Cloud API Deployment，并使用对应的安装步骤。
 
 ## 安装 {#install}
 
@@ -507,7 +507,7 @@ DataKit 启动时会根据 `ENV_K8S_NODE_NAME` 查询当前 Node，并将上述�
 
 ### 数据录制 {#env-recorder}
 
-[:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
+[:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)
 
 数据录制相关的功能，参见[这里的文档](datakit-tools-how-to.md#record-and-replay)。
 
@@ -550,7 +550,7 @@ DataKit 启动时会根据 `ENV_K8S_NODE_NAME` 查询当前 Node，并将上述�
 
 #### ENV_K8S_CLUSTER_NODE_NAME {#env-rename-node}
 
-[:octicons-tag-24: Version-1.36.0](changelog.md#1.36.0)
+[:octicons-tag-24: Version-1.36.0](changelog.md#cl-1.36.0)
 
 如果不同集群存在同名 Node，且这些集群的数据都打到**同一个工作空间**，可以通过 `ENV_K8S_CLUSTER_NODE_NAME` 来手动修改**采集到的 Node 名称**。在部署时，*datakit.yaml* 中位于 `ENV_K8S_NODE_NAME` **后面**新增一个配置段：
 

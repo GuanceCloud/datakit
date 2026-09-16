@@ -497,13 +497,21 @@ func TestIsParameterizedQuery(t *testing.T) {
 		{
 			name:      "parameter_before_quote",
 			statement: "SELECT * FROM t WHERE col = $6'",
-			expected:  true,
+			expected:  false,
 		},
 		{
 			name:      "parameter_in_comment",
 			statement: "SELECT $7 /* '$8' */",
 			expected:  true,
 		},
+		{name: "parameter_after_literal", statement: "SELECT 'abc', $1::int", expected: true},
+		{name: "quoted_multiple_digits", statement: "SELECT '$12'", expected: false},
+		{name: "single_digit_at_literal_end", statement: "SELECT 'value $1'", expected: false},
+		{name: "parameter_after_numeric_literal", statement: "SELECT 'value $200', $1::int", expected: true},
+		// Document known false positives of the adjacent-quote heuristic.
+		{name: "embedded_parameter_in_literal", statement: "SELECT 'cost $1 here'", expected: true},
+		{name: "comment_only_parameter", statement: "SELECT 1 /* $1 */", expected: true},
+		{name: "dollar_quoted_parameter", statement: "SELECT $$value $1$$", expected: true},
 	}
 
 	for _, tc := range testCases {

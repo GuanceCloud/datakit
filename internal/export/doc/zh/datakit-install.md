@@ -17,7 +17,7 @@
 
 - Linux：内核版本 >= `3.2`
 - Windows：`Windows 10` / `Windows Server 2016` 及以上
-- macOS：`macOS 12` 及以上
+- macOS：`macOS 12` 及以上，支持 Intel（amd64）和 Apple Silicon（arm64）
 
 `2.x` 和 `1.x` 使用不同的安装源，推荐使用 `datakit-v2` 路径：
 
@@ -36,20 +36,14 @@
 
 > 注意，以下 Linux/Mac/Windows 安装程序，能自动识别硬件平台（arm/x86, 32bit/64bit），无需做硬件平台选择。
 
+macOS 安装脚本在 Apple Silicon 上选择原生 arm64 安装包（包括从 Rosetta 终端执行时），在 Intel Mac 上选择 amd64 安装包。
+
 === "Linux/macOS"
 
-    安装命令支持 `bash` 和 `ash`([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)) :
-
-    - `bash`
+    当前 2.x 安装脚本使用 Bash，请先确认主机已安装 `bash`：
 
     ```shell
 {{ InstallCmd 4 (.WithPlatform "unix") }}
-    ```
-
-    - `ash`
-
-    ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithShell "ash") }}
     ```
 
     安装完成后，在终端会看到安装成功的提示。
@@ -128,16 +122,16 @@ DataKit ELinker 只包含以下采集器：
 
 ### 安装指定版本的 DataKit {#version-install}
 
-可通过在安装命令中指定版本号来安装指定版本的 DataKit，如安装 1.2.3 版本的 DataKit：
+可通过在安装命令中指定版本号来安装指定版本的 DataKit，如安装 2.12.0 版本的 DataKit：
 
 ```shell
-{{ InstallCmd 0 (.WithPlatform "unix") (.WithVersion "-1.2.3") }}
+{{ InstallCmd 0 (.WithPlatform "unix") (.WithVersion "-2.12.0") }}
 ```
 
 Windows 下同理：
 
 ```powershell
-{{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
+{{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-2.12.0") }}
 ```
 
 ## 额外支持的环境变量 {#extra-envs}
@@ -170,7 +164,7 @@ NAME1="value1" NAME2="value2"
 
 ???+ note
 
-    [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
+    [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#install-via-proxy)以及[设置本地安装地址](datakit-offline-install.md#offline-advanced)方式来设置这些环境变量。
 
 ### 最常用环境变量 {#common-envs}
 
@@ -392,7 +386,7 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 ???+ note "注意事项"
 
-    [:octicons-tag-24: Version-1.95.0](changelog-2026.md#cl-1.95.0) 起，DataKit Sinker header 作用范围如下：
+    [:octicons-tag-24: Version-2.0.0](changelog-2026.md#cl-2.0.0) 起，DataKit Sinker header 作用范围如下：
 
     - 仅 point 写入类请求（`/v1/write/*`）会添加 Dataway Sinker header。
     - Profiling 上传（`/v1/upload/profiling`）与 RUM replay（`/v1/write/rum/replay`）保留显式添加 `X-Global-Tags` 的行为。

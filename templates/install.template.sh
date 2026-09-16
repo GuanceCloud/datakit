@@ -157,8 +157,10 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 
 	os="darwin"
 
-	# NOTE: under darwin, for arm64 and amd64, both use amd64
-	arch="amd64"
+	# Rosetta reports x86_64 on Apple Silicon; select the native installer.
+	if [[ "$arch" == "amd64" ]] && [[ $(sysctl -n sysctl.proc_translated 2>/dev/null || true) == "1" ]]; then
+		arch="arm64"
+	fi
 fi
 
 printf "* Detect OS/Arch ${os}/${arch}\n"

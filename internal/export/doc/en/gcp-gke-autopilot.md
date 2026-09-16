@@ -1,132 +1,175 @@
 # GCP GKE Autopilot Integration
 ---
 
-GKE Autopilot does not allow DataKit to use the traditional DaemonSet model with host `hostPath` mounts, container runtime sockets, host log directories, or privileged containers. In GKE Autopilot, DataKit uses the separately published `datakit-gke-autopilot` Helm chart, runs as a single-replica Deployment by default, and collects container data through GCP Cloud APIs.
+Choose one collection mode, then install it using either Helm or YAML to avoid duplicate collection.
 
-The regular `datakit` chart targets standard Kubernetes environments and installs a DaemonSet by default. The `datakit-gke-autopilot` chart targets GKE Autopilot and installs a Deployment by default. Both charts use the same templates, but `datakit-gke-autopilot` has dedicated default values that disable host access and enable Cloud API collection.
+## Choose a mode {#choose-mode}
 
-## Capabilities {#capabilities}
+| Comparison | Partner | Cloud API |
+| --- | --- | --- |
+| Workload | DaemonSet, with DataKit on each node | Deployment, with one replica by default |
+| Helm chart | `datakit` with its bundled Partner values | `datakit-gke-autopilot` |
+| Container metrics | Node containerd | Cloud Monitoring |
+| Container logs | Kubernetes Pod stdout/stderr logs on each node | Cloud Logging |
+| Prerequisites | Synchronize the formal Google V2 allowlist | GCP APIs, IAM permissions, and Workload Identity |
+| YAML deployment | Render a complete manifest locally from the chart | Download the dedicated Deployment YAML |
 
-<!-- markdownlint-disable MD046 -->
-???+ note "Version Requirement"
+Both modes collect Kubernetes resources through the Kubernetes API and enable `dk,container` and election by default. Cloud API mode requires DataKit 2.3.0 or later.
 
-    Collecting container metrics, objects, and logs through Cloud APIs requires DataKit 2.3.0 or later. Earlier versions do not support GKE Autopilot mode.
-<!-- markdownlint-enable MD046 -->
+## Shared preparation {#prerequisites}
 
-`datakit-gke-autopilot` enables `dk,container` and election by default. A single leader DataKit instance collects cluster-level data, so multiple replicas do not call the same Cloud APIs repeatedly.
+- A GKE Autopilot cluster, with the local `kubectl` context pointing to it and permissions to deploy workloads and RBAC resources.
+- DataKit can reach your DataWay URL containing a valid workspace token, and nodes can pull the required images.
+- Examples use `datakit` for the namespace and resource names. Check that no other installation owns the same workloads, Services, ClusterRole, or ClusterRoleBinding.
+- Helm installations and Partner YAML rendering require Helm 3 locally. Cloud API IAM configuration requires `gcloud`.
 
-- Container metrics: collected from Cloud Monitoring and written to `docker_containers`.
-- Container stdout/stderr logs: collected from Cloud Logging.
-- Kubernetes resource metrics and objects: collected from the Kubernetes API, including Pod, Deployment, Service, and Node resources.
-- GCP authentication: uses Workload Identity and does not require a Service Account key file.
+In a new working directory, prepare these Helm user values and replace the DataWay URL and cluster name. Protect this file because it contains your token. **For Cloud API YAML installation, skip the Helm setup below and continue with [Cloud API deployment](gcp-gke-autopilot.md#cloud-api).**
 
-This mode does not support host metrics, container runtime sockets, local container file logs, or eBPF. Cloud Monitoring metrics are typically delayed by several minutes. After Pod replacement or leader changes, recent logs from Cloud Logging may be collected again. Log delivery is at least once.
+```shell
+umask 077
+cat > datakit-user-values.yaml <<'VALUES'
+datakit:
+  dataway_url: "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"
+  cluster_name_k8s: "my-autopilot-cluster"
+VALUES
+```
 
-## Prerequisites {#prerequisites}
+Add the repository, list available versions, and replace `CHART_VERSION` with your chosen chart version. Partner requires the two bundled files checked below.
 
-- A GKE Autopilot cluster that your local `kubectl` can access.
-- A DataWay URL, for example `https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>`.
-- GCP Cloud Monitoring API and Cloud Logging API are enabled.
-- A GCP Service Account with `roles/monitoring.viewer` and `roles/logging.viewer`.
-- Workload Identity binding for the Kubernetes ServiceAccount.
+```shell
+helm repo add truewatch https://pubrepo.truewatch.com/chartrepo/truewatch
+helm repo update truewatch
+helm search repo truewatch/datakit --versions
+CHART_VERSION="<released chart version>"
+```
 
-The following example uses `my-project`, the `datakit` namespace, the `my-datakit` release name, and the `datakit-cloud-monitor` GCP Service Account. Replace them with your actual values.
+## Partner deployment {#partner}
+
+**Partner V2 supports TrueWatch only and requires GKE `1.35.6-gke.1258000` or later.** Use the TrueWatch `datakit` chart and `pubrepo.truewatch.com/truewatch/datakit` image. Confirm that both have been published before deployment.
+
+Leave `image.tag` empty to use the chart's `appVersion`. After downloading the chart and synchronizing the allowlist, choose either Helm or YAML installation.
+
+### Download Partner files {#partner-download}
+
+Download the regular `datakit` chart and check its Partner files:
+
+```shell
+helm pull truewatch/datakit --version "$CHART_VERSION" --untar
+test -f datakit/values-gke-autopilot-partner.yaml
+test -f datakit/gke-autopilot-partner-allowlist.yaml
+```
+
+### Sync the V2 allowlist {#allowlist}
+
+Your account needs permission to manage AllowlistSynchronizers. The cluster must permit `gke://TrueWatch/datakit/truewatch-datakit-autopilot-v2.yaml`; GKE allows `gke://*` by default. If an administrator restricted the sources, add this path while preserving existing paths. See [Google's allowlist installation guide](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/run-autopilot-partner-workloads){:target="_blank"}.
+
+Install the synchronizer once per cluster. The commands below create a new synchronizer. If an existing synchronizer manages this path, skip `apply` and replace `truewatch-datakit` in the inspection commands with its name. **Complete synchronization before either Partner Helm or YAML installation.**
+
+```shell
+kubectl apply -f datakit/gke-autopilot-partner-allowlist.yaml
+kubectl wait --for=condition=Ready allowlistsynchronizer/truewatch-datakit --timeout=10m
+kubectl get allowlistsynchronizer truewatch-datakit -o yaml
+kubectl get workloadallowlist truewatch-datakit-autopilot-v2
+```
+
+Before installing DataKit, confirm `Ready=True`, the V2 file is `Installed` under `status.managedAllowlistStatus`, and the WorkloadAllowlist exists.
+
+### Partner Helm installation {#partner-helm}
+
+```shell
+helm upgrade --install datakit ./datakit \
+  --namespace datakit --create-namespace \
+  -f datakit/values-gke-autopilot-partner.yaml \
+  -f datakit-user-values.yaml --wait --timeout 15m
+```
+
+The chart creates the `datakit-dataway` Secret and passes the DataWay URL to DataKit through `secretKeyRef`.
+
+### Partner YAML installation {#partner-yaml}
+
+Choose this or Helm installation. This method requires Helm 3 locally to render YAML, then manages resources with `kubectl` without creating a Helm release. `--no-hooks` excludes the chart's Helm test Pod.
+
+```shell
+umask 077
+helm template datakit ./datakit --namespace datakit --no-hooks \
+  -f datakit/values-gke-autopilot-partner.yaml \
+  -f datakit-user-values.yaml > datakit-partner.yaml
+kubectl create namespace datakit --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply --namespace datakit -f datakit-partner.yaml
+```
+
+Protect the rendered manifest: it contains the complete workload and its Secret. The static `datakit.yaml` is for regular nodes, and `datakit-gke-autopilot.yaml` is for Cloud API mode. Use the manifest rendered here for Partner.
+
+### Partner configuration {#partner-configuration}
+
+The Partner preset fixes `fullnameOverride` to `datakit`; changing only the Helm release name does not change resource names. To distinguish the installation from existing resources with the same names, set another `fullnameOverride` in user values (for example, `datakit-autopilot`) and use a separate namespace. Update the namespace and DaemonSet name in this guide's commands accordingly. The compatibility Service remains named `datakit-service` within each namespace.
+
+V2 mounts only `/var/run/containerd`, `/proc`, and `/var/log/pods` read-only. It does not support eBPF, arbitrary host file collection, or full host monitoring. Cache uses `emptyDir` and is lost when the Pod is replaced.
+
+Add `extraEnvs` to `datakit-user-values.yaml` for extra settings. For example, send runtime logs to stdout so they are available through `kubectl logs`:
+
+```yaml
+extraEnvs:
+  - name: ENV_LOG
+    value: "stdout"
+```
+
+Names must match `^ENV_[A-Z0-9_]+$`. Use `valueFrom` for existing Secrets/ConfigMaps in the same namespace. Append entries if `extraEnvs` already exists; use `datakit.*` for DataWay and cluster settings. Preserve the preset image repository, allowlist, mounts, and security settings. Do not enable `iploc`, `dkconfig`, Git SSH key mounts, or additional collector charts.
+
+## Cloud API deployment {#cloud-api}
+
+Cloud API collects through Cloud Monitoring/Logging without host access. Local file logs, host monitoring, and eBPF are unsupported. Metrics can lag by several minutes, and Pod or leader changes can duplicate recent logs.
+
+### Configure GCP permissions {#cloud-permissions}
+
+Use an account authorized to enable APIs, create service accounts, and configure IAM. Set the cluster project, enable the APIs, and bind the service account through Workload Identity. If the service account already exists, reuse its name and skip the create command.
 
 ```shell
 PROJECT_ID="my-project"
-NAMESPACE="datakit"
-RELEASE_NAME="my-datakit"
 GSA_NAME="datakit-cloud-monitor"
-KSA_NAME="datakit"
-```
-
-Create the GCP Service Account and grant permissions:
-
-```shell
-gcloud iam service-accounts create "${GSA_NAME}" \
-  --project "${PROJECT_ID}"
-
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+gcloud services enable monitoring.googleapis.com logging.googleapis.com \
+  iam.googleapis.com iamcredentials.googleapis.com --project "$PROJECT_ID"
+gcloud iam service-accounts create "$GSA_NAME" --project "$PROJECT_ID"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member "serviceAccount:${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role roles/monitoring.viewer
-
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member "serviceAccount:${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role roles/logging.viewer
-```
-
-Allow the Kubernetes ServiceAccount created by the Helm chart to use the GCP Service Account:
-
-```shell
 gcloud iam service-accounts add-iam-policy-binding \
-  "${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --project "${PROJECT_ID}" \
+  "${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" --project "$PROJECT_ID" \
   --role roles/iam.workloadIdentityUser \
-  --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${NAMESPACE}/${KSA_NAME}]"
+  --member "serviceAccount:${PROJECT_ID}.svc.id.goog[datakit/datakit]"
 ```
 
-<!-- markdownlint-disable MD046 -->
-???+ note
+This binds the `datakit` Kubernetes ServiceAccount in the `datakit` namespace. Update the binding if you override the namespace or `fullnameOverride`.
 
-    The `datakit-gke-autopilot` chart sets `fullnameOverride=datakit` by default, so the example command creates a Kubernetes ServiceAccount named `datakit`. If `fullnameOverride` is overridden, adjust the Workload Identity binding to match the actual ServiceAccount name.
-<!-- markdownlint-enable MD046 -->
+### Cloud API Helm installation {#cloud-helm}
 
-## Helm Installation {#helm-install}
+Append the actual GCP Service Account email to `datakit-user-values.yaml`:
 
-Add the Helm repository:
+```yaml
+serviceAccountAnnotations:
+  iam.gke.io/gcp-service-account: "datakit-cloud-monitor@my-project.iam.gserviceaccount.com"
+```
 
 ```shell
-helm repo add datakit-gke https://pubrepo.truewatch.com/chartrepo/truewatch
+helm upgrade --install datakit truewatch/datakit-gke-autopilot \
+  --version "$CHART_VERSION" --namespace datakit --create-namespace \
+  -f datakit-user-values.yaml --wait --timeout 15m
 ```
 
-Install DataKit:
+### Cloud API YAML installation {#cloud-yaml}
+
+Choose this or Cloud API Helm installation. Download the dedicated Deployment YAML:
 
 ```shell
-helm install my-datakit datakit-gke/datakit-gke-autopilot \
-         --namespace datakit \
-         --create-namespace \
-         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
-         --set serviceAccountAnnotations."iam\\.gke\\.io/gcp-service-account"="datakit-cloud-monitor@my-project.iam.gserviceaccount.com"
+umask 077
+curl -f -o datakit-gke-autopilot.yaml \
+  https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-gke-autopilot.yaml
 ```
 
-Check the status:
-
-```shell
-helm -n datakit list
-kubectl -n datakit get pod -l app.kubernetes.io/instance=my-datakit
-kubectl -n datakit logs deploy/datakit
-```
-
-Back up the current values before upgrading:
-
-```shell
-helm -n datakit get values my-datakit -o yaml > values-current.yaml
-```
-
-Upgrade:
-
-```shell
-helm upgrade my-datakit datakit-gke/datakit-gke-autopilot \
-         --namespace datakit \
-         -f values-current.yaml
-```
-
-<!-- markdownlint-disable MD046 -->
-???+ note "Upgrading from the old GKE Autopilot chart"
-
-    The `datakit-gke-autopilot` chart published from the old `helm-gke-autopilot` branch created a DaemonSet and ServiceAccount named like `my-datakit-datakit-gke-autopilot`. The current chart creates a Deployment and ServiceAccount named `datakit` by default. Before upgrading, update the Workload Identity binding to `datakit/datakit` and make sure the target namespace has no other `datakit` resources with the same names.
-<!-- markdownlint-enable MD046 -->
-
-## YAML Installation {#yaml-install}
-
-If Helm is not used, download the GKE Autopilot dedicated Deployment YAML:
-
-```shell
-curl -o datakit-gke-autopilot.yaml \
-  https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-gke-autopilot.yaml
-```
-
-Before applying it, update `ENV_DATAWAY` and add the Workload Identity GCP Service Account annotation to the ServiceAccount:
+Set `ENV_DATAWAY` (including the token) and `ENV_CLUSTER_NAME_K8S`, and replace the existing annotation on the **ServiceAccount** with the actual email. This method does not read Helm user values:
 
 ```yaml
 metadata:
@@ -134,32 +177,22 @@ metadata:
     iam.gke.io/gcp-service-account: "datakit-cloud-monitor@my-project.iam.gserviceaccount.com"
 ```
 
-Apply the YAML:
-
 ```shell
 kubectl apply -f datakit-gke-autopilot.yaml
 ```
 
-## Key Configuration {#configuration}
+### Cloud API configuration {#cloud-configuration}
 
-Default settings:
-
-- `workload.kind=Deployment`
-- `workload.replicas=1`
-- `gkeAutopilot.enabled=true`
-- `datakit.default_enabled_inputs=dk,container`
-- `datakit.enabled_election=true`
-- `ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED=true`
-- `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL=false`
-- CPU/memory requests are `500m/500Mi`
-- Only `/usr/local/datakit/cache` is mounted by default
-
-The default replica count is `1`. For high availability, you can increase `workload.replicas`, but keep election enabled. Otherwise, multiple replicas may collect duplicate Cloud API data.
-
-The GCP project ID, GKE cluster name, and cluster location are discovered from the GKE metadata server by default. For cross-project collection or when metadata discovery does not match the target cluster, override them as needed:
+The GCP project, cluster, and location are discovered from the GKE metadata server by default. To override them, add the complete list below to Helm user values. **`extraEnvs` replaces the chart's default list. Keep the first three entries or Cloud API collection will be disabled.**
 
 ```yaml
 extraEnvs:
+  - name: ENV_NAMESPACE
+    value: "datakit"
+  - name: ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED
+    value: "true"
+  - name: ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL
+    value: "false"
   - name: ENV_INPUT_CONTAINER_GCP_PROJECT_ID
     value: "my-project"
   - name: ENV_INPUT_CONTAINER_GCP_CLUSTER_NAME
@@ -168,52 +201,61 @@ extraEnvs:
     value: "asia-southeast1"
 ```
 
-`ENV_INPUT_CONTAINER_ENABLE_GCP_CLOUD_MONITORING` and `ENV_INPUT_CONTAINER_ENABLE_GCP_CLOUD_LOGGING` both default to `true`; set them only when one service must be disabled.
+For YAML, edit the container env directly. The default is one replica; keep election enabled with the same election settings on every replica when scaling. For optional non-root operation, set `gkeAutopilot.runAsNonRoot=true` in Helm, or follow the YAML file's `securityContext` comments. Mounted directories must be writable by UID/GID `10001`.
 
-## Container Host Tag {#container-host-tag}
+## Verify operation and data {#verify}
 
-In the traditional DaemonSet mode, each DataKit instance collects only containers on its own node, so the `host` tag on container metrics, objects, and logs can be appended uniformly during Feed.
-
-In GKE Autopilot Cloud API mode, a single leader DataKit collects cluster-wide container data through Cloud APIs, so the node running the DataKit Pod cannot be used as the `host` for all containers. This mode extracts the original GKE Node name of each container from Kubernetes Pod information and writes it to the `host` tag on container metrics, objects, and logs.
-
-This mode does not support `ENV_K8S_CLUSTER_NODE_NAME` for renaming the `host` tag on container data. To distinguish multiple clusters, use `cluster_name_k8s`, `gcp_project_id`, `gcp_location`, or custom global tags.
-
-## Running as Non-Root {#run-as-non-root}
-
-`datakit-gke-autopilot` keeps the container running as root by default to match the DataKit image default. The current Cloud API mode does not require host permissions. To run as non-root:
+Check rollout for the selected mode:
 
 ```shell
-helm upgrade my-datakit datakit-gke/datakit-gke-autopilot \
-         --namespace datakit \
-         --reuse-values \
-         --set gkeAutopilot.runAsNonRoot=true
+# Partner
+kubectl -n datakit rollout status daemonset/datakit --timeout=15m
+# Cloud API
+kubectl -n datakit rollout status deployment/datakit --timeout=15m
 ```
 
-The Pod then uses:
+Then check Pods and the health endpoint:
 
-```yaml
-securityContext:
-  runAsNonRoot: true
-  runAsUser: 10001
-  runAsGroup: 10001
-  fsGroup: 10001
+```shell
+kubectl -n datakit get daemonset,deployment,pods -o wide
+kubectl get --raw '/api/v1/namespaces/datakit/services/http:datakit-service:9529/proxy/v1/health'
 ```
 
-This mode does not need an initContainer by default. The chart only mounts `/usr/local/datakit/cache` for WAL, Cloud Logging state, and local cache, and `fsGroup=10001` keeps it writable. If extra directories such as `conf.d`, `data`, `pipeline`, or `python.d` are mounted, make sure they are writable by UID/GID `10001`. Add an initContainer only when an extra volume does not honor `fsGroup` or when pre-created file permissions must be fixed.
+Confirm desired is greater than zero, ready equals desired, actual Pods remain healthy, and the health endpoint returns `live=true`. In a cluster without nodes, the Partner DaemonSet may show `0/0`; a successful Helm installation does not mean DataKit is running. Deploy an application workload, wait for Autopilot to provision nodes, then check the DataKit Pods and health endpoint.
 
-## Differences From Regular Helm Installation {#difference}
+In the platform, filter by `cluster_name_k8s` and deployment time to check container metrics, Kubernetes objects, and logs from application Pods with collection enabled. Confirm data belongs to the target cluster and timestamps continue advancing. The DataWay URL must include a valid token; a hostname alone is insufficient to verify data delivery. Pod readiness only confirms that the workload is running.
 
-| chart | Default workload | Target environment | Host access | Container metrics and logs source |
-| --- | --- | --- | --- | --- |
-| `datakit` | DaemonSet | Standard Kubernetes | Uses `hostPath`, runtime sockets, and host log directories by default | Container runtime and host files |
-| `datakit-gke-autopilot` | Deployment | GKE Autopilot | Does not use `hostPath`, privileged containers, or host networking by default | Cloud Monitoring and Cloud Logging |
+Partner V2 disables `exec`, `attach`, and `port-forward`. Use Pod status, Events, `kubectl logs`, and the Service proxy for diagnosis. Remove tokens and complete DataWay URLs before sharing logs.
 
-If the target environment allows mounting host directories and the container runtime socket, use the regular `datakit` chart. For GKE Autopilot or similar Serverless Kubernetes environments that do not allow those host capabilities, use `datakit-gke-autopilot`.
+## Lifecycle {#lifecycle}
+
+**Helm installations**: retain the current chart version and user values, select the target version, repeat the installation command for your mode, and verify again. For Partner, first download the target chart into a separate directory, explicitly supply both values files, and leave `image.tag` empty so the image follows the target `appVersion`. Cloud API user values must include the Workload Identity annotation.
+
+Changes to the Partner chart-managed DataWay Secret trigger a DaemonSet rolling update. After changing an external Secret/ConfigMap referenced by `extraEnvs.valueFrom`, run `kubectl -n datakit rollout restart daemonset/datakit` to reload environment variables.
+
+Use these commands as needed, replacing `<REVISION>` with a number from the history. After rollback, verify the image and external configuration:
+
+```shell
+helm history datakit --namespace datakit
+helm rollback datakit <REVISION> --namespace datakit --wait --timeout 15m
+helm uninstall datakit --namespace datakit
+```
+
+**YAML installations**: retain the previous manifest, render the new Partner chart or download the new Cloud API manifest, restore your configuration, then apply it. Apply the previous manifest to roll back. Identify and delete resources removed by an upgrade separately. Uninstall with `kubectl delete -n datakit -f <installation-manifest>`. The Cloud API manifest includes a Namespace; remove that object from the uninstall manifest first if the namespace contains other resources. Treat Secrets and DataWay URLs in YAML as sensitive information.
+
+Only remove the Partner synchronizer after confirming no workloads in the cluster still use this allowlist. Preserve namespaces and configuration shared by other deployments:
+
+```shell
+kubectl delete -f datakit/gke-autopilot-partner-allowlist.yaml
+```
 
 ## Troubleshooting {#troubleshooting}
 
-- Pod rejected by GKE Autopilot: check whether extra `hostPath`, privileged container, `hostNetwork`, `hostPID`, or `hostIPC` settings were enabled.
-- No container metrics or logs: check that the GCP Service Account has `roles/monitoring.viewer` and `roles/logging.viewer`, the Kubernetes ServiceAccount has the `iam.gke.io/gcp-service-account` annotation, and the Workload Identity binding matches the actual namespace/name.
-- No Kubernetes objects or resource metrics: check that the DataKit Pod can access the Kubernetes API and that `dk,container` is still included in `datakit.default_enabled_inputs`.
-- Duplicate data with multiple replicas: check that `datakit.enabled_election=true` and all replicas use the election configuration in the same namespace.
-- Non-root write failures: check that extra mounted directories are writable by UID/GID `10001`; add volume permission handling only when needed.
+- Partner preset missing: select a released chart containing this feature, update the repository index, and download again.
+- Allowlist not synchronized: inspect errors under `status.managedAllowlistStatus`, the full GKE version, and allowed cluster paths. Require `Ready=True` and the file to be `Installed`.
+- Partner rejected: inspect DaemonSet Events, the Pod label `cloud.google.com/matching-allowlist=truewatch-datakit-autopilot-v2`, and any injected sidecars, extra mounts, or replaced images. See [Google's admission troubleshooting guide](https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/autopilot-privileged-workloads){:target="_blank"}.
+- Partner reports `Image Mismatch`: restore `image.repository` in user values to `pubrepo.truewatch.com/truewatch/datakit` and leave `image.tag` empty. For YAML installations, render the same chart version again and apply it. For `ErrImagePull` or `ImagePullBackOff`, check that the corresponding TrueWatch image has been published, and check node connectivity to the registry and image pull permissions.
+- Logs report `dataway.emptyToken` or `token missing`: add a valid workspace token to the DataWay URL and update using the original installation method. An empty token causes rejected uploads, dropped data, and failed elections, even when Pods are Ready and health checks pass.
+- Cloud API rejected or missing data: check for added host privileges, GCP IAM permissions, the ServiceAccount annotation, and matching namespace/name in the Workload Identity binding.
+- Healthy Pods with missing or duplicate data: check DataWay connectivity, settings, Kubernetes API permissions, application Pod log collection settings, and election. For non-root write failures, check directory permissions.
+- `kubectl logs` shows only startup logs: set `ENV_LOG=stdout` in Partner user values (see the [configuration example](gcp-gke-autopilot.md#partner-configuration)), then upgrade using the original installation method. For YAML, render the manifest again before applying it.

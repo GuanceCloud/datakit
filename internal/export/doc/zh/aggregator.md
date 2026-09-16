@@ -338,7 +338,7 @@ rate = 0.2
 
 ## 运行指标 {#metrics}
 
-`Aggregator` 新增了以下 Prometheus 指标（完整前缀为 `datakit_io_`）：
+`Aggregator` 提供以下 Prometheus 指标（完整前缀为 `datakit_io_`）。默认启用的 `inputs.dk` 会采集这些指标，并以 `dk` 指标集上报到中心：
 
 | 指标名 | 类型 | 标签 | 说明 |
 | --- | --- | --- | --- |
@@ -347,12 +347,17 @@ rate = 0.2
 | `aggr_send_points_total` | Counter | `type`, `category` | Aggregator 成功发送的数据点数量 |
 | `aggr_lost_points_total` | Counter | `type`, `category`, `reason` | Aggregator 发送失败导致的丢点数量 |
 | `aggr_send_latency_seconds` | Summary | `type`, `category` | Aggregator 发送耗时（秒） |
+| `aggr_tail_sampling_fallback_package_total` | Counter | `name`, `category` | 尾采样发送失败后，回落到主 Dataway 的原始尾采样包数量；拆分后的 HTTP 分片不会重复计数 |
+| `aggr_tail_sampling_fallback_point_total` | Counter | `name`, `category` | 尾采样发送失败后，回落到主 Dataway 的数据点数量；`tracing` 类型下表示 span 数量 |
 
 标签说明：
 
 - `type`：当前包含 `metric`、`tail_sampling`、`config`
-- `category`：当前发送路径中主要为 `unknown`（配置下发为 `config`）
+- `category`：尾采样回退指标记录实际数据类别，如 `tracing`、`logging`、`rum`；其余发送指标中主要为 `unknown`（配置下发为 `config`）
 - `reason`：当前包含 `marshal`、`transport`、`network`、`server`、`other`
+- `name`：触发该批数据处理的输入源名称
+
+尾采样回退指标在触发回退时计数，不代表主 Dataway 的最终发送结果。若发送失败导致本批已选中的尾采样包整体回退，会统计整批回退的包和点；正常透传到主 Dataway 的数据不计入这两个指标。
 
 排查建议：
 

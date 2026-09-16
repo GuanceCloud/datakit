@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.13.0(2026/09/16) {#cl-2.13.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.13.0-new}
+
+- DDTrace now provides the `tracing_metrics.qps` metric to count received HTTP spans in one-second buckets, with configurable grouping tags; it is disabled by default (#3213)
+- Added a GCP Autopilot Partner deployment mode, supporting Helm and YAML deployment with node-level container metrics and Pod log collection; available for TrueWatch only (#3198)
+
+### Bug Fixes {#cl-2.13.0-fix}
+
+- Fixed foreign-key and index query errors on SQL Server 2016 and earlier, restoring table schema collection (#3214)
+- Fixed Oracle slow SQL collection failing to advance its time cursor and collecting duplicate records when database and DataKit time zones differed (#3216)
+- Fixed the risk of executing multiple SQL statements during PostgreSQL execution plan collection and improved parameterized SQL detection (#3218)
+- Fixed dialtesting SSE connections not being canceled on shutdown, causing service stop timeouts, and enabled service restarts from the systemd failed state (#3219)
+- Fixed macOS ARM hosts installing amd64 DataKit, adding native arm64 packages with installation and upgrade support (#3224)
+
+### Improvements {#cl-2.13.0-opt}
+
+- Added package and point counters for tail-sampling data falling back to the main DataWay after send failures, making fallback volume observable (#3217)
+
+---
+
 ## 2.12.0(2026/09/09) {#cl-2.12.0}
 
 This release is an iterative release, with the following main updates:

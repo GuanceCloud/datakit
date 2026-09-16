@@ -8,6 +8,7 @@ tags      :
 __int_icon: 'icon/ddtrace'
 ---
 
+如需接入 Ruby Continuous Profiling，参见 [Profiling Ruby](profile-ruby.md)。
 
 ## 安装依赖 {#dependence}
 

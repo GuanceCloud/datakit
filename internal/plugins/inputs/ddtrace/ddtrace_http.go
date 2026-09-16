@@ -6,6 +6,7 @@
 package ddtrace
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -43,6 +44,22 @@ const (
 )
 
 var jsonIterator = jsoniter.ConfigFastest
+
+type traceReceivedAtKey struct{}
+
+func markTraceReceivedAt(next http.HandlerFunc) http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
+		ctx := context.WithValue(req.Context(), traceReceivedAtKey{}, time.Now())
+		next(resp, req.WithContext(ctx))
+	}
+}
+
+func traceReceivedAt(req *http.Request) time.Time {
+	if receivedAt, ok := req.Context().Value(traceReceivedAtKey{}).(time.Time); ok {
+		return receivedAt
+	}
+	return time.Now()
+}
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
 	if err != nil {
@@ -118,10 +135,11 @@ func (ipt *Input) handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	param := &itrace.TraceParameters{
-		URLPath:  req.URL.Path,
-		Media:    itrace.GetContentType(req),
-		Body:     pbuf,
-		RemoteIP: remoteIP,
+		URLPath:    req.URL.Path,
+		Media:      itrace.GetContentType(req),
+		Body:       pbuf,
+		RemoteIP:   remoteIP,
+		ObservedAt: traceReceivedAt(req),
 	}
 
 	log.Debugf("param body len=%d", param.Body.Len())
@@ -353,7 +371,7 @@ func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitT
 			}
 
 			// decode single ddtrace into dktrace
-			dktrace := ipt.ddtraceToDkTrace(trace, values, param.RemoteIP)
+			dktrace := ipt.ddtraceToDkTrace(trace, values, param.RemoteIP, param.ObservedAt)
 			if nspan := len(dktrace); nspan > 0 {
 				if nspan > maxBatch && !ipt.NoStreaming { // flush large trace ASAP.
 					log.Debugf("streaming feed %d spans", nspan)
@@ -514,7 +532,7 @@ func (ipt *Input) samplingPriorityDecision(trace DDTrace) (int, string, string, 
 	return 0, "", "", false
 }
 
-func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.DatakitTrace {
+func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string, observedAt time.Time) itrace.DatakitTrace {
 	var (
 		parentIDs, spanIDs = gatherSpansInfo(trace) // NOTE: we should gather before truncate
 		dktrace            = make(itrace.DatakitTrace, 0, len(trace))
@@ -523,6 +541,9 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 
 	trace = rewriteLambdaServerlessPlaceholder(trace)
 	trace = ipt.dedupLambdaTraceSpans(trace)
+	if ipt.qpsAggregator != nil {
+		ipt.qpsAggregator.ObserveTrace(trace, observedAt, remoteIP)
+	}
 
 	traceSpans.WithLabelValues(inputName).Observe(float64(len(trace)))
 

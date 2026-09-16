@@ -34,7 +34,7 @@ After successfully installing and launching DataKit, the Net Collector is automa
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
+    Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 

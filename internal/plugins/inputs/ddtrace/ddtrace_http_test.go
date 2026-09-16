@@ -371,7 +371,7 @@ func TestSamplingPriorityDecision(t *testing.T) {
 				})
 			}
 
-			got := ipt.ddtraceToDkTrace(trace, nil, "127.0.0.1")
+			got := ipt.ddtraceToDkTrace(trace, nil, "127.0.0.1", time.Time{})
 			assert.Len(t, got, tc.wantSpans)
 			if tc.wantSamplingRateTag != "" {
 				require.NotEmpty(t, got)
@@ -415,7 +415,7 @@ func TestExcludedSamplingPriorityStillUsesDataKitSampler(t *testing.T) {
 	ipt.SamplingPriorityDropExcludes = []int{0}
 	ipt.customTagsX = itrace.NewCustomTags(nil, ddTags)
 
-	dktrace := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1")
+	dktrace := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1", time.Time{})
 	require.Len(t, dktrace, 1)
 	assert.Empty(t, dktrace[0].GetTag(itrace.SampleRateKey))
 
@@ -465,7 +465,7 @@ func TestDDTraceCustomerMetrics(t *testing.T) {
 		},
 	}
 
-	got := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1")
+	got := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1", time.Time{})
 	require.Len(t, got, 1)
 	pt := got[0].Point
 
@@ -528,7 +528,7 @@ func TestDDTraceCustomerMetricsReservedKeys(t *testing.T) {
 				},
 			}
 
-			got := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1")
+			got := ipt.ddtraceToDkTrace(DDTrace{span}, nil, "127.0.0.1", time.Time{})
 			require.Len(t, got, 1)
 			pt := got[0].Point
 

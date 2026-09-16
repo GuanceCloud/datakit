@@ -705,6 +705,7 @@ WHERE
     FK.parent_object_id IN (%s)
 GROUP BY
     FK.name,
+    FK.object_id,
     FK.parent_object_id,
     FK.referenced_object_id,
     FK.delete_referential_action_desc,
@@ -774,7 +775,7 @@ SELECT
 FROM
     sys.indexes i
 WHERE
-    i.object_id IN (i%s)
+    i.object_id IN (%s)
 GROUP BY
     i.object_id,
     i.name,
