@@ -17,7 +17,11 @@ Before connecting LoongSuite to DataKit, make sure the DataKit OpenTelemetry inp
 
 ### DataKit Configuration {#datakit-config}
 
-Navigate to the `conf.d/samples` directory under the DataKit installation directory, copy `opentelemetry.conf.sample`, and rename it to `opentelemetry.conf`. Make sure the gRPC or HTTP receiver is enabled.
+Copy the sample configuration to the `conf.d` root and make sure the gRPC or HTTP receiver is enabled. With the default installation path, run:
+
+```shell
+cp /usr/local/datakit/conf.d/samples/opentelemetry.conf.sample /usr/local/datakit/conf.d/opentelemetry.conf
+```
 
 Default endpoints of the OpenTelemetry input:
 

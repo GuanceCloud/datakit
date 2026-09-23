@@ -87,7 +87,7 @@ graph LR
 
 [OpenTelemetry](https://opentelemetry.io/docs/){:target="_blank"}
 
-: OpenTelemetry（OTEL）是一个基于第三方循迹协议开发的开源程序可视化框架提供检测，生成，收集和泵出监控数据例如循迹链路，指标集，日志等。作为行业标准它被很多服务提供商原生支持。
+: OpenTelemetry（OTel）是一个厂商中立的可观测性框架，提供 API、SDK、规范和工具，用于生成、采集并导出链路、指标和日志等遥测数据。OpenTelemetry 本身不是可观测性后端，采集的数据需要发送到 DataKit 等接收端进行处理和存储。
 
 [SkyWalking](https://skywalking.apache.org/docs/){:target="_blank"}
 

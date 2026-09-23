@@ -6,7 +6,7 @@ tags      :
   - 'OTEL'
   - '链路追踪'
 dashboard :
-  - desc  : 'Opentelemetry JVM 监控视图'
+  - desc  : 'OpenTelemetry JVM 监控视图'
     path  : 'dashboard/zh/opentelemetry'
 monitor   :
   - desc  : '暂无'
@@ -25,7 +25,11 @@ OpenTelemetry（简称 OTEL）是 CNCF 的可观测性标准体系。DataKit 的
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录的 `conf.d/{{.Catalog}}`，拷贝 `{{.InputName}}.conf.sample` 为 `{{.InputName}}.conf` 并修改。
+    将示例配置复制到 `conf.d` 根目录并修改。默认安装路径下的命令如下：
+
+    ```shell
+    cp /usr/local/datakit/conf.d/samples/opentelemetry.conf.sample /usr/local/datakit/conf.d/opentelemetry.conf
+    ```
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -78,8 +82,8 @@ traces `/otel/v1/traces`、metrics `/otel/v1/metrics`、logs `/otel/v1/logs`（�
 OTEL Java Agent V2 默认使用 `http/protobuf` 作为 OTLP 协议，若需切回 gRPC：
 
 ```shell
-java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
-  -Dotel.exporter=otlp \
+java -javaagent:/opt/opentelemetry/opentelemetry-javaagent.jar \
+  -Dotel.traces.exporter=otlp \
   -Dotel.exporter.otlp.protocol=grpc \
   -Dotel.exporter.otlp.endpoint=http://localhost:4317 \
   -Dotel.service.name=app \
@@ -89,8 +93,8 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
 如使用 HTTP 方式，请为每类数据显式配置 endpoint：
 
 ```shell
-java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
-  -Dotel.exporter=otlp \
+java -javaagent:/opt/opentelemetry/opentelemetry-javaagent.jar \
+  -Dotel.traces.exporter=otlp \
   -Dotel.exporter.otlp.protocol=http/protobuf \
   -Dotel.exporter.otlp.logs.endpoint=http://localhost:9529/otel/v1/logs \
   -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/traces \
@@ -118,7 +122,7 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
 | `OTEL_PROPAGATORS(otel.propagators)` | 透传协议，默认 `tracecontext,baggage`。 |
 | `OTEL_TRACES_SAMPLER(otel.traces.sampler)` | 采样器类型。 |
 | `OTEL_TRACES_SAMPLER_ARG(otel.traces.sampler.arg)` | 与采样器配合的参数，范围 `0~1.0`，默认 `1.0`。 |
-| `OTEL_EXPORTER_OTLP_PROTOCOL(otel.exporter.otlp.protocol)` | 传输协议，默认 `grpc`，支持 `grpc`、`http/protobuf`。 |
+| `OTEL_EXPORTER_OTLP_PROTOCOL(otel.exporter.otlp.protocol)` | 传输协议，支持 `grpc`、`http/protobuf`；默认值取决于 SDK 或发行版，Java Agent 2.x 默认使用 `http/protobuf`。 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT(otel.exporter.otlp.endpoint)` | 统一 OTLP 地址，例如 gRPC 模式使用 `http://datakit-host:4317`，HTTP 模式使用服务地址 `http://datakit-host:9529`。 |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT(otel.exporter.otlp.traces.endpoint)` | HTTP traces 端点，例如 `http://datakit-host:9529/otel/v1/traces`。 |
 | `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT(otel.exporter.otlp.metrics.endpoint)` | HTTP metrics 端点，例如 `http://datakit-host:9529/otel/v1/metrics`。 |

@@ -122,6 +122,7 @@ func (ipt *Input) collect(ptTS int64) error {
 	kvs = kvs.Add("used_percent", 100*float64(vm.Used)/float64(vm.Total))
 	kvs = kvs.Add("available_percent", 100*float64(vm.Available)/float64(vm.Total))
 
+	kvs = ipt.collectWindowsCounters(kvs)
 	switch ipt.platform {
 	case "darwin":
 		kvs = kvs.Add("active", vm.Active)

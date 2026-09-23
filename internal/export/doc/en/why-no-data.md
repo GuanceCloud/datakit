@@ -141,7 +141,7 @@ The mainstream collectors affected by the port include:
 
 - HTTP's 9529 port: some collectors (such as eBPF/Oracle/LogStream, etc.) push data to DataKit's HTTP interface
 - StatsD 8125 port: used to receive StatsD's metric data (such as JVM-related metrics)
-- OpenTelemetry 4317 port: used to receive OpenTelemetry metrics and Trace data
+- OpenTelemetry port 4317: receives OpenTelemetry traces, metrics, and logs over OTLP/gRPC
 
 For more port occupancy, see [this list](datakit-port.md).
 

@@ -27,7 +27,7 @@ After installation, run `ddtrace-run --info` to check the configuration availabl
     > Prefix the Python entry point with `ddtrace-run` and set service identity and the DataKit destination before the process starts. The common upstream trace-port default is `8126`; explicitly use `9529` with DataKit.
     
     ```shell linenums="1"
-    DD_SERVICE="<YOUR-SERVICE-Name>" \
+    DD_SERVICE="<YOUR-SERVICE-NAME>" \
       DD_ENV="<YOUR-ENV-NAME>" \
       DD_VERSION="<YOUR-APP-VERSION>" \
       DD_AGENT_HOST="<YOUR-DATAKIT-HOST>" \

@@ -398,7 +398,7 @@ Also make sure DataKit satisfies all of the following:
 
     ```yaml
     - name: ENV_HTTP_PUBLIC_APIS
-      value: /otel/v1/trace,/otel/v1/metric,/otel/v1/logs,/profiling/v1/input
+      value: /otel/v1/traces,/otel/v1/metrics,/otel/v1/logs,/profiling/v1/input
     ```
 
     If this variable already contains other APIs, append `/profiling/v1/input` to the existing list instead of replacing the whole value. Otherwise, DataKit may return:
@@ -544,7 +544,7 @@ Flameshot provides an HTTP interface allowing users or automated O&M scripts to 
 
         ```yaml
         - name: ENV_HTTP_PUBLIC_APIS
-          value: /otel/v1/trace,/otel/v1/metric,/otel/v1/logs,/profiling/v1/input
+          value: /otel/v1/traces,/otel/v1/metrics,/otel/v1/logs,/profiling/v1/input
         ```
 
     - If DataKit returns `input "profile" is not enabled for API "/profiling/v1/input"`, the profile input is not enabled. Enable it with:

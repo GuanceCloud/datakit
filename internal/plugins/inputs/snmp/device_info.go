@@ -273,22 +273,21 @@ func (di *deviceInfo) ReportNetworkDeviceMetadata(values *snmputil.ResultValueSt
 		outData.topologyLinks = snmputil.BuildNetworkTopologyMetadata(deviceID, values, interfaces)
 	}
 
-	metadataPayloads := snmputil.BatchPayloads(di.Namespace,
-		di.Subnet,
-		collectTime,
-		snmputil.PayloadMetadataBatchSize,
-		device,
-		interfaces,
-		ipAddresses)
-
-	for _, payload := range metadataPayloads {
-		payloadBytes, err := json.Marshal(payload)
-		if err != nil {
-			l.Errorf("Error marshaling device metadata: %v", err)
-			return
-		}
-		outData.Add(payloadBytes)
+	// device_meta must contain one complete JSON object, regardless of resource count.
+	payload := snmputil.NetworkDevicesMetadata{
+		Namespace:        di.Namespace,
+		Subnet:           di.Subnet,
+		CollectTimestamp: collectTime.Unix(),
+		Devices:          []snmputil.DeviceMetadata{device},
+		Interfaces:       interfaces,
+		IPAddresses:      ipAddresses,
 	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		l.Errorf("Error marshaling device metadata: %v", err)
+		return
+	}
+	outData.Add(payloadBytes)
 }
 
 func getUptime(store *snmputil.ResultValueStore) float64 {

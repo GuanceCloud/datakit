@@ -17,7 +17,11 @@ LoongSuite 开源版本支持将 Go 应用链路数据通过 OpenTelemetry OTLP 
 
 ### DataKit 配置 {#datakit-config}
 
-进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `opentelemetry.conf.sample` 并命名为 `opentelemetry.conf`，确认已开启 gRPC 或 HTTP 接收配置。
+将示例配置复制到 `conf.d` 根目录，确认已开启 gRPC 或 HTTP 接收配置。默认安装路径下的命令如下：
+
+```shell
+cp /usr/local/datakit/conf.d/samples/opentelemetry.conf.sample /usr/local/datakit/conf.d/opentelemetry.conf
+```
 
 OpenTelemetry 采集器默认接收地址：
 

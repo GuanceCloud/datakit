@@ -13,7 +13,7 @@ import { IDatakit, IDatakitStat } from 'src/store/type';
 import { useLazyGetDatakitStatQuery, useLazyReloadDatakitQuery, useLazyUpgradeDatakitQuery } from 'src/store/datakitApi';
 import { DatakitInfoNav } from '../DatakitInfoNav/DatakitInfoNav';
 import { useAppSelector } from 'src/hooks';
-import { alertError, getLatestDatakitVersion, isContainerMode, isDatakitManagement, isNewerDatakitVersionAvailable } from 'src/helper/helper';
+import { alertError, getLatestDatakitVersion, isContainerMode, isDatakitManagement, isDatakitSessionLost, isNewerDatakitVersionAvailable } from 'src/helper/helper';
 import { DashboardContext, getOSIcon } from 'src/pages/Dashboard/Dashboard';
 import { useTranslation } from 'react-i18next';
 
@@ -124,7 +124,8 @@ function DkInfo() {
           label: <Space size={1}><Avatar size={16} src={getOSIcon(v.os)} />{v.host_name}</Space>,
           value: v.host_name,
           datakit: v,
-          disabled: v.status !== "running"
+          // a running row without a live session cannot be managed either
+          disabled: !isDatakitManagement(v)
         }
       })
 
@@ -175,6 +176,9 @@ function DkInfo() {
   }
 
   const getReloadDisabledReason = useCallback((dk: IDatakit) => {
+    if (isDatakitSessionLost(dk)) {
+      return t("datakit.operation_disabled.no_session")
+    }
     if (!isDatakitManagement(dk)) {
       return t("datakit.operation_disabled.not_running")
     }
@@ -185,6 +189,9 @@ function DkInfo() {
   }, [t])
 
   const getUpgradeDisabledReason = useCallback((dk: IDatakit) => {
+    if (isDatakitSessionLost(dk)) {
+      return t("datakit.operation_disabled.no_session")
+    }
     if (!isDatakitManagement(dk)) {
       return t("datakit.operation_disabled.not_running")
     }

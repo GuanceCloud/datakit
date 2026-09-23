@@ -43,12 +43,28 @@ func doCommonAction(client *Client, msg *ws.WebsocketMessage) {
 		dk := &ws.DataKit{}
 		if err := json.Unmarshal([]byte(data.Body), &dk); err != nil {
 			l.Errorf("failed to unmarshal datakit: %s", err.Error())
+		} else if dk == nil {
+			l.Warn("ignore null datakit update")
 		} else {
+			// The reported conn id may have changed (IP/websocket address/workspace
+			// changed). The DB row belongs to this websocket session, so keep the
+			// session's conn id: otherwise the row of this session is never updated
+			// and stays "running" after the connection is gone (管理 then fails with
+			// "datakit not available"), and a stale row may even be resurrected and
+			// reject the next registration with the same conn id.
+			if client.ID != "" && dk.ConnID != client.ID {
+				l.Warnf("datakit %s conn id changed(%s -> %s), keep session conn id",
+					dk.HostName, client.ID, dk.ConnID)
+				dk.ConnID = client.ID
+			}
 			if err := datakitDB.Update(dk); err != nil {
 				l.Errorf("failed to update datakit: %s", err.Error())
 			}
+
+			// An unparsable push must not wipe the in-memory state of a live
+			// session: the status and delete actions are routed with it.
+			client.DataKit = dk
 		}
-		client.DataKit = dk
 
 	default:
 		l.Warnf("action %s not found for common handler", msg.Action)

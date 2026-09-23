@@ -74,7 +74,7 @@ This release is a hotfix with the following updates:
 
 ### Bug Fixes {#cl-1.86.1-fix}
 
-- Fixed metric statistics issue during OpenTelemetry/DDtrace sampling (#2896)
+- Fixed metric statistics issue during OpenTelemetry/DDTrace sampling (#2896)
 - Prioritize cgroup v2 to avoid cgroup failure in certain scenarios (#2897)
 - Added more timeout protection for 9529 API and removed the original gin timeout middleware (#2901)
 - Redis collector configuration now uses v2 metric set naming by default (#2903)
@@ -836,4 +836,3 @@ This release is an iterative release. The main updates are as follows:
 - Added a configuration entry for trimming metric names for Prometheus metrics collected by KubernetesPrometheus (#2533)
 - DDTrace/OpenTelemetry collectors now support actively extracting the `pod_namespace` tag (#2534)
 - Enhanced the log collection scan mechanism by mandating a 1-minute scan interval to prevent log file missing in extreme scenarios (#2536).
-

@@ -151,6 +151,7 @@ func (ipt *Input) Collect() error {
 	}
 
 	var kvs point.KVs
+	kvs = ipt.collectWindowsCounters(kvs)
 	cpuTotal, err := cpu.Percent(0, false)
 	if err != nil {
 		l.Warnf("CPU stat error: %s, ignored", err.Error())

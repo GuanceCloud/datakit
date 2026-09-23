@@ -10,7 +10,6 @@ import (
 	"net"
 	"sort"
 	"strconv"
-	"time"
 )
 
 func BuildMetadataStore(metadataConfigs MetadataConfig, values *ResultValueStore) *Store {
@@ -162,57 +161,4 @@ func netmaskToPrefixlen(netmask string) int {
 	stringMask := net.IPMask(ipv4)
 	length, _ := stringMask.Size()
 	return length
-}
-
-//nolint:lll
-func BatchPayloads(namespace string,
-	subnet string,
-	collectTime time.Time,
-	batchSize int,
-	device DeviceMetadata,
-	interfaces []InterfaceMetadata,
-	ipAddresses []IPAddressMetadata,
-) []NetworkDevicesMetadata {
-	var payloads []NetworkDevicesMetadata
-	var resourceCount int
-	payload := NetworkDevicesMetadata{
-		Devices: []DeviceMetadata{
-			device,
-		},
-		Subnet:           subnet,
-		Namespace:        namespace,
-		CollectTimestamp: collectTime.Unix(),
-	}
-	resourceCount++
-
-	for _, interfaceMetadata := range interfaces {
-		if resourceCount == batchSize {
-			payloads = append(payloads, payload)
-			payload = NetworkDevicesMetadata{
-				Subnet:           subnet,
-				Namespace:        namespace,
-				CollectTimestamp: collectTime.Unix(),
-			}
-			resourceCount = 0
-		}
-		resourceCount++
-		payload.Interfaces = append(payload.Interfaces, interfaceMetadata)
-	}
-
-	for _, ipAddressMetadata := range ipAddresses {
-		if resourceCount == batchSize {
-			payloads = append(payloads, payload)
-			payload = NetworkDevicesMetadata{
-				Subnet:           subnet,
-				Namespace:        namespace,
-				CollectTimestamp: collectTime.Unix(),
-			}
-			resourceCount = 0
-		}
-		resourceCount++
-		payload.IPAddresses = append(payload.IPAddresses, ipAddressMetadata)
-	}
-
-	payloads = append(payloads, payload)
-	return payloads
 }

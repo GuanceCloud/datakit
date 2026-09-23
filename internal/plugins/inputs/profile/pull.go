@@ -7,6 +7,7 @@ package profile
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -15,7 +16,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +40,10 @@ type GoProfiler struct {
 	Version      string            `toml:"version"`
 	Tags         map[string]string `toml:"tags"`
 	EnabledTypes []string          `toml:"enabled_types"` // cpu,goroutine,heap,mutex,block
+	// ProfileDuration controls the duration of CPU profiles. The default is 10s.
+	ProfileDuration string `toml:"profile_duration"`
+	// HTTPTimeout controls each pprof request. It must be longer than ProfileDuration.
+	HTTPTimeout string `toml:"http_timeout"`
 
 	TLSOpen            bool   `toml:"tls_open"`
 	CacertFile         string `toml:"tls_ca"`
@@ -44,12 +51,17 @@ type GoProfiler struct {
 	KeyFile            string `toml:"tls_key"`
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 
-	url      *url.URL
-	interval time.Duration
-	tags     map[string]string
-	client   *http.Client
-	deltas   map[string]*pprofile.Profile
-	input    *Input
+	url              *url.URL
+	interval         time.Duration
+	duration         time.Duration
+	timeout          time.Duration
+	tags             map[string]string
+	client           *http.Client
+	deltas           map[string]*pprofile.Profile
+	deltaCache       *profileDeltaCache
+	deltaClosed      bool
+	validateResponse bool
+	input            *Input
 }
 
 type profileData struct {
@@ -73,18 +85,18 @@ type Item struct {
 
 var profileConfigMap = map[string]Item{
 	"cpu": {
-		path: "/debug/pprof/profile",
+		path: "/profile",
 		params: url.Values{
 			"seconds": []string{"10"},
 		},
 		fileName: "cpu.pprof",
 	},
 	"goroutine": {
-		path:     "/debug/pprof/goroutine",
+		path:     "/goroutine",
 		fileName: "goroutines.pprof",
 	},
 	"heap": {
-		path:     "/debug/pprof/heap",
+		path:     "/heap",
 		fileName: "delta-heap.pprof",
 		deltaValues: []valueType{
 			{Type: "alloc_objects", Unit: "count"},
@@ -92,7 +104,7 @@ var profileConfigMap = map[string]Item{
 		},
 	},
 	"mutex": {
-		path:     "/debug/pprof/mutex",
+		path:     "/mutex",
 		fileName: "delta-mutex.pprof",
 		deltaValues: []valueType{
 			{Type: "contentions", Unit: "count"},
@@ -100,7 +112,7 @@ var profileConfigMap = map[string]Item{
 		},
 	},
 	"block": {
-		path:     "/debug/pprof/block",
+		path:     "/block",
 		fileName: "delta-block.pprof",
 		deltaValues: []valueType{
 			{Type: "contentions", Unit: "count"},
@@ -127,10 +139,44 @@ func (g *GoProfiler) init() error {
 	}
 	g.interval = duration
 
+	g.duration = 10 * time.Second
+	if g.ProfileDuration != "" {
+		g.duration, err = time.ParseDuration(g.ProfileDuration)
+		if err != nil {
+			return fmt.Errorf("invalid profile_duration: %w", err)
+		}
+	}
+	if g.duration < time.Second {
+		return fmt.Errorf("profile_duration must be at least 1s")
+	}
+
+	g.timeout = g.duration + 5*time.Second
+	if g.timeout < 15*time.Second {
+		g.timeout = 15 * time.Second
+	}
+	if g.HTTPTimeout != "" {
+		g.timeout, err = time.ParseDuration(g.HTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("invalid http_timeout: %w", err)
+		}
+	}
+	if g.timeout <= g.duration {
+		return fmt.Errorf("http_timeout must be greater than profile_duration")
+	}
+
 	// url parse
 	g.url, err = url.Parse(g.URL)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid pprof URL")
+	}
+	if g.url.Scheme != "http" && g.url.Scheme != "https" {
+		return fmt.Errorf("unsupported pprof URL scheme %q", g.url.Scheme)
+	}
+	if g.url.Host == "" {
+		return fmt.Errorf("pprof URL host cannot be empty")
+	}
+	if g.url.Path == "" || g.url.Path == "/" {
+		g.url.Path = "/debug/pprof"
 	}
 
 	// tags set
@@ -203,14 +249,43 @@ func withExtName(f, ext string) string {
 }
 
 func (g *GoProfiler) pullProfile() {
+	if err := g.collect(context.Background(), g.EnabledTypes, g.duration, nil); err != nil {
+		log.Warnf("pull profile from %s failed: %s", safeProfileURL(g.url), err)
+	}
+}
+
+// collect pulls and queues a set of Go profiles. A GoProfiler is stateful because
+// heap, mutex, and block profiles are converted to deltas, so callers must not
+// invoke collect concurrently for the same profiler.
+func (g *GoProfiler) collect(
+	ctx context.Context,
+	enabledTypes []string,
+	duration time.Duration,
+	extraTags map[string]string,
+) error {
 	var (
 		deltaData      []*profileData
 		deltaFileNames []string
+		firstErr       error
 	)
-	for _, k := range g.EnabledTypes {
+
+	allTags := copyTags(g.tags)
+	customTags := copyTags(g.Tags)
+	for k, v := range extraTags {
+		allTags[k] = v
+		customTags[k] = v
+	}
+
+	for _, k := range enabledTypes {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if p, ok := profileConfigMap[k]; ok {
-			if pData, err := g.pullProfileItem(k, p); err != nil {
+			if pData, err := g.pullProfileItem(ctx, k, p, duration); err != nil {
 				log.Warnf("profile for %s error: %s", k, err.Error())
+				if firstErr == nil {
+					firstErr = err
+				}
 			} else if pData != nil {
 				if p.deltaValues != nil {
 					deltaData = append(deltaData, pData)
@@ -220,8 +295,8 @@ func (g *GoProfiler) pullProfile() {
 						startTime:       pData.startTime,
 						endTime:         pData.endTime,
 						profiledatas:    []*profileData{pData},
-						endPoint:        g.url.String(),
-						inputTags:       g.tags,
+						endPoint:        safeProfileURL(g.url),
+						inputTags:       allTags,
 						inputNameSuffix: "/go",
 						Input:           g.input,
 					},
@@ -232,20 +307,29 @@ func (g *GoProfiler) pullProfile() {
 						Start:         metrics.NewRFC3339Time(pData.startTime),
 						End:           metrics.NewRFC3339Time(pData.endTime),
 						Attachments:   []string{withExtName(pData.fileName, ".pprof")},
-						TagsProfiler:  metrics.JoinTags(g.tags),
-						SubCustomTags: metrics.JoinTags(g.Tags),
+						TagsProfiler:  metrics.JoinTags(allTags),
+						SubCustomTags: metrics.JoinTags(customTags),
 					},
 					g.input.GetBodySizeLimit(),
 				); err != nil {
 					log.Warnf("push profile data error: %s", err.Error())
+					if firstErr == nil {
+						firstErr = err
+					}
 				}
 			}
 		} else {
 			log.Warnf("invalid profile type: %s", k)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("invalid profile type %q", k)
+			}
 		}
 	}
 
 	// push delta profiles together
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if len(deltaData) > 0 {
 		pData := deltaData[0]
 		if err := pushProfileData(
@@ -253,8 +337,8 @@ func (g *GoProfiler) pullProfile() {
 				startTime:       pData.startTime,
 				endTime:         pData.endTime,
 				profiledatas:    deltaData,
-				endPoint:        g.url.String(),
-				inputTags:       g.tags,
+				endPoint:        safeProfileURL(g.url),
+				inputTags:       allTags,
 				inputNameSuffix: "/go",
 				Input:           g.input,
 			},
@@ -265,35 +349,87 @@ func (g *GoProfiler) pullProfile() {
 				Start:         metrics.NewRFC3339Time(pData.startTime),
 				End:           metrics.NewRFC3339Time(pData.endTime),
 				Attachments:   deltaFileNames,
-				TagsProfiler:  metrics.JoinTags(g.tags),
-				SubCustomTags: metrics.JoinTags(g.Tags),
+				TagsProfiler:  metrics.JoinTags(allTags),
+				SubCustomTags: metrics.JoinTags(customTags),
 			},
 			g.input.GetBodySizeLimit(),
 		); err != nil {
 			log.Warnf("push delta profile data error: %s", err.Error())
+			if firstErr == nil {
+				firstErr = err
+			}
 		}
 	}
+
+	return firstErr
 }
 
-func (g *GoProfiler) pullProfileItem(profileType string, item Item) (*profileData, error) {
+func copyTags(tags map[string]string) map[string]string {
+	result := make(map[string]string, len(tags))
+	for k, v := range tags {
+		result[k] = v
+	}
+	return result
+}
+
+func (g *GoProfiler) pullProfileItem(
+	ctx context.Context,
+	profileType string,
+	item Item,
+	duration time.Duration,
+) (*profileData, error) {
+	params := cloneURLValues(item.params)
+	if profileType == "cpu" {
+		seconds := int(duration.Round(time.Second) / time.Second)
+		if seconds < 1 {
+			seconds = 1
+		}
+		params.Set("seconds", strconv.Itoa(seconds))
+	}
+
 	startTime := time.Now()
-	buf, err := g.pullProfileData(item.path, item.params)
+	buf, err := g.pullProfileData(ctx, item.path, params)
 	if err != nil {
 		return nil, fmt.Errorf("pull profile data error: %w", err)
 	}
 	endTime := time.Now()
+	var current *pprofile.Profile
+	var decoded []byte
+	if g.validateResponse {
+		current, decoded, err = parseBoundedProfile(buf.Bytes(), g.input.GetBodySizeLimit())
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
 	if len(item.deltaValues) > 0 {
-		curProf, err := pprofile.ParseData(buf.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("parse prof error:%w", err)
+		curProf := current
+		if curProf == nil {
+			curProf, err = pprofile.ParseData(buf.Bytes())
+			if err != nil {
+				return nil, fmt.Errorf("parse prof error:%w", err)
+			}
 		}
 
-		prevProf, ok := g.deltas[profileType]
-		g.deltas[profileType] = curProf
+		var prevProf *pprofile.Profile
+		if g.deltaCache != nil {
+			previous := g.deltaCache.exchange(g, profileType, decoded)
+			if previous != nil {
+				prevProf, err = pprofile.ParseUncompressed(previous)
+				if err != nil {
+					return nil, fmt.Errorf("invalid cached profile")
+				}
+			}
+		} else {
+			prevProf = g.deltas[profileType]
+			g.deltas[profileType] = curProf
+		}
 
 		// ignore first profile
-		if !ok {
+		if prevProf == nil {
 			return nil, nil
 		}
 
@@ -325,20 +461,26 @@ func (g *GoProfiler) pullProfileItem(profileType string, item Item) (*profileDat
 	}, nil
 }
 
-func (g *GoProfiler) pullProfileData(path string, params url.Values) (*bytes.Buffer, error) {
-	u := url.URL{
-		Path:   path,
-		Scheme: g.url.Scheme,
-		Host:   g.url.Host,
+func cloneURLValues(values url.Values) url.Values {
+	result := make(url.Values, len(values))
+	for k, values := range values {
+		result[k] = append([]string(nil), values...)
 	}
+	return result
+}
+
+func (g *GoProfiler) pullProfileData(ctx context.Context, profilePath string, params url.Values) (*bytes.Buffer, error) {
+	u := *g.url
+	u.Path = path.Join(g.url.Path, profilePath)
+	u.RawPath = ""
 
 	if params != nil {
 		u.RawQuery = params.Encode()
 	}
 
-	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, &profileRequestError{endpoint: safeProfileURL(&u), cause: err}
 	}
 
 	if g.client == nil {
@@ -347,22 +489,23 @@ func (g *GoProfiler) pullProfileData(path string, params url.Values) (*bytes.Buf
 
 	resp, err := g.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, &profileRequestError{endpoint: safeProfileURL(&u), cause: err}
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid response status: %s(%s)", resp.Status, u.String())
+		return nil, fmt.Errorf("invalid response status: %d(%s)", resp.StatusCode, safeProfileURL(&u))
 	}
 
 	dst := new(bytes.Buffer)
-	n, err := io.Copy(dst, LimitReader(resp.Body, g.input.GetBodySizeLimit()))
+	limit := g.input.GetBodySizeLimit()
+	n, err := io.Copy(dst, io.LimitReader(resp.Body, limit+1))
 	if err != nil {
-		return nil, err
+		return nil, &profileRequestError{endpoint: safeProfileURL(&u), cause: err}
 	}
 
-	if n > g.input.GetBodySizeLimit() {
+	if n > limit {
 		return nil, fmt.Errorf("exceed body max size")
 	}
 
@@ -370,8 +513,7 @@ func (g *GoProfiler) pullProfileData(path string, params url.Values) (*bytes.Buf
 }
 
 func (g *GoProfiler) createHTTPClient() (*http.Client, error) {
-	timeout := 15 * time.Second
-	client := &http.Client{Timeout: timeout}
+	client := &http.Client{Timeout: g.timeout}
 
 	if g.TLSOpen {
 		if g.InsecureSkipVerify {
@@ -390,36 +532,38 @@ func (g *GoProfiler) createHTTPClient() (*http.Client, error) {
 		}
 	}
 
+	if transport, ok := client.Transport.(*http.Transport); ok {
+		transport.IdleConnTimeout = 90 * time.Second
+		transport.MaxIdleConns = 16
+		transport.TLSHandshakeTimeout = 10 * time.Second
+	}
 	return client, nil
 }
 
-type Reader interface {
-	Read(p []byte) (n int, err error)
+func safeProfileURL(endpoint *url.URL) string {
+	if endpoint == nil {
+		return ""
+	}
+	return (&url.URL{Scheme: endpoint.Scheme, Host: endpoint.Host, Path: endpoint.Path}).String()
 }
 
-var ErrEOF = errors.New("EOF")
-
-func LimitReader(r Reader, n int64) Reader { return &LimitedReader{r, n} }
-
-// A LimitedReader reads from R but limits the amount of
-// data returned to just N bytes. Each call to Read
-// updates N to reflect the new amount remaining.
-// Read returns EOF when N <= 0 or when the underlying R returns EOF.
-type LimitedReader struct {
-	R Reader // underlying reader
-	N int64  // max bytes remaining
+type profileRequestError struct {
+	endpoint string
+	cause    error
 }
 
-func (l *LimitedReader) Read(p []byte) (n int, err error) {
-	if l.N <= 0 {
-		return 0, ErrEOF
+func (err *profileRequestError) Error() string {
+	reason := "HTTP request failed"
+	if errors.Is(err.cause, context.Canceled) {
+		reason = "request canceled"
+	} else if errors.Is(err.cause, context.DeadlineExceeded) {
+		reason = "request timed out"
 	}
-	if int64(len(p)) > l.N {
-		p = p[0:l.N]
-	}
-	n, err = l.R.Read(p)
-	l.N -= int64(n)
-	return
+	return fmt.Sprintf("%s: %s (%T)", err.endpoint, reason, err.cause)
+}
+
+func (err *profileRequestError) Unwrap() error {
+	return err.cause
 }
 
 func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {

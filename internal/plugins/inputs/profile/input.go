@@ -69,6 +69,10 @@ const (
   ## the max allowed size of http request body (of MB), 32MB by default.
   body_size_limit_mb = 32 # MB
 
+  ## Shared limits across all Kubernetes discovery rules in this input.
+  kubernetes_max_concurrency = 2
+  kubernetes_delta_cache_mb = 32
+
   ## set false to stop generating apm metrics from ddtrace output.
   generate_metrics = true
 
@@ -101,6 +105,10 @@ const (
   ## pull interval, should be greater or equal than 10s
   #interval = "10s"
 
+  ## CPU profile duration and HTTP request timeout.
+  #profile_duration = "10s"
+  #http_timeout = "15s"
+
   ## service name
   #service = "go-demo"
 
@@ -116,6 +124,48 @@ const (
 
 #[inputs.profile.go.tags]
   # tag1 = "val1"
+
+## Kubernetes Go pprof auto-discovery config.
+## DataKit discovers and directly accesses ready Pod IPs on its own node.
+#[[inputs.profile.kubernetes]]
+  #node_local = true
+  #namespaces = ["default"]
+  #selector = "app.kubernetes.io/name=my-app"
+  #container = "app"
+  #scheme = "http"
+  ## A named container port or a numeric port string.
+  #port = "pprof"
+  #path = "/debug/pprof"
+
+  #interval = "10m"
+  #scheduled_types = ["heap", "goroutine"]
+  #trigger_types = ["cpu", "heap", "goroutine"]
+  #profile_duration = "30s"
+  #emergency_duration = "10s"
+  #request_timeout = "45s"
+
+  ## Resource triggers use this node's kubelet /stats/summary data.
+  #monitor_interval = "10s"
+  #trigger_window = "1m"
+  #cooldown = "10m"
+  #max_concurrency = 2
+  #cpu_usage_base_limit = 80
+  #cpu_usage_millicores = 0
+  #mem_usage_base_limit = 80
+  #mem_usage_bytes = 0
+  #cpu_emergency_base_limit = 95
+  #cpu_emergency_millicores = 0
+  #mem_emergency_base_limit = 95
+  #mem_emergency_bytes = 0
+
+#[inputs.profile.kubernetes.tags]
+  # team = "database"
+
+#[inputs.profile.kubernetes.pod_label_as_tags]
+  # "app.kubernetes.io/component" = "component"
+
+#[inputs.profile.kubernetes.pod_annotation_as_tags]
+  # "example.com/owner" = "owner"
 
 ## pyroscope config
 #[[inputs.profile.pyroscope]]
@@ -192,7 +242,9 @@ func defaultDiskCachePath() string {
 
 func DefaultInput() *Input {
 	return &Input{
-		BodySizeLimitMB: defaultProfileMaxSize,
+		KubernetesMaxConcurrency: defaultKubernetesProfileConcurrency,
+		KubernetesDeltaCacheMB:   defaultKubernetesDeltaCacheMB,
+		BodySizeLimitMB:          defaultProfileMaxSize,
 		IOConfig: ioConfig{
 			CachePath:         defaultDiskCachePath(),
 			CacheCapacityMB:   defaultDiskCacheSize,
@@ -224,14 +276,17 @@ func init() { //nolint:gochecknoinits
 }
 
 type Input struct {
-	Endpoints       []string          `toml:"endpoints"`
-	BodySizeLimitMB int               `toml:"body_size_limit_mb"`
-	IOConfig        ioConfig          `toml:"io_config"`
-	Tags            map[string]string `toml:"tags"`
-	Go              []*GoProfiler     `toml:"go"`
-	PyroscopeLists  []*pyroscopeOpts  `toml:"pyroscope"`
-	Election        bool              `toml:"election"`
-	GenerateMetrics bool              `toml:"generate_metrics"`
+	KubernetesMaxConcurrency int                   `toml:"kubernetes_max_concurrency"`
+	KubernetesDeltaCacheMB   int                   `toml:"kubernetes_delta_cache_mb"`
+	Endpoints                []string              `toml:"endpoints"`
+	BodySizeLimitMB          int                   `toml:"body_size_limit_mb"`
+	IOConfig                 ioConfig              `toml:"io_config"`
+	Tags                     map[string]string     `toml:"tags"`
+	Go                       []*GoProfiler         `toml:"go"`
+	Kubernetes               []*KubernetesProfiler `toml:"kubernetes"`
+	PyroscopeLists           []*pyroscopeOpts      `toml:"pyroscope"`
+	Election                 bool                  `toml:"election"`
+	GenerateMetrics          bool                  `toml:"generate_metrics"`
 
 	pause atomic.Bool
 
@@ -810,6 +865,14 @@ func (ipt *Input) Run() {
 				return nil
 			})
 		}(g)
+	}
+	if len(ipt.Kubernetes) > 0 {
+		groupPull.Go(func(ctx context.Context) error {
+			if err := ipt.runKubernetesProfilers(ctx); err != nil {
+				log.Errorf("Kubernetes profile collection error: %s", err)
+			}
+			return nil
+		})
 	}
 
 	for _, g := range ipt.PyroscopeLists {

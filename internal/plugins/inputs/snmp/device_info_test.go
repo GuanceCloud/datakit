@@ -8,6 +8,8 @@ package snmp
 
 import (
 	"encoding/json"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +17,35 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
 )
+
+func TestDeviceMetadataWithoutBatching(t *testing.T) {
+	for _, count := range []int{99, 100, 101, 268} {
+		t.Run(strconv.Itoa(count), func(t *testing.T) {
+			values := &snmputil.ResultValueStore{ColumnValues: snmputil.ColumnResultValuesType{
+				"1.3.6.1.2.1.31.1.1.1.1": {},
+				"1.3.6.1.2.1.4.20.1.2":   {},
+			}}
+			for i := 1; i <= count; i++ {
+				values.ColumnValues["1.3.6.1.2.1.31.1.1.1.1"][strconv.Itoa(i)] = snmputil.ResultValue{Value: "eth" + strconv.Itoa(i)}
+			}
+			for i := 1; i <= 10; i++ {
+				values.ColumnValues["1.3.6.1.2.1.4.20.1.2"]["192.0.2."+strconv.Itoa(i)] = snmputil.ResultValue{Value: strconv.Itoa(i)}
+			}
+			di := &deviceInfo{Namespace: "default", IP: "192.0.2.1"}
+			var out deviceMetaData
+			di.ReportNetworkDeviceMetadata(values, nil, snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil), time.Now(),
+				snmputil.DeviceStatusReachable, &out)
+			var payload snmputil.NetworkDevicesMetadata
+			require.NoError(t, json.Unmarshal([]byte(strings.Join(out.data, ", ")), &payload))
+			require.Len(t, payload.Devices, 1)
+			require.Len(t, payload.Interfaces, count)
+			require.Len(t, payload.IPAddresses, 10)
+			for _, iface := range payload.Interfaces {
+				assert.Equal(t, payload.Devices[0].ID, iface.DeviceID)
+			}
+		})
+	}
+}
 
 func TestOIDConfigForCollection(t *testing.T) {
 	metadata := snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil)

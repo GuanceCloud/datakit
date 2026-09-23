@@ -6,6 +6,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +22,7 @@ import (
 
 type KubeletClient interface {
 	GetStatsSummary() (*statsv1alpha1.Summary, error)
+	GetStatsSummaryWithContext(context.Context) (*statsv1alpha1.Summary, error)
 }
 
 func DefaultKubeletHostInCluster() string {
@@ -67,12 +69,16 @@ type kubeletClient struct {
 }
 
 func (kc *kubeletClient) GetStatsSummary() (*statsv1alpha1.Summary, error) {
+	return kc.GetStatsSummaryWithContext(context.Background())
+}
+
+func (kc *kubeletClient) GetStatsSummaryWithContext(ctx context.Context) (*statsv1alpha1.Summary, error) {
 	u := url.URL{
 		Scheme: kc.scheme,
 		Host:   kc.host,
 		Path:   "/stats/summary",
 	}
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}

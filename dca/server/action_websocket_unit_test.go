@@ -123,6 +123,7 @@ func TestDoCommonActionAndPreOperation(t *testing.T) {
 	dk := newTestDataKit("common")
 	require.NoError(t, db.Insert(dk))
 	client := newTestClientForRequest()
+	client.ID = dk.ConnID // production invariant: the session conn id comes from the registration
 	client.DataKit = dk
 
 	doCommonAction(client, &ws.WebsocketMessage{
@@ -142,6 +143,8 @@ func TestDoCommonActionAndPreOperation(t *testing.T) {
 		Action: ws.UpdateDatakit,
 		Data:   &ws.ActionData{Body: "{bad-json"},
 	})
+	require.Equal(t, dk.ConnID, client.DataKit.ConnID,
+		"an unparsable push must not wipe the state of the live session")
 
 	updated := newTestDataKit("common")
 	updated.HostName = "updated-host"
@@ -319,4 +322,75 @@ func TestGenericActionHandlerReadError(t *testing.T) {
 
 func mapValues(key, value string) map[string][]string {
 	return map[string][]string{key: {value}}
+}
+
+// A datakit may report a new conn id over a live session (its IP/websocket
+// address/workspace changed). Everything must keep being bookkept under the
+// conn id of the session, otherwise the session's row is never updated and
+// stays "running" after the connection is gone (管理 -> "datakit not available").
+func TestDoCommonActionUpdateDatakitKeepsSessionConnID(t *testing.T) {
+	db := withTestDatakitDB(t)
+
+	session := newTestDataKit("session-conn")
+	require.NoError(t, db.Insert(session))
+
+	client := newTestClientForRequest()
+	client.ID = session.ConnID
+	client.DataKit = session
+
+	reported := newTestDataKit("reported-conn")
+	reported.HostName = "updated-host"
+	reported.IP = "10.20.30.99"
+
+	doCommonAction(client, &ws.WebsocketMessage{
+		Action: ws.UpdateDatakit,
+		Data:   &ws.ActionData{Body: string(reported.Bytes())},
+	})
+
+	// the pushed info lands on the row of this session, whose key does not change
+	found, err := db.Find(session)
+	require.NoError(t, err)
+	require.NotNil(t, found)
+	require.Equal(t, "updated-host", found.HostName)
+	require.Equal(t, "10.20.30.99", found.IP)
+	require.Equal(t, session.ConnID, client.DataKit.ConnID)
+
+	// no orphan row is created for the reported conn id
+	orphan, err := db.Find(reported)
+	require.NoError(t, err)
+	require.Nil(t, orphan)
+
+	// when the session ends its own row is the one that goes offline
+	require.NoError(t, db.DeleteByConnID(client.ID, client.DataKit.RunInContainer))
+	found, err = db.Find(session)
+	require.NoError(t, err)
+	require.Equal(t, ws.StatusOffline, found.Status)
+}
+
+func TestNullDatakitUpdateKeepsSessionAndUnlocksManager(t *testing.T) {
+	db := withTestDatakitDB(t)
+	dk := newTestDataKit("null-update")
+	require.NoError(t, db.Insert(dk))
+	client := newTestClientForRequest()
+	client.ID, client.DataKit = dk.ConnID, dk
+	replaceManagerState(t, Manager.Register, Manager.Unregister, map[string]*Client{client.ID: client}, Manager.WebsocketConns)
+	var recovered any
+	func() {
+		defer func() { recovered = recover() }()
+		client.receiveMessage((&ws.WebsocketMessage{Action: ws.UpdateDatakit, Data: &ws.ActionData{Body: "null"}}).Bytes())
+	}()
+	// Release even a leaked lock so this regression test cannot deadlock later tests.
+	available := Manager.TryLock()
+	Manager.Unlock()
+	require.Nil(t, recovered, "null metadata must not panic")
+	require.True(t, available, "the manager lock must be released")
+	require.Same(t, dk, client.DataKit)
+	row, err := db.Find(dk)
+	require.NoError(t, err)
+	require.NotNil(t, row)
+	require.Equal(t, ws.StatusRunning, row.Status)
+	client.receiveMessage((&ws.WebsocketMessage{Action: ws.UpdateDatakitStatus, Data: &ws.ActionData{Query: mapValues("status", "stopped")}}).Bytes())
+	row, err = db.Find(dk)
+	require.NoError(t, err)
+	require.Equal(t, ws.StatusStopped, row.Status)
 }

@@ -67,7 +67,15 @@ export function isValidIP(ip: string): boolean {
 }
 
 export function isDatakitManagement(dk: IDatakit): boolean {
-  return dk.status === DCA_STATUS.RUNNING
+  // `alive` comes from the DCA backend: a row can look "running" while its
+  // websocket session is already gone, and then every action would just fail.
+  // Older backends do not send the field, so treat it as alive by default.
+  return dk.status === DCA_STATUS.RUNNING && dk.alive !== false
+}
+
+/** the row claims to be running, but the DCA backend has no session for it */
+export function isDatakitSessionLost(dk: IDatakit): boolean {
+  return dk.status === DCA_STATUS.RUNNING && dk.alive === false
 }
 
 export function isLoadingStatus(dk: IDatakit): boolean {

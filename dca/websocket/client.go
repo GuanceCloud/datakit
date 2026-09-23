@@ -15,11 +15,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
+	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -227,8 +228,17 @@ func (r *DCAResponse) SetError(errors ...*ResponseError) {
 
 type ActionHandler func(client *Client, id int64, data any) error
 
+const actionQueueSize = 64
+
+type queuedAction struct {
+	conn *websocket.Conn
+	data []byte
+}
+
 type Client struct {
 	sync.RWMutex
+	actionQueue       chan queuedAction
+	tlsConfig         *tls.Config
 	conn              *websocket.Conn
 	l                 *logger.Logger
 	websocketAddress  string
@@ -244,6 +254,21 @@ type Client struct {
 	g                 *goroutine.Group
 	failCount         int
 	datakit           *DataKit
+	// lastPong is the time of the last pong received on the current connection.
+	// A session can die while the TCP connection stays open (a proxy keeps the
+	// client side, the peer stops answering): without it the datakit would stay
+	// "connected" to a session that does not exist anymore.
+	lastPong atomic.Int64
+}
+
+// WithTLSConfig applies the same TLS policy to the control and log connections.
+// Pass RootCAs to verify a private CA instead of using legacy insecure TLS.
+func WithTLSConfig(config *tls.Config) func(*Client) {
+	return func(c *Client) {
+		if config != nil {
+			c.tlsConfig = config.Clone()
+		}
+	}
 }
 
 func WithDataKit(dk *DataKit) func(*Client) {
@@ -298,6 +323,7 @@ func WithTimeout(timeout time.Duration) func(*Client) {
 
 func NewClient(opts ...func(*Client)) (*Client, error) {
 	c := &Client{
+		actionQueue:       make(chan queuedAction, actionQueueSize),
 		close:             make(chan interface{}),
 		heartbeatInterval: 10 * time.Second,
 		actionHandlerMap:  map[string]ActionHandler{},
@@ -319,8 +345,18 @@ func NewClient(opts ...func(*Client)) (*Client, error) {
 		return nil, errors.New("websocket address is empty")
 	}
 
-	if c.datakit == nil || c.datakit.WorkspaceUUID == "" || c.datakit.ConnID == "" {
-		return nil, errors.New("datakit is nil, or workspace uuid or conn id is empty")
+	if c.datakit == nil {
+		return nil, errors.New("datakit info is missing, cannot create the dca websocket client")
+	}
+
+	if c.datakit.WorkspaceUUID == "" {
+		return nil, errors.New(
+			"datakit workspace uuid is empty: the datakit cannot resolve its workspace, check its dataway token")
+	}
+
+	if c.datakit.ConnID == "" {
+		return nil, errors.New(
+			"datakit conn id is empty: the datakit has no dca websocket server configured")
 	}
 
 	return c, nil
@@ -419,12 +455,17 @@ func (c *Client) getConn() *websocket.Conn {
 	return c.conn
 }
 
-func (c *Client) doReadMessage() (messageType int, p []byte, err error) {
-	conn := c.getConn()
-	if conn == nil {
-		return 0, nil, errors.New("connection is nil")
+// dropConn closes the given connection if it is still the current one, so the
+// heartbeat opens a new one. Used when the read side reports a dead connection;
+// the check keeps a late error of an old connection from closing the new one.
+func (c *Client) dropConn(conn *websocket.Conn) {
+	c.Lock()
+	defer c.Unlock()
+
+	if conn != nil && c.conn == conn {
+		conn.Close() //nolint:errcheck,gosec
+		c.conn = nil
 	}
-	return conn.ReadMessage()
 }
 
 func (c *Client) read() {
@@ -436,10 +477,30 @@ func (c *Client) read() {
 		default:
 		}
 
-		messageType, message, err := c.doReadMessage()
+		conn := c.getConn()
+		var messageType int
+		var message []byte
+		var err error
+		if conn == nil {
+			err = errors.New("connection is nil")
+		} else {
+			messageType, message, err = conn.ReadMessage()
+		}
 		if err != nil {
-			c.l.Warnf("read failed: %s", err.Error())
-			time.Sleep(c.heartbeatInterval)
+			if conn != nil {
+				c.l.Warnf("read failed: %s", err.Error())
+				// the connection is gone: drop it so the heartbeat reconnects
+				// instead of retrying a dead socket forever
+				c.dropConn(conn)
+			}
+			// without a connection the heartbeat owns reconnecting: wait quietly
+			// instead of logging the same failure once per interval
+			select {
+			case <-c.close:
+				c.l.Info("exit read")
+				return
+			case <-time.After(c.heartbeatInterval):
+			}
 			continue
 		}
 
@@ -447,9 +508,39 @@ func (c *Client) read() {
 
 		switch messageType {
 		case websocket.TextMessage:
-			c.dealMessage(message)
+			select {
+			case <-c.close:
+				return
+			case c.actionQueue <- queuedAction{conn: conn, data: message}:
+			default:
+				// Never block the only reader: queued work must not prevent pong handling.
+				// Close the overloaded session so pending requests fail explicitly.
+				c.l.Warn("action queue is full, closing websocket connection")
+				c.dropConn(conn)
+			}
 		default:
 			c.l.Warnf("message type: %v, ignored", messageType)
+		}
+	}
+}
+
+// runActions preserves action order while the reader keeps processing control frames.
+// On shutdown the group waits for the in-flight action; queued actions are discarded.
+func (c *Client) runActions() {
+	for {
+		select {
+		case <-c.close:
+			return
+		case action := <-c.actionQueue:
+			select {
+			case <-c.close:
+				return
+			default:
+			}
+			if c.getConn() != action.conn {
+				continue
+			}
+			c.dealMessage(action.data)
 		}
 	}
 }
@@ -471,10 +562,10 @@ func (c *Client) dealMessage(rawData []byte) {
 			ErrorMsg:  "action failed",
 		})
 
-		c.sendQueue <- &WebsocketMessage{
-			ID:     message.ID,
-			Action: message.Action,
-			Data:   response,
+		if err := c.SendMessage(&WebsocketMessage{
+			ID: message.ID, Action: message.Action, Data: response,
+		}); err != nil {
+			c.l.Warnf("send action error failed: %s", err)
 		}
 	}
 }
@@ -524,6 +615,8 @@ func (c *Client) SendMessage(message *WebsocketMessage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	select {
+	case <-c.close:
+		return errors.New("dca websocket client stopped")
 	case <-ctx.Done():
 		return fmt.Errorf("send message timeout")
 	case c.sendQueue <- message:
@@ -531,29 +624,42 @@ func (c *Client) SendMessage(message *WebsocketMessage) error {
 	}
 }
 
+// dialTimeout bounds one dial/handshake attempt. Without it an unreachable (or
+// black holed) DCA endpoint blocks the attempt for the dialer default.
+const dialTimeout = 10 * time.Second
+
+// Dial opens a connection using this client's TLS policy, without changing the
+// global dialer. Log sub-connections must use this too, including private CAs.
+func (c *Client) Dial(header http.Header) (*websocket.Conn, *http.Response, error) {
+	config := c.tlsConfig
+	if config == nil {
+		// Preserve the existing DCA self-signed certificate compatibility.
+		config = &tls.Config{InsecureSkipVerify: true} //nolint:gosec
+	} else {
+		config = config.Clone()
+	}
+	dialer := &websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: dialTimeout,
+		NetDialContext:   (&net.Dialer{Timeout: dialTimeout, KeepAlive: 30 * time.Second}).DialContext,
+		TLSClientConfig:  config,
+	}
+	return dialer.Dial(c.websocketAddress, header)
+}
+
 // Init websocket connection. Close the old connection if it exists.
 func (c *Client) init() error {
-	c.Lock()
-	defer c.Unlock()
-	if c.conn != nil {
-		c.conn.Close() // nolint:errcheck,gosec
-		c.conn = nil
-	}
-
 	header := make(http.Header)
-	header.Set(HeaderDatakit, string(c.datakit.Bytes()))
+	header.Set(HeaderDatakit, string(c.GetDatakit().Bytes()))
 
-	dialer := websocket.DefaultDialer
-	if strings.HasPrefix(c.websocketAddress, "wss://") { // tls
-		dialer.TLSClientConfig = &tls.Config{RootCAs: nil, InsecureSkipVerify: true} // nolint:gosec
+	conn, resp, err := c.Dial(header)
+	if resp != nil {
+		defer resp.Body.Close() //nolint: errcheck
 	}
-
-	conn, resp, err := dialer.Dial(c.websocketAddress, header)
 	if err != nil {
 		return fmt.Errorf("dial failed: %w", err)
 	}
 
-	defer resp.Body.Close() // nolint: errcheck
 	if resp.StatusCode != http.StatusSwitchingProtocols {
 		if body, err := io.ReadAll(resp.Body); err != nil {
 			return fmt.Errorf("read body failed: %w", err)
@@ -562,8 +668,31 @@ func (c *Client) init() error {
 		}
 	}
 
-	c.l.Infof("websocket connection established")
+	conn.SetPongHandler(func(string) error {
+		c.RLock()
+		defer c.RUnlock()
+		if c.conn == conn {
+			c.lastPong.Store(time.Now().UnixNano())
+		}
+		return nil
+	})
+
+	c.Lock()
+	if c.closed {
+		c.Unlock()
+		conn.Close() //nolint:errcheck,gosec
+		return errors.New("dca websocket client stopped")
+	}
+	old := c.conn
+	c.lastPong.Store(0) // new connection: no pong seen yet
 	c.conn = conn
+	c.Unlock()
+
+	if old != nil {
+		old.Close() //nolint:errcheck,gosec
+	}
+
+	c.l.Infof("websocket connection established")
 	return nil
 }
 
@@ -586,14 +715,12 @@ func (c *Client) heartbeat() {
 				c.l.Warnf("failed to init websocket: %s, fail %d times", err.Error(), c.failCount)
 			} else {
 				c.failCount = 0
+				// Reconnect backoff must never become the healthy connection heartbeat period.
+				ticker.Reset(c.heartbeatInterval)
 			}
 		}
 		if c.failCount > 0 {
-			ticker.Reset(c.heartbeatInterval * time.Duration(math.Log2(float64(2+c.failCount))))
-		}
-		// avoid too large fail count
-		if c.failCount > 1000 {
-			c.failCount = 10
+			ticker.Reset(c.backoffDelay())
 		}
 		select {
 		case <-ticker.C:
@@ -602,6 +729,28 @@ func (c *Client) heartbeat() {
 			return
 		}
 	}
+}
+
+// backoffDelay returns how long to wait before the next heartbeat/reconnect
+// attempt: exponential from the heartbeat interval, capped, plus jitter. A host
+// that cannot reach the DCA endpoint keeps retrying forever, so the delay must
+// grow instead of hammering the entry on every heartbeat.
+func (c *Client) backoffDelay() time.Duration {
+	shift := c.failCount - 1
+	if shift > 5 {
+		shift = 5
+	}
+
+	delay := c.heartbeatInterval * time.Duration(1<<shift)
+	if maxDelay := 5 * time.Minute; delay > maxDelay {
+		delay = maxDelay
+	}
+
+	if jitter := int64(delay) / 5; jitter > 0 {
+		delay += time.Duration(rand.Int63n(jitter)) // up to 20% jitter
+	}
+
+	return delay
 }
 
 func (c *Client) doHeartbeat() error {
@@ -613,6 +762,18 @@ func (c *Client) doHeartbeat() error {
 	if conn == nil {
 		return fmt.Errorf("conn is nil")
 	}
+
+	// The write below only fails once the TCP stack gives up: with a black holed
+	// path (or a proxy that keeps the client side) it can succeed for a long
+	// time while the session on the peer is already gone. Once the DCA answered
+	// a ping on this connection, require the next answer within a few heartbeat
+	// intervals. Servers that never answer pings (older DCA) are unaffected.
+	if last := c.lastPong.Load(); last != 0 {
+		if age := time.Since(time.Unix(0, last)); age > 3*c.heartbeatInterval {
+			return fmt.Errorf("no pong for %s, session seems gone", age.Round(time.Second))
+		}
+	}
+
 	if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(c.timeout)); err != nil {
 		return fmt.Errorf("ping failed: %w", err)
 	}
@@ -621,6 +782,11 @@ func (c *Client) doHeartbeat() error {
 }
 
 func (c *Client) Start() {
+	c.g.Go(func(ctx context.Context) error {
+		c.runActions()
+		return nil
+	})
+
 	c.g.Go(func(ctx context.Context) error {
 		c.heartbeat()
 		return nil

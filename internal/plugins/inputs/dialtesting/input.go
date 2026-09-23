@@ -683,80 +683,76 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) doServerTask() {
-	var f rtpanic.RecoverCallback
-	crashTimes := 0
+	du, err := time.ParseDuration(ipt.PullInterval)
+	if err != nil || du > 24*time.Hour || du < time.Second*10 {
+		l.Warnf("invalid frequency: %s, use default", ipt.PullInterval)
+		du = time.Minute
+	}
+	ipt.runServerTasks(du)
+}
 
-	f = func(stack []byte, err error) {
-		defer rtpanic.Recover(f, nil)
+func (ipt *Input) runServerTasks(interval time.Duration) {
+	// These services belong to the input, not to an individual pull attempt.
+	// Restarting them after a panic leaves multiple variable workers sharing state.
+	ipt.variables.ipt = ipt
+	ipt.variables.run()
+	ipt.startStreamWatcher()
 
-		if stack != nil {
-			crashTimes++
-			l.Warnf("[%dth]input paniced: %v", crashTimes, err)
-			l.Warnf("[%dth]paniced trace: \n%s", crashTimes, string(stack))
-			if crashTimes > 6 {
-				return
-			}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		// Preserve the normal polling cadence, including a pending tick after a
+		// slow round. Only a panic needs a fresh interval to avoid a retry loop.
+		if ipt.pullAndDispatchTasks() {
+			ticker.Reset(interval)
 		}
-
-		du, err := time.ParseDuration(ipt.PullInterval)
-		if err != nil {
-			l.Warnf("invalid frequency: %s, use default", ipt.PullInterval)
-			du = time.Minute
-		}
-		if du > 24*time.Hour || du < time.Second*10 {
-			l.Warnf("invalid frequency: %s, use default", ipt.PullInterval)
-			du = time.Minute
-		}
-
-		tick := time.NewTicker(du)
-		defer tick.Stop()
-
-		// set regionID
-		ipt.variables.ipt = ipt
-		ipt.variables.run()
-		ipt.startStreamWatcher()
-
-		for {
-			if !ipt.pause.Load() {
-				l.Debug("try pull tasks...")
-				startPullTime := time.Now()
-				j, err := ipt.pullTask()
-				if err != nil {
-					l.Warnf(`pullTask: %s, ignore`, err.Error())
-				} else {
-					l.Debug("try dispatch tasks...")
-					endPullTime := time.Now()
-					if err := ipt.dispatchTasks(j); err != nil {
-						l.Warnf("dispatchTasks: %s, ignored", err.Error())
-					} else {
-						taskPullCostSummary.WithLabelValues(ipt.regionMetricName(), "0").
-							Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
-					}
-				}
-			} else {
-				l.Debug("pause, ignore pull tasks")
-				if ipt.pos > 0 {
-					l.Info("election defeat, stop all task")
-					ipt.stopAlltask()
-					ipt.pos = 0
-				}
-			}
-
-			select {
-			case <-datakit.Exit.Wait():
-				l.Info("exit")
-				return
-
-			case <-ipt.semStop.Wait():
-				l.Info("exit")
-				return
-
-			case <-tick.C:
-			}
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("exit")
+			return
+		case <-ticker.C:
 		}
 	}
+}
 
-	f(nil, nil)
+func (ipt *Input) pullAndDispatchTasks() (panicked bool) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			panicked = true
+			taskPullPanicCounter.WithLabelValues(ipt.regionMetricName()).Inc()
+			l.Errorf("task pull/dispatch panicked: %v; retrying after pull interval\n%s", recovered, debug.Stack())
+		}
+	}()
+
+	if ipt.pause.Load() {
+		l.Debug("pause, ignore pull tasks")
+		if ipt.pos > 0 {
+			l.Info("election defeat, stop all task")
+			ipt.stopAlltask()
+			ipt.pos = 0
+		}
+		return
+	}
+
+	l.Debug("try pull tasks...")
+	startPullTime := time.Now()
+	j, err := ipt.pullTask()
+	if err != nil {
+		l.Warnf("pullTask: %s, ignore", err.Error())
+		return
+	}
+	endPullTime := time.Now()
+	l.Debug("try dispatch tasks...")
+	if err := ipt.dispatchTasks(j); err != nil {
+		l.Warnf("dispatchTasks: %s, ignored", err.Error())
+		return
+	}
+	taskPullCostSummary.WithLabelValues(ipt.regionMetricName(), "0").
+		Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
+	return
 }
 
 func (ipt *Input) doLocalTask(path string) {
@@ -1922,7 +1918,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 		case VariablesInfo:
 			text, ok := arr.(string)
 			if !ok {
-				l.Warnf("invalid variables info: expect string, got %s", reflect.TypeOf(arr))
+				l.Warnf("invalid variables info: expect string, got %T", arr)
 			} else {
 				vars := []dt.Variable{}
 				if err := json.Unmarshal([]byte(text), &vars); err != nil {
@@ -1947,7 +1943,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 		arr, ok := x.([]interface{})
 
 		if !ok {
-			l.Warnf("invalid resp.Content, expect []interface{}, got %s", reflect.TypeOf(x).String())
+			l.Warnf("invalid resp.Content, expect []interface{}, got %T", x)
 			continue
 		}
 
@@ -1998,7 +1994,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 
 			j, ok := data.(string)
 			if !ok {
-				l.Warnf("invalid task data, expect string, got %s", reflect.TypeOf(data).String())
+				l.Warnf("invalid task data, expect string, got %T", data)
 				continue
 			}
 

@@ -88,6 +88,8 @@ export type IDatakit = {
   usage_cores: number
   uptime: number
   status: string
+  /** whether the DCA backend currently holds a live websocket session */
+  alive?: boolean
   update_time: number
   workspace_uuid: string
   global_host_tags_string: string

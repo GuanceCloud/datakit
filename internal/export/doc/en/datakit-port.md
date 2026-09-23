@@ -8,13 +8,13 @@ DataKit need to open several local ports to serve it's features, We may open the
 | 2056          | UDP             | NetFlow netflow5 default port | N/A                                         |
 | 2280          | TCP             | Cat Tracing                   | N/A                                         |
 | 4040          | HTTP            | Pyroscope Profile             | `/ingest`                                   |
-| 4317          | gRPC            | OpenTelemetry                 | `otel/v1/traces`,`otel/v1/metrics`          |
+| 4317          | gRPC            | OpenTelemetry                 | N/A (OTLP/gRPC)                             |
 | 4739          | UDP             | NetFlow ipfix default port    | N/A                                         |
 | 5044          | TCP             | Beats                         | N/A                                         |
 | 6343          | UDP             | NetFlow sflow5 default port   | N/A                                         |
 | 8125          | UDP             | StatsD                        | N/A                                         |
 | 9109          | UDP/TCP         | Graphite                      | N/A                                         |
-| 9529          | HTTP            | DataKit HTTP                  |                                             |
+| 9529          | HTTP            | DataKit HTTP                  | `/otel/v1/traces`, `/otel/v1/metrics`, `/otel/v1/logs`, etc. |
 | 9530          | TCP             | Logging on socket(TCP)        | N/A                                         |
 | 9531          | TCP             | DCA Server                    | N/A                                         |
 | 9531          | UDP             | Logging on Socket(UDP)        | N/A                                         |

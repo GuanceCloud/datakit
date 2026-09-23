@@ -109,7 +109,7 @@ java -javaagent:dd-java-agent.jar \
     -Ddd.profiling.enabled=true \
     -Ddd.logs.injection=true \
     -Ddd.trace.sample.rate=1 \
-    -Ddd.service.name=my-app \
+    -Ddd.service=my-app \
     -Ddd.env=staging \
     -Ddd.agent.host=localhost \
     -Ddd.agent.port=9529 \

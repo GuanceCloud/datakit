@@ -129,7 +129,9 @@ func obfuscateXMLPlan(rawPlan string) (string, error) {
 	decoder.Strict = false
 
 	for {
-		token, err := decoder.Token()
+		// Preserve the original prefixes and namespace declarations. Token resolves
+		// namespaces, causing EncodeToken to add xmlns alongside the original one.
+		token, err := decoder.RawToken()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -139,21 +141,26 @@ func obfuscateXMLPlan(rawPlan string) (string, error) {
 
 		switch t := token.(type) {
 		case xml.StartElement:
+			t.Name = xmlPlanQualifiedName(t.Name)
 			// Obfuscate attributes that need obfuscation
 			for i := range t.Attr {
-				if xmlPlanObfuscationAttrs[t.Attr[i].Name.Local] {
+				if xmlPlanObfuscationAttrs[t.Attr[i].Name.Local] && strings.TrimSpace(t.Attr[i].Value) != "" {
 					val := t.Attr[i].Value
 					obfResult, err := obfuscator.ObfuscateSQLString(val)
-					if err == nil {
-						t.Attr[i].Value = obfResult.Query
+					if err != nil {
+						// Keep raw SQL and the underlying error confined to debug logs.
+						return "", fmt.Errorf("failed to obfuscate XML attribute %q,%w", t.Attr[i].Name.Local, err)
 					}
+					t.Attr[i].Value = obfResult.Query
 				}
+				t.Attr[i].Name = xmlPlanQualifiedName(t.Attr[i].Name)
 			}
 			// Encode the modified StartElement
 			if err := encoder.EncodeToken(t); err != nil {
 				return "", fmt.Errorf("failed to encode start element: %w", err)
 			}
 		case xml.EndElement:
+			t.Name = xmlPlanQualifiedName(t.Name)
 			// Encode EndElement
 			if err := encoder.EncodeToken(t); err != nil {
 				return "", fmt.Errorf("failed to encode end element: %w", err)
@@ -175,9 +182,21 @@ func obfuscateXMLPlan(rawPlan string) (string, error) {
 		}
 	}
 
-	if err := encoder.Flush(); err != nil {
-		return "", fmt.Errorf("failed to flush encoder: %w", err)
+	// RawToken does not validate matching elements; Close also rejects plans
+	// truncated before their closing tags rather than returning partial XML.
+	if err := encoder.Close(); err != nil {
+		return "", fmt.Errorf("failed to close encoder: %w", err)
 	}
 
 	return result.String(), nil
+}
+
+// RawToken stores prefixes in Space; emit them literally so the encoder does
+// not interpret them as namespace URIs and generate new declarations.
+func xmlPlanQualifiedName(name xml.Name) xml.Name {
+	if name.Space != "" {
+		name.Local = name.Space + ":" + name.Local
+		name.Space = ""
+	}
+	return name
 }

@@ -3,6 +3,8 @@ title: 'DDTrace Java 扩展更新日志'
 skip: 'not-searchable-on-index-page'
 ---
 
+<!-- cspell:ignore Tyrus -->
+
 ## 简介 {#intro}
 
 本文记录 DataKit 中用于兼容 DDTrace Java 探针接入场景的 Java 扩展包更新内容。该扩展基于 `DataDog/dd-trace-java` 开发，遵循 `Apache License 2.0`。
@@ -45,110 +47,119 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+## v1.65.7-ext (2026/9/17) {#cl-1.65.7-ext}
+
+### 更新 {#cl-1.65.7-ext-update}
+
+- 新增 `async_entry=true` Span Tag，用于筛选异步线程框架创建的入口 Span。
+- 新增 ddtrace 与 SkyWalking 的 K6 压测报告。
+
+## v1.65.6-ext (2026/9/14) {#cl-1.65.6-ext}
+
+### 修复 {#cl-1.65.6-ext-fix}
+
+- 修正 Netty SSE 首个非空正文块的耗时和分片统计。
+
+## v1.65.5-ext (2026/9/10) {#cl-1.65.5-ext}
+
+### 修复 {#cl-1.65.5-ext-fix}
+
+- 修复 Redis 集群 span 使用配置域名命名时回退到实际节点 IP 的问题。
+
+## v1.65.4-ext (2026/9/4) {#cl-1.65.4-ext}
+
+### 更新 {#cl-1.65.4-ext-update}
+
+- 新增 Tyrus 2.x WebSocket 客户端握手链路支持。
+- 修复关闭 WebSocket 消息独立链路后，出站 send 和主动 close span 的链路归属问题。
+
+## v1.65.3-ext (2026/8/28) {#cl-1.65.3-ext}
+
+### 修复 {#cl-1.65.3-ext-fix}
+
+- 修复 128 位 Trace ID 在 Datadog HTTP 传播格式中的兼容性问题。
+
+## v1.65.2-ext (2026/8/28) {#cl-1.65.2-ext}
+
+### 更新 {#cl-1.65.2-ext-update}
+
+- 支持 Spring RabbitMQ 批量消息消费和日志关联。
+- 新增可选的 CXF Invoker 兜底链路。
+
 ## v1.65.0-ext (2026/8/7) {#cl-1.65.0-ext}
 
 ### 更新 {#cl-1.65.0-ext-update}
 
-- 基于 DataDog `dd-trace-java` v1.65.0，合并上游功能更新与问题修复，并加入 GuanceCloud 定制内容。
-- 新增可配置的 HTTP 请求和响应 Header、Body 采集，支持捕获 JSON 响应体以及黑白名单过滤；响应可注入 `ext_trace_id`，便于关联前后端链路。
-- 支持 GWT RPC 请求体 tagging，并新增 JVM 线程状态、GC StatsD 指标以及 Netty Client SSE 响应流 span。
-- 新增 BES 应用服务器、Nacos 异步线程链路透传和基于包名配置的 Trace 方法级增强；改进 xxl-job、Java-WebSocket、RabbitMQ 等探针，并修复 Redis Lettuce/Redisson 集群的 split-by-host 处理。
-- 支持 Log4j2 2.7 日志 Pattern 替换；新增 Kafka 3.8+ 实验性开关 `dd.trace.experimental.kafka.enabled`；修复 Redis 和 RabbitMQ 客户端消息宿主命名。
-
+- 合并 DataDog `dd-trace-java` v1.65.0，并加入 GuanceCloud 定制功能。
+- 新增 HTTP Header/Body 采集、GWT RPC、JVM 指标、Netty SSE、BES 和 Nacos 等支持。
 
 ## v1.63.7-ext (2026/7/1) {#cl-1.63.7-ext}
 
 ### 更新 {#cl-1.63.7-ext-fix}
 
-- Spring WebMVC 请求体采集新增对 `text/x-gwt-rpc` 的支持；开启 `dd.trace.request.body.enabled` 后，POST GWT RPC 请求会写入 `request_body` span 标签。
-- 请求体解码优先使用请求声明的 character encoding，未声明或无效时回退 UTF-8。
-- 未启用 OTLP runtime metrics 时，通过 DogStatsD 上报 `jvm.thread.count`，并按 `jvm.thread.daemon:true|false` 与 `jvm.thread.state:<state>` 区分 daemon / 非 daemon 线程和线程状态。
-- 新增原始 GC MXBean 指标 `jvm.gc.collection_count` 与 `jvm.gc.collection_time`，并保留 collector 名称为 `gc:<collector name>` 标签。
-- 复用 JVM 线程状态分桶逻辑，补充 GWT RPC 请求体采集、JVM 线程状态统计和 GC StatsD 上报的测试覆盖。
-
+- 支持采集 GWT RPC 请求体标签。
+- 新增 JVM 线程状态和原始 GC StatsD 指标。
 
 ## v1.63.6-ext (2026/6/29) {#cl-1.63.6-ext}
 
 ### 修复 {#cl-1.63.6-ext-fix}
 
 - 修复 BES 探针 root span 丢失问题。
-- 支持在 Spring WebMVC 过滤器中为 `text/x-gwt-rpc` 请求打上 `request_body` 标签，并补充对应的 forked coverage。
-
 
 ## v1.63.5-ext (2026/6/24) {#cl-1.63.5-ext}
 
 ### 更新 {#cl-1.63.5-ext-fix}
 
-- 增强 Spring RabbitMQ 消费链路与日志串联能力。
-- 修复 Spring RabbitMQ 消费消息时缺少业务消费 span 的问题，使消费者日志可在 listener 执行期间获取 `trace_id` / `span_id`。
-- 保留 RabbitMQ `basic.deliver` 低层 AMQP span，同时补充 Spring listener 业务处理阶段 span。
+- 增强 Spring RabbitMQ 消费链路与日志关联。
 - 新增 BES 11.0 应用服务器探针支持。
-
 
 ## v1.63.4-ext (2026/6/10) {#cl-1.63.4-ext}
 
 ### 新增 {#cl-1.63.4-ext-fix}
 
-- 新增 `netty.client.stream` span，用于统计 SSE 响应体持续读取阶段。
-- 保留现有 `netty.client.request` span，继续表示请求发出到响应头返回阶段。
-- 新增指标 `stream.first_chunk.ms` 与 `stream.chunk_count`，用于观察首包延迟和 Netty 内容分片数量。
-- 对 `text/event-stream` 响应，将 stream span 标记为 `internal`，并使用 `SSE stream ...` 资源名。
-
+- 新增 Netty Client SSE 响应流 span 及首包延迟、分片数量指标。
 
 ## v1.63.3-ext (2026/6/11) {#cl-1.63.3-ext}
 
 ### 新增 {#cl-1.63.3-ext-fix}
 
-- 新增配置项 `DD_TRACE_PEER_HOSTNAME_FROM_CONFIG_ENABLED` / `trace.peer.hostname.from.config.enabled`。
-- 默认关闭；开启后优先使用客户端连接配置中的 host 作为 `peer.hostname`。
-- 覆盖 `Jedis`、`Lettuce 5`、`Redisson`、`Valkey`、`Vertx Redis Client`。
-
+- 新增从 Redis 客户端连接配置获取 `peer.hostname` 的可选配置。
 
 ## v1.63.2-ext (2026/6/8) {#cl-1.63.2-ext}
 
 ### 修复 {#cl-1.63.2-ext-fix}
 
 - 修复 JMXFetch 对 `17-ea` 等 Java 版本字符串的识别问题。
-- 新增 `org.datadog.jmxfetch.util.JavaVersion` 版本解析工具。
-- 同时兼容 `java.specification.version` 与 `java.version` 的多种格式。
-
 
 ## v1.63.1-ext (2026/6/4) {#cl-1.63.1-ext}
 
 ### 新增 {#cl-1.63.1-ext-fix}
 
-- 新增配置项 `DD_SERVICE_MAPPING_FILE` / `dd.service.mapping.file`。
-- 支持从外部文件读取 service mapping，并与 `DD_SERVICE_MAPPING` 的内联配置合并。
-- 补充 `supported-configurations` 元数据以及对应单元测试。
-
+- 新增 `DD_SERVICE_MAPPING_FILE`，支持从外部文件读取并合并 service mapping。
 
 ## v1.63.0-ext (2026/6/3) {#cl-1.63.0-ext}
 
 ### 新增 {#cl-1.63.0-ext-fix}
 
-- 合并最新代码
-
+- 合并最新代码。
 
 ## v1.60.4-ext (2026/4/27) {#cl-1.60.4-ext}
 
-### 新增 {#cl-1.60.4-ext-fix}
+### 修复 {#cl-1.60.4-ext-fix}
 
 - 修复 Redis 显示 `service_name` 问题。
 
-
 ## v1.60.3-ext (2026/4/24) {#cl-1.60.3-ext}
 
-### 新增 {#cl-1.60.3-ext-fix}
+### 更新 {#cl-1.60.3-ext-fix}
 
-- 优化 JDBC 对于 Oracle 的支持。
-
+- 优化 JDBC 对 Oracle 的支持。
 
 ## v1.55.11-ext (2026/3/17) {#cl-1.55.11-ext}
 
-### 新增 {#cl-1.55.11-ext-fix}
+### 更新 {#cl-1.55.11-ext-fix}
 
-- 探针 RocketMQ 最低版本从 4.8.0 到 4.5.0
-
+- 将 RocketMQ 探针最低版本从 4.8.0 降至 4.5.0。
 
 ## v1.55.10-ext (2026/2/1) {#cl-1.55.10-ext}
 
@@ -156,33 +167,36 @@ skip: 'not-searchable-on-index-page'
 
 - 增加 `java-websocket` 探针支持。
 
-
 ## v1.55.7-ext (2025/12/30) {#cl-1.55.7-ext}
 
 ### 修复 {#cl-1.55.7-ext-fix}
 
-- 修复：Redis 参数没有正确显示问题。
-
+- 修复 Redis 参数未正确显示的问题。
 
 ## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
 
 ### 修复 {#cl-1.55.6-ext-fix}
 
-- 修复：RocketMQ scope limit error.
-- 添加 Response Body 白名单 [配置并开启](ddtrace-ext-java.md#response_body) 功能。
+- 修复 RocketMQ scope limit 问题。
+- 新增 Response Body 白名单[配置](ddtrace-ext-java.md#response_body)。
+
+## v1.55.5-ext (2025/12/15) {#cl-1.55.5-ext}
+
+### 更新 {#cl-1.55.5-ext-update}
+
+- 合并 DataDog DDTrace v1.55.0，并更新指标集及 Dubbo、RocketMQ、Kingbase 支持。
 
 ## v1.55.2-ext (2025/11/28) {#cl-1.55.2-ext}
 
 ### 修复 {#cl-1.55.2-ext-fix}
 
-- fix:RocketMQ scope limit error.
-- Merge latest branch v1.55.0
+- 修复 RocketMQ scope limit 问题，并合并 v1.55.0。
 
 ## v1.53.7-ext (2025/11/28) {#cl-1.53.7-ext}
 
-### 修复 {#cl-1.53.7-ext-fix}
+### 更新 {#cl-1.53.7-ext-fix}
 
-- support **Apache Dubbo** stream version 3.2
+- 支持 Apache Dubbo 3.2 流式调用及 `rocketmq.consume.ignore`。
 
 ## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}
 

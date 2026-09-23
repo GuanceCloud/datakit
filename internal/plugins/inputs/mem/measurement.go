@@ -17,9 +17,11 @@ func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   metricName,
 		Cat:    point.Metric,
-		Desc:   "Host virtual memory usage from gopsutil, including common memory totals and platform-specific Darwin or Linux memory counters.",
-		DescZh: "通过 gopsutil 采集的主机虚拟内存使用情况，包括通用内存容量以及 Darwin 或 Linux 平台特定的内存计数。",
+		Desc:   "Host memory usage, including common memory totals and platform-specific memory counters.",
+		DescZh: "主机内存使用情况，包括通用内存容量及各平台特定的内存指标。",
 		Fields: map[string]interface{}{
+			"free_system_page_table_entries": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of unused system page table entries. Windows amd64 only."},
+			"pages_total":                    &inputs.FieldInfo{Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount, Desc: "Raw cumulative page count from Windows Memory\\Pages/sec. Apply rate/irate in the backend to obtain pages per second; handle counter resets and wraparound. Windows amd64 only."},
 			"total": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,

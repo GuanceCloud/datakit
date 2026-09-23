@@ -189,8 +189,45 @@ func setupLogging() error {
 	return nil
 }
 
+// trimFileName removes the leading "./" or ".\" people may add when they use
+// shell auto-completion. Only that exact prefix is removed: trimming a *cutset*
+// of characters (the old implementation) also ate the leading "/" of an
+// absolute path, so an offline install that passes absolute --srcs paths could
+// not even open its packages ("Open(\"tmp/...\"): no such file or directory").
 func trimFileName(fname, prefix string) string {
-	return strings.Trim(strings.TrimSpace(fname), prefix)
+	return strings.TrimPrefix(strings.TrimSpace(fname), prefix)
+}
+
+// offlineExtractDestDir tells where an offline package must be extracted.
+//
+// The file name is matched on its base name, with leading dots stripped:
+// the offline one-liner passes the packages from a temp dir as absolute paths
+// (e.g. C:\Users\Li\AppData\Local\Temp\Temp_dk_installer_files_xxx\.dk_upgrader-windows-amd64-1.93.0.tar.gz),
+// and the older "./"-prefix matching missed those, so the upgrader package was
+// unpacked into the datakit dir and its service could not be installed
+// (windows: "upgrader service install/start failed: The system cannot find the
+// file specified.").
+func offlineExtractDestDir(fname string) string {
+	// strip the directory part with both separators: the same package name may
+	// be handed over with windows-style paths (and the code is also unit tested
+	// on other platforms)
+	if i := strings.LastIndexAny(fname, `/\`); i >= 0 {
+		fname = fname[i+1:]
+	}
+	base := strings.TrimLeft(strings.TrimSpace(fname), ".")
+
+	switch {
+	case strings.HasPrefix(base, "dk_upgrader"):
+		// dk_upgrader must go to its own install dir
+		return upgrader.InstallDir
+
+	case strings.HasPrefix(base, "datakit-apm-inject-linux-"):
+		return filepath.Join(datakit.InstallDir,
+			apminjUtils.DirInject, apminjUtils.DirInjectSubInject)
+
+	default: // datakit.tar.gz and data.tar.gz go to the datakit dir
+		return datakit.InstallDir
+	}
 }
 
 // offlineExtract extrac all downloaded files to installer dirs.
@@ -209,18 +246,7 @@ func offlineExtract() error {
 			return fmt.Errorf("Open(%q): %w", f, err)
 		}
 
-		// default extract to /usr/local/datakit
-		destDir := datakit.InstallDir
-
-		switch {
-		// dk_upgrader should extract to dir /usr/local/dk_upgrader
-		case strings.HasPrefix(f, "dk_upgrader"): // e.g., dk_upgrader-linux-amd64.tar.gz
-			destDir = upgrader.InstallDir
-
-		case strings.HasPrefix(f, "datakit-apm-inject-linux-"):
-			destDir = filepath.Join(datakit.InstallDir,
-				apminjUtils.DirInject, apminjUtils.DirInjectSubInject)
-		case strings.HasSuffix(f, "dd-java-agent.jar"):
+		if strings.HasSuffix(f, "dd-java-agent.jar") {
 			dstDir := filepath.Join(datakit.InstallDir,
 				apminjUtils.DirInject, apminjUtils.DirInjectSubLib, "java")
 
@@ -229,9 +255,9 @@ func offlineExtract() error {
 				l.Warnf("Copy %s to %s failed: %s", f, dstDir, err.Error())
 			}
 			continue // no need to extract, just copy to dir
-
-		default: // pass: others are datakit.tar.gz and data.tar.gz
 		}
+
+		destDir := offlineExtractDestDir(f)
 
 		l.Infof("extract %q to %q...", f, destDir)
 		if err := dl.Extract(fd, destDir); err != nil {

@@ -26,6 +26,8 @@
 
 安装脚本会根据当前下载路径自动选择对应的版本线，无需额外配置。由于两条路径各自独立发布，`datakit-v2` 路径只会安装/升级到最新的 `2.x`，`datakit` 路径只会安装/升级到最新的 `1.x`，互不互通。如需手动安装 `1.x`，使用带版本号的脚本（如 `install-1.93.0.sh`）即可。
 
+例外：Linux 和 Windows 使用支持回退的新脚本时，可设置 `DK_ALLOW_V1_FALLBACK=1`，在系统不兼容 `2.x` 时自动转用 `1.x` 安装/升级。
+
 ## 注册/登陆<<<custom_key.brand_name>>> {#regist-login}
 
 浏览器访问 [<<<custom_key.brand_name>>>注册入口](https://auth.<<<custom_key.brand_main_domain>>>/redirectpage/register){:target="_blank"}，填写对应信息之后，即可[登陆<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/pageloading/login){:target="_blank"}
@@ -491,6 +493,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 | `DK_INSTALL_ONLY`                | `on`                        | 仅安装，不运行                                                                                                                   |
 | `DK_HOSTNAME`                    | `some-host-name`            | 支持安装阶段自定义配置主机名                                                                                                     |
 | `DK_UPGRADE`                     | `1`                         | 升级到最新版本                                                   |
+| `DK_ALLOW_V1_FALLBACK`           | `1`                         | 设置为 `1` 时，允许 Linux/Windows 在系统不兼容 `2.x` 时使用同一安装源的 `/datakit` 目录安装/升级 `1.x`，默认关闭。下载或安装失败不触发回退 |
 | `DK_UPGRADE_MANAGER`             | `on`                        | 升级 DataKit 时是否同时安装或升级 **DataKit 升级管理服务**，需要和 `DK_UPGRADE` 配合使用，从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持 |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | 可选择不同环境的安装脚本，默认为 `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2`                                                             |
 | `DK_PROXY_TYPE`                  | -                           | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                                 |

@@ -241,10 +241,7 @@ func processPlan(plan string, isEncrypted bool) (string, error) {
 	obfuscatedPlan, err := obfuscateXMLPlan(plan)
 	dbmObfuscateDuration.WithLabelValues("plan", "xml").Observe(time.Since(obfuscateStart).Seconds())
 	if err != nil {
-		l.Warnf("failed to obfuscate plan: %v", err)
-
-		// If obfuscation fails, use the original plan
-		return plan, nil
+		return "", fmt.Errorf("failed to obfuscate plan: %w", err)
 	}
 
 	return obfuscatedPlan, nil
@@ -310,7 +307,11 @@ func (ipt *Input) collectPlansForStatements(ctx context.Context, statementRows [
 			continue
 		}
 
-		obfuscatedText, _ := processPlan(plan.text.String, plan.encrypted)
+		obfuscatedText, err := processPlan(plan.text.String, plan.encrypted)
+		if err != nil {
+			l.Debugf("skipping execution plan for plan handle: %s: %v", row.planHandle, err)
+			continue
+		}
 
 		rowWithPlan := &statementRowWithPlan{
 			dbmStatementRow: row,

@@ -116,7 +116,13 @@ DataKit 的 `ddtrace` 采集器是一个 **DataDog Trace 协议接收端**：应
 
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    将示例配置复制到 `conf.d` 根目录并修改。默认安装路径下的命令如下：
+
+    ```shell
+    cp /usr/local/datakit/conf.d/samples/ddtrace.conf.sample /usr/local/datakit/conf.d/ddtrace.conf
+    ```
+
+    配置示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -263,7 +269,7 @@ DataKit 默认监听 `localhost:9529`。若 trace 来自远端主机或其他 Po
 
 <figure markdown>
   ![input-ddtrace-monitor](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/input-ddtrace-monitor.png){ width="800" }
-  <figcaption> DDtrace 将数据发送给了 /v0.4/traces 接口</figcaption>
+  <figcaption> DDTrace 将数据发送给了 /v0.4/traces 接口</figcaption>
 </figure>
 
 ### 开启磁盘缓存 {#disk-cache}
@@ -276,7 +282,7 @@ DataKit 默认监听 `localhost:9529`。若 trace 来自远端主机或其他 Po
   capacity = 5120
 ```
 
-### DDtrace SDK 配置 {#sdk}
+### DDTrace SDK 配置 {#sdk}
 
 配置完采集器后，再配置 SDK。不同语言对变量的支持和优先级略有差异；下列变量是通用概念，最终以所用语言 SDK 的版本文档为准。若 SDK 支持 `DD_TRACE_AGENT_URL`，该 URL 通常优先于主机和端口配置，避免同时设置相互冲突的值。
 

@@ -162,7 +162,13 @@ func doSaveConfig(param *saveConfigParam) *ws.ResponseError {
 	// create and save
 	if writeErr := os.WriteFile(param.Path, configContent, dk.ConfPerm); writeErr != nil {
 		l.Errorf("Write file %s failed: %s", param.Path, writeErr.Error())
-		return &ws.ResponseError{ErrorCode: "save.file.failed", ErrorMsg: "save file failed"}
+		// keep the underlying error: permission denied, file locked by an anti
+		// virus or a path pointing at a directory all fail the same way, and the
+		// message is the only clue the operator gets from the DCA web UI.
+		return &ws.ResponseError{
+			ErrorCode: "save.file.failed",
+			ErrorMsg:  "save file failed: " + writeErr.Error(),
+		}
 	}
 
 	// update configInfo
@@ -431,7 +437,10 @@ func saveDatakitPipelineAction(isUpdate bool) ws.HandlerFunc {
 		err := os.WriteFile(filePath, []byte(pipeline.Content), dk.ConfPerm)
 		if err != nil {
 			l.Errorf("Write pipeline file %s failed: %s", filePath, err.Error())
-			response.SetError()
+			response.SetError(&ws.ResponseError{
+				ErrorCode: "save.file.failed",
+				ErrorMsg:  "save file failed: " + err.Error(),
+			})
 			return
 		}
 		pipeline.FileDir = datakit.DataKitRuntimeInfo.PipelineDir
@@ -642,7 +651,11 @@ func newWebsocketConnectionAction(client *ws.Client, id int64, data any) error {
 	header := make(http.Header)
 	header.Set(ws.HeaderNewWebSocketConnectionID, connID)
 
-	if conn, _, err := websocket.DefaultDialer.Dial(client.GetWebsocketAddress(), header); err != nil {
+	conn, resp, err := client.Dial(header)
+	if resp != nil {
+		defer resp.Body.Close() //nolint:errcheck
+	}
+	if err != nil {
 		l.Errorf("dial failed: %s", err.Error())
 	} else {
 		g.Go(func(ctx context.Context) error {

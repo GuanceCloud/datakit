@@ -129,11 +129,13 @@
     "offline": "Offline",
     "restarting": "Restarting",
     "upgrading": "Upgrading",
-    "unknown": "Unknown status"
+    "unknown": "Unknown status",
+    "session_lost": "No session"
   },
   "datakit": {
     "operation_disabled": {
       "not_running": "DataKit is not online. Management operations are available only when it is running.",
+      "no_session": "The DataKit is not connected to DCA, please refresh the list.",
       "container_reload": "This DataKit is running in a container. Reload is not supported here.",
       "container_upgrade": "This DataKit is running in a container. Upgrade is not supported here.",
       "version_unavailable": "Latest version information is unavailable for this DataKit release line.",
@@ -188,6 +190,7 @@
   },
   "api": {
     "dir.mkdir.failed": "Directory creation failed",
+    "save.file.failed": "Failed to save the file",
     "unknown_error": "Unknown error",
     "innerCorestone.auth.invalidEmailOrMobile": "Invalid username, please re-enter",
     "innerCorestone.auth.passwordIncorrect": "Incorrect password, please re-enter",
@@ -199,6 +202,7 @@
     "ft.Forbidden": "You do not have permission to perform this operation",
     "server.request.error": "Connection exception, please try again later",
     "server.error": "Operation failed, please try again later",
+    "datakit.offline": "The DataKit is offline, please refresh the list",
     "param.invalid": "Parameter error",
     "params.invalid.dir_not_exist": "Directory does not exist",
     "params.invalid.path_invalid": "Path error",

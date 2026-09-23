@@ -3,6 +3,8 @@ skip: 'not-searchable-on-index-page'
 title: 'DDTrace Extension Changelog'
 ---
 
+<!-- cspell:ignore Tyrus -->
+
 ## Introduction {#intro}
 
 This document records updates to the Java extension package used in DataKit for DDTrace Java instrumentation compatibility scenarios.
@@ -32,82 +34,95 @@ Historical entries preserve their release-time meaning. A newer version does not
 
 ## Changelog {#changelog}
 
+## v1.65.7-ext (2026/9/17) {#cl-1.65.7-ext}
+
+### Update {#cl-1.65.7-ext-update}
+
+- Add the `async_entry=true` Span Tag to identify entry spans created by asynchronous frameworks.
+- Add a K6 benchmark report comparing ddtrace and SkyWalking.
+
+## v1.65.6-ext (2026/9/14) {#cl-1.65.6-ext}
+
+### Fix {#cl-1.65.6-ext-fix}
+
+- Correct Netty SSE first non-empty body chunk latency and chunk-count metrics.
+
+## v1.65.5-ext (2026/9/10) {#cl-1.65.5-ext}
+
+### Fix {#cl-1.65.5-ext-fix}
+
+- Fix Redis cluster spans falling back to actual node IPs when configured-hostname naming is enabled.
+
+## v1.65.4-ext (2026/9/4) {#cl-1.65.4-ext}
+
+### Update {#cl-1.65.4-ext-update}
+
+- Add Tyrus 2.x WebSocket client handshake tracing.
+- Fix outbound send and active close span parenting when separate WebSocket message traces are disabled.
+
+## v1.65.3-ext (2026/8/28) {#cl-1.65.3-ext}
+
+### Fix {#cl-1.65.3-ext-fix}
+
+- Fix 128-bit Trace ID compatibility with the Datadog HTTP propagation format.
+
+## v1.65.2-ext (2026/8/28) {#cl-1.65.2-ext}
+
+### Update {#cl-1.65.2-ext-update}
+
+- Support Spring RabbitMQ batch consumption and log correlation.
+- Add optional CXF Invoker fallback tracing.
+
 ## v1.65.0-ext (2026/8/7) {#cl-1.65.0-ext}
 
-### update {#cl-1.65.0-ext-update}
+### Update {#cl-1.65.0-ext-update}
 
-- Base the extension on DataDog `dd-trace-java` v1.65.0, incorporating its upstream features and fixes together with GuanceCloud customizations.
-- Add configurable HTTP request and response header and body collection, including JSON response body capture and allowlist/denylist filtering; responses can inject `ext_trace_id` for frontend-to-backend trace correlation.
-- Support GWT RPC request body tagging, and add JVM thread-state and GC StatsD metrics together with Netty Client SSE response-stream spans.
-- Add BES application server instrumentation, Nacos asynchronous context propagation, and package-based Trace method instrumentation; enhance xxl-job, Java-WebSocket, and RabbitMQ instrumentation, and fix split-by-host handling for Redis Lettuce/Redisson clusters.
-- Support Log4j2 2.7 log Pattern replacement; add the Kafka 3.8+ experimental option `dd.trace.experimental.kafka.enabled`; fix message host naming for Redis and RabbitMQ clients.
-
+- Merge DataDog `dd-trace-java` v1.65.0 and add GuanceCloud customizations.
+- Add HTTP header/body collection, GWT RPC, JVM metrics, Netty SSE, BES, and Nacos support.
 
 ## v1.63.7-ext (2026/7/1) {#cl-1.63.7-ext}
 
-### update {#cl-1.63.7-ext-fix}
+### Update {#cl-1.63.7-ext-fix}
 
-- Add Spring WebMVC request body collection support for `text/x-gwt-rpc`; when `dd.trace.request.body.enabled` is enabled, POST GWT RPC requests are written to the `request_body` span tag.
-- Decode request bodies with the request character encoding first, and fall back to UTF-8 when it is missing or invalid.
-- When OTLP runtime metrics are not enabled, report `jvm.thread.count` through DogStatsD, split by `jvm.thread.daemon:true|false` and `jvm.thread.state:<state>`.
-- Add raw GC MXBean metrics `jvm.gc.collection_count` and `jvm.gc.collection_time`, preserving the collector name as the `gc:<collector name>` tag.
-- Reuse JVM thread state bucket logic and add test coverage for GWT RPC request body collection, JVM thread state statistics, and GC StatsD reporting.
-
+- Support GWT RPC request body tagging.
+- Add JVM thread-state and raw GC StatsD metrics.
 
 ## v1.63.6-ext (2026/6/29) {#cl-1.63.6-ext}
 
-### fix {#cl-1.63.6-ext-fix}
+### Fix {#cl-1.63.6-ext-fix}
 
 - Fix the BES instrumentation root span loss issue.
-- Support `request_body` tagging for `text/x-gwt-rpc` requests in Spring WebMVC filters, and add corresponding forked coverage.
-
 
 ## v1.63.5-ext (2026/6/24) {#cl-1.63.5-ext}
 
-### update {#cl-1.63.5-ext-fix}
+### Update {#cl-1.63.5-ext-fix}
 
-- Enhance Spring RabbitMQ consumer trace and log correlation.
-- Fix the missing business consumer span when Spring RabbitMQ consumes messages, so listener execution can expose `trace_id` / `span_id` to logs.
-- Keep the RabbitMQ `basic.deliver` low-level AMQP span and add a Spring listener business processing span.
+- Enhance Spring RabbitMQ consumer tracing and log correlation.
 - Add BES 11.0 application server instrumentation support.
-
 
 ## v1.63.4-ext (2026/6/10) {#cl-1.63.4-ext}
 
-### new {#cl-1.63.4-ext-fix}
+### New {#cl-1.63.4-ext-fix}
 
-- Add the `netty.client.stream` span to measure continuous SSE response body reads.
-- Keep the existing `netty.client.request` span for the request-to-response-header phase.
-- Add the `stream.first_chunk.ms` and `stream.chunk_count` metrics for first chunk latency and Netty content chunk count.
-- For `text/event-stream` responses, mark the stream span as `internal` and use the `SSE stream ...` resource name.
-
+- Add Netty Client SSE response-stream spans with first-chunk latency and chunk-count metrics.
 
 ## v1.63.3-ext (2026/6/11) {#cl-1.63.3-ext}
 
-### new {#cl-1.63.3-ext-fix}
+### New {#cl-1.63.3-ext-fix}
 
-- Add `DD_TRACE_PEER_HOSTNAME_FROM_CONFIG_ENABLED` / `trace.peer.hostname.from.config.enabled`.
-- The option is disabled by default. When enabled, the client connection host is preferred as `peer.hostname`.
-- Cover `Jedis`,`Lettuce 5`,`Redisson`,`Valkey`,`Vertx Redis Client`.
-
+- Add an option to derive `peer.hostname` from the Redis client connection configuration.
 
 ## v1.63.2-ext (2026/6/8) {#cl-1.63.2-ext}
 
-### fix {#cl-1.63.2-ext-fix}
+### Fix {#cl-1.63.2-ext-fix}
 
 - Fix JMXFetch parsing for Java version strings such as `17-ea`.
-- Add the `org.datadog.jmxfetch.util.JavaVersion` version parsing utility.
-- Support multiple `java.specification.version` and `java.version` formats.
-
 
 ## v1.63.1-ext (2026/6/4) {#cl-1.63.1-ext}
 
-### new {#cl-1.63.1-ext-fix}
+### New {#cl-1.63.1-ext-fix}
 
-- Add `DD_SERVICE_MAPPING_FILE` / `dd.service.mapping.file`.
-- Support reading service mapping from an external file and merging it with inline `DD_SERVICE_MAPPING` configuration.
-- Add `supported-configurations` metadata and related unit tests.
-
+- Add `DD_SERVICE_MAPPING_FILE` to load and merge service mappings from an external file.
 
 ## v1.63.0-ext (2026/6/3) {#cl-1.63.0-ext}
 
@@ -118,21 +133,21 @@ Historical entries preserve their release-time meaning. A newer version does not
 
 ## v1.60.4-ext (2026/4/27) {#cl-1.60.4-ext}
 
-### New {#cl-1.60.4-ext-fix}
+### Fix {#cl-1.60.4-ext-fix}
 
 - Fix Redis `service_name` display issue.
 
 
 ## v1.60.3-ext (2026/4/24) {#cl-1.60.3-ext}
 
-### New {#cl-1.60.3-ext-fix}
+### Update {#cl-1.60.3-ext-fix}
 
 - Improve JDBC support for Oracle.
 
 
 ## v1.55.11-ext (2026/3/17) {#cl-1.55.11-ext}
 
-### New {#cl-1.55.11-ext-fix}
+### Update {#cl-1.55.11-ext-fix}
 
 - Lower the RocketMQ instrumentation minimum version from 4.8.0 to 4.5.0.
 
@@ -141,37 +156,40 @@ Historical entries preserve their release-time meaning. A newer version does not
 
 ### New {#cl-1.55.10-ext-fix}
 
-- Add `java-websocket` instrumentation
+- Add `java-websocket` instrumentation.
 
 
 ## v1.55.7-ext (2025/12/30) {#cl-1.55.7-ext}
 
-### fix {#cl-1.55.7-ext-fix}
+### Fix {#cl-1.55.7-ext-fix}
 
 - Fix `Redis` command list type error.
 
 
 ## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
 
-### fix {#cl-1.55.6-ext-fix}
+### Fix {#cl-1.55.6-ext-fix}
 
-- RocketMQ scope limit error.
-- Add Response Body whitelist [config](ddtrace-ext-java.md#response_body)
+- Fix the RocketMQ scope limit issue.
+- Add Response Body allowlist [configuration](ddtrace-ext-java.md#response_body).
+
+## v1.55.5-ext (2025/12/15) {#cl-1.55.5-ext}
+
+### Update {#cl-1.55.5-ext-update}
+
+- Merge DataDog DDTrace v1.55.0 and update metrics, Dubbo, RocketMQ, and Kingbase support.
 
 ## v1.55.2-ext (2025/11/28) {#cl-1.55.2-ext}
 
-### fix {#cl-1.55.2-ext-fix}
+### Fix {#cl-1.55.2-ext-fix}
 
-- fix:RocketMQ scope limit error.
-- Merge latest branch v1.55.0
+- Fix the RocketMQ scope limit issue and merge v1.55.0.
 
 ## v1.53.7-ext (2025/11/28) {#cl-1.53.7-ext}
 
-### fix {#cl-1.53.7-ext-fix}
+### Update {#cl-1.53.7-ext-fix}
 
-- support apache Dubbo stream version 3.2
-- add `rocketmq.consume.ignore`
-
+- Support Apache Dubbo 3.2 streaming and `rocketmq.consume.ignore`.
 
 ## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}
 
@@ -357,7 +375,7 @@ Historical entries preserve their release-time meaning. A newer version does not
 - Supported DM8.
 
 
-## v1.12.0 (2023/4/20) {#cl-1.10.2}
+## v1.12.0 (2023/4/20) {#cl-1.12.0}
 
 ### fix {#cl-1.12.0-new}
 

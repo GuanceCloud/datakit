@@ -318,7 +318,7 @@ func (r *logDownloadRedactor) Flush() []byte {
 
 func getNewWebsocketConn(datakit *ws.DataKit, action string) (*websocket.Conn, error) {
 	timeout := 30 * time.Second
-	if client, ok := Manager.Clients[datakit.ConnID]; !ok {
+	if client, ok := Manager.getClient(datakit.ConnID); !ok {
 		return nil, fmt.Errorf("datakit not found")
 	} else {
 		query := url.Values{}
@@ -595,11 +595,60 @@ func getHandler(action string) gin.HandlerFunc {
 		}
 		res, err := Manager.Action(action, datakit, ctx)
 		if err != nil {
+			if errors.Is(err, ErrDatakitOffline) {
+				h.fail(http.StatusBadRequest, "datakit.offline", err.Error())
+				return
+			}
 			h.fatal(500, err.Error())
 			return
 		}
 		h.send(res)
 	}
+}
+
+// datakitListItem is a datakit row plus its live session state: the web UI only
+// enables the management actions when the datakit is really connected.
+type datakitListItem struct {
+	*ws.DataKit
+	Alive bool `json:"alive"`
+}
+
+func datakitListItems(rows []ws.DataKit) []datakitListItem {
+	items := make([]datakitListItem, 0, len(rows))
+	for i := range rows {
+		items = append(items, datakitListItem{
+			DataKit: &rows[i],
+			Alive:   hasLiveDatakit(rows[i].ConnID),
+		})
+	}
+
+	return items
+}
+
+func datakitListItemsPtr(rows []*ws.DataKit) []datakitListItem {
+	items := make([]datakitListItem, 0, len(rows))
+	for _, row := range rows {
+		if row == nil {
+			continue
+		}
+
+		items = append(items, datakitListItem{
+			DataKit: row,
+			Alive:   hasLiveDatakit(row.ConnID),
+		})
+	}
+
+	return items
+}
+
+// hasLiveDatakit reports whether the datakit has a live websocket session.
+func hasLiveDatakit(connID string) bool {
+	if connID == "" {
+		return false
+	}
+
+	_, ok := Manager.getClient(connID)
+	return ok
 }
 
 // datakitHandler is the handler for datakit related actions.
@@ -692,7 +741,7 @@ func datakitByIDHandler(c *gin.Context) {
 		h.fatal(500, "failed to query datakit list")
 	}
 
-	h.success(res)
+	h.success(datakitListItemsPtr(res))
 }
 
 func getDatakits(idStr, workspaceUUID string) ([]*ws.DataKit, error) {
@@ -819,8 +868,12 @@ func datakitListHandler(c *gin.Context) {
 
 	if pageSize != "" {
 		if v, err := strconv.Atoi(pageSize); err == nil {
-			pageSizeNum = v
+			pageSizeNum = min(max(v, 1), maxDatakitPageSize)
 		}
+	}
+
+	if pageIndexNum < 1 {
+		pageIndexNum = 1
 	}
 
 	filter := c.Query("filter")
@@ -851,7 +904,7 @@ func datakitListHandler(c *gin.Context) {
 	if totalCount != 0 {
 		sql := `
 			select id,runtime_id,arch,host_name,os,version,
-				ip,start_time,run_in_container,run_mode,usage_cores,
+				ip,start_time,run_in_container,run_mode,usage_cores,conn_id,
 				updated_at,workspace_uuid,status,url,global_host_tags 
 			from datakit %s limit %d offset %d`
 		sql = fmt.Sprintf(sql,
@@ -867,7 +920,7 @@ func datakitListHandler(c *gin.Context) {
 
 end:
 	h.success(pageContent{
-		Data: res,
+		Data: datakitListItems(res),
 		PageInfo: pageInfo{
 			Count:      len(res),
 			PageIndex:  pageIndexNum,

@@ -219,6 +219,8 @@ track_activity_query_size = 4096 # Required for collection of larger queries.
       curs REFCURSOR;
       plan JSON;
     BEGIN
+      SET TRANSACTION READ ONLY;
+
       OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);
       FETCH curs INTO plan;
       CLOSE curs;

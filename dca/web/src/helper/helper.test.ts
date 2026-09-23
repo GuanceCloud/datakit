@@ -82,6 +82,10 @@ describe('helper utilities', () => {
     const inContainer = { status: DCA_STATUS.RUNNING, version: '1.0.0', run_in_container: true } as any;
 
     expect(isDatakitManagement(running)).toBe(true);
+    // a running row without a live session (reported by the DCA backend) must not
+    // expose the management actions; older backends omit the field
+    expect(isDatakitManagement({ status: DCA_STATUS.RUNNING, alive: false } as any)).toBe(false);
+    expect(isDatakitManagement({ status: DCA_STATUS.RUNNING, alive: true } as any)).toBe(true);
     expect(isLoadingStatus(restarting)).toBe(true);
     const latestVersions = { v1: '1.1.0', v2: '2.0.0' };
     expect(isDatakitUpgradeable(running, latestVersions)).toBe(true);

@@ -7,6 +7,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -238,4 +239,8 @@ func (c *client) GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface
 // kubelet.
 func (c *client) GetStatsSummary() (*statsv1alpha1.Summary, error) {
 	return c.kubeletClient.GetStatsSummary()
+}
+
+func (c *client) GetStatsSummaryWithContext(ctx context.Context) (*statsv1alpha1.Summary, error) {
+	return c.kubeletClient.GetStatsSummaryWithContext(ctx)
 }

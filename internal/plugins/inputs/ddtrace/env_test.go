@@ -103,6 +103,8 @@ func TestQPSEnvDocNames(t *testing.T) {
 		"TracingMetricQPSEnable":    "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_ENABLE",
 		"TracingMetricQPSTags":      "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_TAGS",
 		"TracingMetricQPSMaxSeries": "ENV_INPUT_DDTRACE_TRACING_METRIC_QPS_MAX_SERIES",
+		"TraceMaxSpans":             "ENV_INPUT_DDTRACE_MAX_SPANS",
+		"MaxTraceBodyMB":            "ENV_INPUT_DDTRACE_MAX_BODY_MB",
 	}
 
 	for _, info := range ipt.GetENVDoc() {

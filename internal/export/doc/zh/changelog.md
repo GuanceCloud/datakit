@@ -2719,7 +2719,7 @@ volumes:
 
 - [容器采集器](container#7e687515)增加更多指标（`kube_` 开头）采集(#668)
 - DDTrace 和 OpenTelemetry 采集器支持通过 HTTP Status Code（`omit_err_status`）来过滤部分错误的 trace
-- 修复几个 Trace 采集器（DDtrace/OpenTelemetry/Zipkin/SkyWalking/Jaeger）在 git 模式下配置 reload 不生效的问题(#725)
+- 修复几个 Trace 采集器（DDTrace/OpenTelemetry/Zipkin/SkyWalking/Jaeger）在 git 模式下配置 reload 不生效的问题(#725)
 - 修复 GitLab 采集器不能 tag 导致的奔溃问题(#730)
 - 修复 Kubernetes 下 eBPF 采集器对 Pod 标签（tag）不更新的问题(#736)
 - [prom 采集器](prom.md) 支持 [Tag 重命名](prom#e42139cb)(#719)
@@ -2748,7 +2748,7 @@ volumes:
 - DaemonSet 增加[开启 pprof 环境变量](datakit-daemonset-deploy#cc08ec8c)配置(#697)
 - DaemonSet 中所有[默认开启采集器](datakit-input-conf#764ffbc2)各个配置均支持通过环境变量配置(#693)
 - Tracing 采集器初步支持 Pipeline 数据处理(#675)
-    - [DDtrace 配置示例](ddtrace#69995abe)
+    - [DDTrace 配置示例](ddtrace#69995abe)
 - 拨测采集器增加失败任务退出机制(#54)
 - 优化 [Helm 安装](datakit-daemonset-deploy#e4d3facf)(#695)
 - 日志新增 `unknown` 等级（status），对于未指定等级的日志均为 `unknown`(#685)
@@ -2864,7 +2864,7 @@ volumes:
 
 - 本次对 Tracing 数据采集做了较大的调整，涉及几个方面的不兼容：
 
-    - [DDtrace](ddtrace) 原有 conf 中配置的 `ignore_resources` 字段需改成 `close_resource`，且字段类型由原来的数组（`[...]`）形式改成了字典数组（`map[string][...]`）形式（可参照 [conf.sample](ddtrace#69995abe) 来配置）
+    - [DDTrace](ddtrace) 原有 conf 中配置的 `ignore_resources` 字段需改成 `close_resource`，且字段类型由原来的数组（`[...]`）形式改成了字典数组（`map[string][...]`）形式（可参照 [conf.sample](ddtrace#69995abe) 来配置）
     - DDTrace 原数据中采集的 [tag `type` 字段改成 `source_type`](ddtrace#01b88adb)
 
 ---
@@ -3847,4 +3847,3 @@ man > Q               # 输入 Q 或 exit 退出
 - `tailf` 采集器新日志匹配改成正向匹配
 - 其它一些细节问题修复
 - 支持 Mac 平台的 CPU 数据采集
-

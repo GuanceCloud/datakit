@@ -26,7 +26,7 @@ python -m pip install ddtrace flask requests
     > 使用 `ddtrace-run` 包装 Python 入口命令，并在进程启动前设置服务标识和 DataKit 目标地址。上游默认 trace 端口通常为 `8126`，接入 DataKit 时应显式使用 `9529`。
     
     ```shell linenums="1"
-    DD_SERVICE="<YOUR-SERVICE-Name>" \
+    DD_SERVICE="<YOUR-SERVICE-NAME>" \
       DD_ENV="<YOUR-ENV-NAME>" \
       DD_VERSION="<YOUR-APP-VERSION>" \
       DD_AGENT_HOST="<YOUR-DATAKIT-HOST>" \

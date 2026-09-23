@@ -5,7 +5,7 @@ import moment from 'moment';
 import { App, Avatar, Button, Checkbox, Input, Modal, Select, Space, Spin, Table, TableColumnsType, Tooltip, Typography, message } from 'antd'
 import { connect, ConnectedProps } from 'react-redux';
 
-import { alertError, getLatestDatakitVersion, isContainerMode, isDatakitManagement, isDatakitUpgradeable, isLoadingStatus, isNewerDatakitVersionAvailable, runJob } from 'src/helper/helper';
+import { alertError, getLatestDatakitVersion, isContainerMode, isDatakitManagement, isDatakitSessionLost, isDatakitUpgradeable, isLoadingStatus, isNewerDatakitVersionAvailable, runJob } from 'src/helper/helper';
 import styles from './DkList.module.scss'
 import { IDatakit, ISearchValue, IWorkspace, PageInfo, PageQuery } from 'src/store/type'
 import { update } from '../../store/datakit/datakit';
@@ -20,6 +20,10 @@ import { AdditionColumnOptions } from './AdditionalColumnOptions/AdditionColumnO
 const { Text } = Typography;
 const maxRequestNumber = 10
 const searchDebounceDelay = 300
+// DCA drops a session that stays silent for 90s, so refreshing the list every
+// 30s keeps the status column and the available actions honest without
+// hammering the API.
+const datakitListRefreshInterval = 30 * 1000
 
 interface DatakitListProps {
   workspace?: IWorkspace
@@ -110,6 +114,18 @@ function DatakitList({ updateDatakits }: Props) {
 
   }, [initDatakitList, getSearchValue])
 
+  // Keep the list fresh: a session can drop and come back between manual
+  // refreshes, and both the status column and the available actions depend on it.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        queryDatakitList({ ...queryParams, minLastUpdateTime: moment().subtract(1, 'days').unix() })
+      }
+    }, datakitListRefreshInterval)
+
+    return () => clearInterval(timer)
+  }, [queryDatakitList, queryParams])
+
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       setPageQuery(prev => prev.pageIndex === 1 ? prev : { ...prev, pageIndex: 1 })
@@ -123,6 +139,12 @@ function DatakitList({ updateDatakits }: Props) {
   const [getDatakitListByID] = useLazyGetDatakitListByIDQuery()
 
   useEffect(() => {
+    // A refresh in flight has no currentData yet: keep the previous list (and
+    // its page info) instead of reporting an empty result for it.
+    if (!isErrorDatakitList && !datakitListResponse) {
+      return
+    }
+
     if (isErrorDatakitList || !datakitListResponse?.success) {
       setLoading(false)
       updateDatakits([])
@@ -352,6 +374,9 @@ function DatakitList({ updateDatakits }: Props) {
   }, [t, modal, reloadSingleDatakit])
 
   const getReloadDisabledReason = useCallback((dk: IDatakit) => {
+    if (isDatakitSessionLost(dk)) {
+      return t("datakit.operation_disabled.no_session")
+    }
     if (!isDatakitManagement(dk)) {
       return t("datakit.operation_disabled.not_running")
     }
@@ -362,6 +387,9 @@ function DatakitList({ updateDatakits }: Props) {
   }, [t])
 
   const getUpgradeDisabledReason = useCallback((dk: IDatakit) => {
+    if (isDatakitSessionLost(dk)) {
+      return t("datakit.operation_disabled.no_session")
+    }
     if (!isDatakitManagement(dk)) {
       return t("datakit.operation_disabled.not_running")
     }

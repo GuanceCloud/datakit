@@ -92,6 +92,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			optsMetricSystem: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
 					"cpu_total_usage",
+					"processor_queue_length", // Windows-only and omitted if the counter is unavailable.
 				),
 			},
 		},

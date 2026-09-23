@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.14.0(2026/09/23) {#cl-2.14.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.14.0-new}
+
+- Profile now discovers Kubernetes Pods without a Sidecar and collects Go pprof on a schedule or when CPU or memory thresholds are exceeded (#3220)
+- The Windows `system` and `mem` collectors now report CPU queue length, free system page table entries, and cumulative page reads and writes (#3221)
+- Oracle `oracle_system` now reports the PGA target and limit through `pga_aggregate_target` and `pga_aggregate_limit` (#3231)
+- Linux and Windows installers can use `DK_ALLOW_V1_FALLBACK=1` to install DataKit 1.x when the system does not support 2.x; this option is disabled by default (#3223)
+
+### Bug Fixes {#cl-2.14.0-fix}
+
+- Improved DataKit connection health and recovery with DCA, and fixed Windows remote upgrade and offline installation issues (#3238)
+- Fixed a panic during dialtesting task sync that could start duplicate variable services and eventually stop task updates (#3237)
+- Fixed duplicate XML namespace declarations in sanitized SQL Server execution plans; plans are no longer uploaded with original content when sanitization fails (#3233)
+- Fixed the SNMP interface count showing zero when a device has 100 interfaces (#3230)
+
+### Improvements {#cl-2.14.0-opt}
+
+- Updated the documented PostgreSQL execution-plan helper to set its transaction to read-only. Existing helper installations must run the updated creation script to receive this protection (#3235)
+- Optimized DataKit container image builds to reduce image size (#3232)
+
+---
+
 ## 2.13.0(2026/09/16) {#cl-2.13.0}
 
 This release is an iterative release, with the following main updates:

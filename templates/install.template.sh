@@ -165,10 +165,14 @@ fi
 
 printf "* Detect OS/Arch ${os}/${arch}\n"
 
+v1_fallback=0
 if [ "$os" = "linux" ]; then
 	if ! compare_kernel_ge_3_2; then
-		errorf "Unsupported Linux kernel: %s. DataKit 2.x requires kernel >= 3.2. Use a 1.x installer on this host." "$(uname -r)"
-		exit 1
+		if [ "${DK_ALLOW_V1_FALLBACK:-0}" != "1" ]; then
+			errorf "Unsupported Linux kernel: %s. DataKit 2.x requires kernel >= 3.2. Use a 1.x installer on this host." "$(uname -r)"
+			exit 1
+		fi
+		v1_fallback=1
 	fi
 fi
 
@@ -379,6 +383,39 @@ fi
 
 if [ -n "$proxy" ]; then
 	cmd+=("--proxy=$proxy")
+fi
+
+if [ "$v1_fallback" = "1" ]; then
+	v2_base_url="${installer_base_url%/}"
+	case "$v2_base_url" in
+		*/datakit-v2)
+			v1_base_url="${v2_base_url%/datakit-v2}/datakit"
+			;;
+		*)
+			errorf "Cannot derive the 1.x source: installer base URL must end with /datakit-v2"
+			exit 1
+			;;
+	esac
+
+	printf '* Linux kernel %s requires DataKit 1.x; using %s/install.sh\n' "$kernel_release" "$v1_base_url"
+	v1_curl_args=()
+	if [ -n "$proxy" ]; then
+		v1_curl_args=(-x "$proxy")
+	elif [ "$proxy_type" = "nginx" ] && [ -n "$DK_NGINX_IP" ]; then
+		v1_curl_args=(--noproxy '*')
+	fi
+	v1_script=$(curl "${v1_curl_args[@]}" --fail --location --show-error "$v1_base_url/install.sh") || exit $?
+	if [ -z "$v1_script" ]; then
+		errorf "Downloaded 1.x install script is empty"
+		exit 1
+	fi
+
+	# Run with the v1 source and return the child's status without continuing.
+	(
+		export DK_INSTALLER_BASE_URL="$v1_base_url"
+		eval "$v1_script"
+	)
+	exit $?
 fi
 
 if [ -n "$DK_HOSTNAME" ]; then

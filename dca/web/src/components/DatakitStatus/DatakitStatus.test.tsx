@@ -21,4 +21,11 @@ describe('DatakitStatus', () => {
     render(<DatakitStatus datakit={{} as any} />);
     expect(screen.getByText('unknown')).toBeInTheDocument();
   });
+
+  it('marks a running row that has no live session', () => {
+    render(<DatakitStatus datakit={{ status: 'running', alive: false } as any} />);
+    // the pill keeps the raw status token, like every other state
+    expect(screen.getByText('session_lost')).toBeInTheDocument();
+    expect(screen.queryByText('running')).toBeNull();
+  });
 });

@@ -32,7 +32,7 @@ You can see that DataKit has already integrated the [StatsD](https://github.com/
     - [x] 9.0.76
     - [x] 8.5.90
 
-### DDtrace Configuration {#config-ddtrace}
+### DDTrace Configuration {#config-ddtrace}
 
 - Download `dd-java-agent.jar`, see [here](ddtrace.md){:target="_blank"};
 
@@ -288,6 +288,7 @@ For all of the following data collections, a global tag named `host` is appended
   # ...
 ```
 
+<!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
 
 {{if ne $m.Name "tomcat"}}
@@ -298,6 +299,7 @@ For all of the following data collections, a global tag named `host` is appended
 {{end}}
 
 {{ end }}
+<!-- markdownlint-enable MD024 -->
 
 ### Log Collection {#jolokia-logging}
 

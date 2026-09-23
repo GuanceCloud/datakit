@@ -147,7 +147,7 @@ $ /usr/local/datakit
 
 - HTTP 的 9529 端口：部分采集器（如 eBPF/Oracle/LogStream 等采集器）是通过往 DataKit 的 HTTP 接口推送数据
 - StatsD 8125 端口：用于接收 StatsD 的指标数据（如 JVM 相关指标）
-- OpenTelemetry 4317 端口：用于接收 OpenTelemetry 指标和 Trace 数据
+- OpenTelemetry 4317 端口：用于通过 OTLP/gRPC 接收 OpenTelemetry 链路、指标和日志数据
 
 更多端口占用，参见[这个列表](datakit-port.md)。
 

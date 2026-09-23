@@ -43,7 +43,12 @@ var (
 	profileForwardTotal,
 	profileForwardBytesTotal *prometheus.CounterVec
 
-	profileForwardLatency *prometheus.SummaryVec
+	profileForwardLatency              *prometheus.SummaryVec
+	kubernetesProfileTargets           prometheus.Gauge
+	kubernetesProfileDiscoveryTotal    *prometheus.CounterVec
+	kubernetesProfileCollectionsTotal  *prometheus.CounterVec
+	kubernetesProfileCollectionLatency *prometheus.SummaryVec
+	kubernetesProfileSkippedTotal      *prometheus.CounterVec
 
 	profileObsSummary = newProfileObservabilitySummary()
 )
@@ -172,6 +177,50 @@ func profileMetricsSetup() {
 		},
 		[]string{"language", "format", "profiler", "status"},
 	)
+
+	kubernetesProfileTargets = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "datakit",
+		Subsystem: "profile",
+		Name:      "kubernetes_targets",
+		Help:      "Current number of discovered Kubernetes pprof targets.",
+	})
+	kubernetesProfileDiscoveryTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "profile",
+			Name:      "kubernetes_discovery_total",
+			Help:      "Kubernetes pprof target discovery changes.",
+		},
+		[]string{"action"},
+	)
+	kubernetesProfileCollectionsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "profile",
+			Name:      "kubernetes_collections_total",
+			Help:      "Kubernetes pprof collection results.",
+		},
+		[]string{"cause", "status"},
+	)
+	kubernetesProfileCollectionLatency = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace:  "datakit",
+			Subsystem:  "profile",
+			Name:       "kubernetes_collection_latency_seconds",
+			Help:       "Kubernetes pprof collection latency.",
+			Objectives: datakit.P8sStandardObjectives,
+		},
+		[]string{"cause", "status"},
+	)
+	kubernetesProfileSkippedTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "profile",
+			Name:      "kubernetes_skipped_total",
+			Help:      "Kubernetes pprof collection skips by reason.",
+		},
+		[]string{"reason"},
+	)
 }
 
 //nolint:gochecknoinits
@@ -187,7 +236,29 @@ func init() {
 		profileForwardTotal,
 		profileForwardBytesTotal,
 		profileForwardLatency,
+		kubernetesProfileTargets,
+		kubernetesProfileDiscoveryTotal,
+		kubernetesProfileCollectionsTotal,
+		kubernetesProfileCollectionLatency,
+		kubernetesProfileSkippedTotal,
 	)
+}
+
+func setKubernetesProfileTargets(count int) {
+	kubernetesProfileTargets.Set(float64(count))
+}
+
+func observeKubernetesProfileDiscovery(action string) {
+	kubernetesProfileDiscoveryTotal.WithLabelValues(action).Inc()
+}
+
+func observeKubernetesProfileCollection(cause, status string, latency time.Duration) {
+	kubernetesProfileCollectionsTotal.WithLabelValues(cause, status).Inc()
+	kubernetesProfileCollectionLatency.WithLabelValues(cause, status).Observe(latency.Seconds())
+}
+
+func observeKubernetesProfileSkipped(reason string) {
+	kubernetesProfileSkippedTotal.WithLabelValues(reason).Inc()
 }
 
 func (ipt *Input) startProfileObservabilityLogger() {

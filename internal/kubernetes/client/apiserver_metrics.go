@@ -27,6 +27,8 @@ const (
 	ComponentContainerGCPCloud Component = "container_gcp_cloud"
 	// ComponentKubernetesPrometheus identifies kubernetesprometheus discovery requests.
 	ComponentKubernetesPrometheus Component = "kubernetesprometheus"
+	// ComponentProfile identifies Kubernetes profile target discovery requests.
+	ComponentProfile Component = "profile"
 )
 
 var apiserverRequestsTotal = prometheus.NewCounterVec(
@@ -63,7 +65,8 @@ func validComponent(component Component) bool {
 	case ComponentContainerRuntime,
 		ComponentContainerKubernetes,
 		ComponentContainerGCPCloud,
-		ComponentKubernetesPrometheus:
+		ComponentKubernetesPrometheus,
+		ComponentProfile:
 		return true
 	default:
 		return false

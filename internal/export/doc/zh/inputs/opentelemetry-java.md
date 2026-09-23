@@ -20,6 +20,7 @@ __int_icon: 'icon/opentelemetry'
 ```shell
 export JAVA_OPTS="-javaagent:/path/to/opentelemetry-javaagent.jar"
 export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 export OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:4317"
 export OTEL_SERVICE_NAME=service-name
 ```
@@ -29,6 +30,7 @@ export OTEL_SERVICE_NAME=service-name
 ```shell
 java -javaagent:/path/to/opentelemetry-javaagent.jar \
   -Dotel.traces.exporter=otlp \
+  -Dotel.exporter.otlp.protocol=grpc \
   -Dotel.exporter.otlp.endpoint=http://127.0.0.1:4317 \
   -Dotel.service.name=service-name \
   -jar your-server.jar
@@ -41,12 +43,10 @@ cd <tomcat 安装目录>/bin
 vim catalina.sh
 
 # 在 CATALINA_OPTS 中增加
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/opentelemetry-javaagent.jar -Dotel.traces.exporter=otlp -Dotel.service.name=service-name"; export CATALINA_OPTS
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/opentelemetry-javaagent.jar -Dotel.traces.exporter=otlp -Dotel.exporter.otlp.protocol=grpc -Dotel.exporter.otlp.endpoint=http://127.0.0.1:4317 -Dotel.service.name=service-name"; export CATALINA_OPTS
 ```
 
-> 如果 DataKit 与应用在同主机，且使用默认端口，可不设置 `OTEL_EXPORTER_OTLP_ENDPOINT`（默认 `http://localhost:4317`）。
-
-如果使用 OTEL Agent V2 的 HTTP transport，需要设置：`-Dotel.exporter.otlp.protocol=http/protobuf`，并为 traces/metrics/logs 配置各自 endpoint（例如 `/otel/v1/...`）。
+建议始终显式设置 OTLP 协议和端点，避免 SDK 或 Agent 版本的默认值差异。以上示例使用 DataKit 的 OTLP/gRPC 接收端 `4317`。Java Agent 2.x 默认使用 `http/protobuf`；如保留该协议，请将 traces、metrics、logs 的端点分别设置为 DataKit `9529` 端口下的 `/otel/v1/traces`、`/otel/v1/metrics`、`/otel/v1/logs`。
 
 ## 代码方式接入 {#with-code}
 

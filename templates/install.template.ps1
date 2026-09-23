@@ -59,7 +59,7 @@ function Write-CErr($msg) {
 $cmd = @()
 
 $windowsMajorVersion = [Environment]::OSVersion.Version.Major
-if ($windowsMajorVersion -lt 10) {
+if ($windowsMajorVersion -lt 10 -and $env:DK_ALLOW_V1_FALLBACK -ne "1") {
 	Write-CErr "Unsupported Windows version: $([Environment]::OSVersion.VersionString). DataKit 2.x requires Windows major version >= 10 (Win10/Server2016+). Use a 1.x installer on this host."
 	exit 1
 }
@@ -205,6 +205,50 @@ if ($x -ne $null) {
 
 if ($proxy -ne "") {
 	$cmd += "--proxy='$proxy'"
+}
+
+if ($windowsMajorVersion -lt 10) {
+	$v1_base_url = $installer_base_url.TrimEnd('/')
+	if (-not $v1_base_url.EndsWith('/datakit-v2')) {
+		Write-CErr "Cannot derive the 1.x source: installer base URL must end with /datakit-v2"
+		exit 1
+	}
+	$v1_base_url = $v1_base_url.Substring(0, $v1_base_url.Length - '/datakit-v2'.Length) + '/datakit'
+	Write-COutput green "* Windows version $([Environment]::OSVersion.VersionString) requires DataKit 1.x; using $v1_base_url/install.ps1"
+
+	$v1_tmp_dir = Join-Path $env:TEMP ("dk-v1-" + [Guid]::NewGuid().ToString())
+	$v1_script_path = Join-Path $v1_tmp_dir "install.ps1"
+	$v1_previous_source = $env:DK_INSTALLER_BASE_URL
+	$v1_previous_error_action = $ErrorActionPreference
+	$v1_exit_code = 1
+	try {
+		New-Item -ItemType Directory -Path $v1_tmp_dir -ErrorAction Stop | Out-Null
+		Import-Module BitsTransfer -ErrorAction Stop
+		$v1_download_args = @{}
+		if ($proxy -ne "") {
+			$v1_download_args = @{ ProxyUsage = "Override"; ProxyList = $proxy }
+		} elseif ($proxy_type -eq "nginx" -and $env:DK_NGINX_IP) {
+			$v1_download_args = @{ ProxyUsage = "NoProxy" }
+		}
+		Start-BitsTransfer -Source "$v1_base_url/install.ps1" -Destination $v1_script_path -ErrorAction Stop @v1_download_args
+		if ((Get-Item $v1_script_path -ErrorAction Stop).Length -eq 0) {
+			throw "Downloaded 1.x install script is empty"
+		}
+
+		# Inherit installation/upgrade settings, but use the v1 download source.
+		$env:DK_INSTALLER_BASE_URL = $v1_base_url
+		$ErrorActionPreference = "Stop"
+		$LASTEXITCODE = 0
+		& $v1_script_path
+		$v1_exit_code = $LASTEXITCODE
+	} catch {
+		Write-CErr "DataKit 1.x fallback failed: $_"
+	} finally {
+		$ErrorActionPreference = $v1_previous_error_action
+		$env:DK_INSTALLER_BASE_URL = $v1_previous_source
+		Remove-Item $v1_tmp_dir -Recurse -Force -ErrorAction SilentlyContinue
+	}
+	exit $v1_exit_code
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_HOSTNAME")

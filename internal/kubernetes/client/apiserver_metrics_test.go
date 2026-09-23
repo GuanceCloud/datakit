@@ -45,6 +45,12 @@ func TestClassifyAPIServerRequest(t *testing.T) {
 	}
 }
 
+func TestProfileIsValidAPIServerMetricsComponent(t *testing.T) {
+	if !validComponent(ComponentProfile) {
+		t.Fatal("profile should be a valid Kubernetes API client component")
+	}
+}
+
 func TestAPIServerMetricsRoundTripper(t *testing.T) {
 	transportErr := errors.New("connection reset")
 	tests := []struct {

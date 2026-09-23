@@ -135,6 +135,11 @@ func Start(opts ...option) {
 
 	setupRequestLimiter(hs)
 	startDCA(hs)
+	// resolve the workspace uuid in the background: the DCA info API must not
+	// block on the dataway query (the dk_upgrader polls it every 15s)
+	if config.Cfg.DCAConfig != nil && config.Cfg.DCAConfig.Enable {
+		startWorkspaceResolver(hs)
+	}
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {

@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,15 @@ import (
 )
 
 var ErrRequestTimeout = errors.New("request_time_out")
+
+// ErrDatakitOffline means the datakit has no live websocket session: the web UI
+// should refresh the list instead of retrying the operation.
+var ErrDatakitOffline = errors.New("datakit not available")
+
+// sessionReadTimeout is how long a session may stay silent before it is dropped.
+// Keepalive pings from the datakit count as traffic, otherwise an idle but
+// healthy session would be dropped on every timeout.
+var sessionReadTimeout = 90 * time.Second
 
 type ActionData struct {
 	Body  string     `json:"body"`
@@ -42,9 +52,26 @@ type Client struct {
 	DataKit           *ws.DataKit
 	Timeout           time.Duration
 	HeartbeatInterval time.Duration
+	ReadTimeout       time.Duration // drop the session when nothing is received for that long
 
 	messageNumber int64
 	closeOnce     sync.Once
+	// exited is set before Exit queues the unregistration, so the manager can
+	// tell whether a registration is still wanted (Close is closed too late).
+	exited atomic.Bool
+	// Immutable registration identity, kept even if a later push changes DataKit.
+	logContext           string
+	registrationRejected atomic.Bool
+	// replacementFor authorizes replacing only the owner that was probed.
+	// It is written before this client is sent to Register.
+	replacementFor *Client
+	probing        atomic.Bool
+	probeNumber    uint64
+	probeToken     string
+	probePong      chan struct{}
+	retired        atomic.Bool
+	counted        bool // protected by the manager lock
+	metricLabels   [2]string
 }
 
 func (c *Client) getActionHandler(action string) ActionHandler {
@@ -84,7 +111,13 @@ func (c *Client) receiveMessage(message []byte) {
 	l.Debugf("receive message, message action: %s", msg.Action)
 
 	if msg.ID == 0 { // client push message
-		doCommonAction(c, &msg)
+		// Pending/replaced sockets can still deliver buffered messages. Keep the
+		// ownership check and DB mutation atomic with session replacement.
+		Manager.Lock()
+		defer Manager.Unlock()
+		if Manager.Clients[c.ID] == c && !c.exited.Load() {
+			doCommonAction(c, &msg)
+		}
 		return
 	}
 
@@ -109,9 +142,22 @@ func (c *Client) Read() {
 		c.Exit()
 	}()
 	for {
+		if c.ReadTimeout > 0 {
+			if err := c.Socket.SetReadDeadline(time.Now().Add(c.ReadTimeout)); err != nil {
+				if !c.registrationRejected.Load() && !c.retired.Load() {
+					l.Warnf("set read deadline failed: %s, %s", err.Error(), c.logContext)
+				}
+				break
+			}
+		}
+
 		messageType, message, err := c.Socket.ReadMessage()
 		if err != nil {
-			l.Warnf("read message failed: %s", err.Error())
+			if c.registrationRejected.Load() || c.retired.Load() {
+				l.Debugf("retired or rejected session closed: %s, %s", err.Error(), c.logContext)
+			} else {
+				l.Warnf("read message failed: %s, %s", err.Error(), c.logContext)
+			}
 			break
 		}
 		l.Debugf("get message, message type: %d", messageType)
@@ -128,8 +174,24 @@ func (c *Client) Read() {
 	}
 }
 
+// extendReadDeadline pushes the read deadline forward: called for every
+// keepalive frame so that an idle session stays alive as long as the datakit
+// keeps sending pings.
+func (c *Client) extendReadDeadline() {
+	if c.ReadTimeout <= 0 {
+		return
+	}
+
+	if err := c.Socket.SetReadDeadline(time.Now().Add(c.ReadTimeout)); err != nil {
+		l.Warnf("failed to extend read deadline: %s", err.Error())
+	}
+}
+
 func (c *Client) Exit() {
 	c.closeOnce.Do(func() {
+		// must stay before the unregistration is queued: the manager may pick a
+		// queued registration up afterwards and needs to know the session is gone
+		c.exited.Store(true)
 		Manager.Unregister <- c
 		c.Socket.Close() // nolint:errcheck,gosec
 		close(c.Close)
@@ -173,6 +235,8 @@ func (c *Client) request(msg *ws.WebsocketMessage, dest *ws.WebsocketMessage) er
 
 	select {
 	case c.Send <- msg.Bytes():
+	case <-c.Close:
+		return ErrDatakitOffline
 	case <-ctx.Done():
 		return ErrRequestTimeout
 	}
@@ -180,6 +244,8 @@ func (c *Client) request(msg *ws.WebsocketMessage, dest *ws.WebsocketMessage) er
 	ctx1, cancel1 := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel1()
 	select {
+	case <-c.Close:
+		return ErrDatakitOffline
 	case receivedMessage := <-receiveCh:
 		if err := json.Unmarshal(receivedMessage, dest); err != nil {
 			return fmt.Errorf("failed to unmarshal message: %w", err)
@@ -216,6 +282,8 @@ func (c *Client) Write() {
 			}
 			if err := c.Socket.WriteMessage(websocket.TextMessage, message); err != nil {
 				l.Warnf("failed to write message: %s", err.Error())
+				c.Exit()
+				return
 			}
 		}
 	}
@@ -326,49 +394,124 @@ func (manager *ClientManager) deleteWebsocketConnChan(connID string) {
 }
 
 func (manager *ClientManager) Start() {
+	manager.run(context.Background())
+}
+
+func (manager *ClientManager) run(ctx context.Context) {
 	l.Infof("websocket manager started")
 	for {
 		select {
-		case conn := <-Manager.Register: // new connection
-			isDuplicated, err := datakitDB.IsDuplicatedConn(conn.DataKit)
-			if err != nil {
-				l.Errorf("failed to check duplicate connection: %s", err.Error())
+		case <-ctx.Done():
+			return
+		case conn := <-manager.Register: // new connection
+			if !manager.registerClient(conn) {
+				conn.registrationRejected.Store(true)
 				conn.Socket.Close() //nolint:errcheck,gosec
 				continue
 			}
 
-			if isDuplicated { // conn exists
-				l.Infof("datakit connection already exists")
-				conn.Socket.Close() //nolint:errcheck,gosec
-				continue
-			}
-
-			if err := datakitDB.ForceUpdate(conn.DataKit); err != nil { // update datakit
-				l.Errorf("failed to insert datakit: %s", err.Error())
-				conn.Socket.Close() //nolint:errcheck,gosec
-			} else {
-				l.Infof("new connection registered: %s...", conn.DataKit.HostName)
-				manager.Clients[conn.ID] = conn
-				datakitTotalGauge.WithLabelValues(
-					conn.DataKit.HostName,
-					conn.DataKit.OS,
-				).Inc()
-			}
-
-		case conn := <-Manager.Unregister:
-			// delete hardly when run in container
-			if err := datakitDB.DeleteByConnID(conn.DataKit.ConnID, conn.DataKit.RunInContainer); err != nil {
-				l.Errorf("failed to delete datakit: %s", err.Error())
-			}
-			delete(manager.Clients, conn.ID)
-			l.Infof("connection unregistered: %s", conn.DataKit.HostName)
+		case conn := <-manager.Unregister:
+			manager.unregisterClient(conn)
 			conn.Socket.Close() //nolint:errcheck,gosec
-			datakitTotalGauge.WithLabelValues(
-				conn.DataKit.HostName,
-				conn.DataKit.OS,
-			).Dec()
 		}
 	}
+}
+
+// registerClient checks for duplicated connections, persists the datakit and
+// publishes the session, all under the manager lock: the duplicate check and
+// the registration must be atomic, and Clients must not be touched without the
+// lock (the HTTP handlers read it concurrently).
+func (manager *ClientManager) registerClient(conn *Client) bool {
+	manager.Lock()
+	defer manager.Unlock()
+
+	// Register and unregister are two independent channels: the unregistration
+	// of a client may be processed before its registration. A client that
+	// already exited must not be published as a live session, otherwise its row
+	// would stay "running" without any session to route the actions to.
+	if conn.exited.Load() {
+		return false
+	}
+
+	if conn.DataKit == nil {
+		l.Errorf("refuse to register a client without datakit")
+		return false
+	}
+
+	// The socket owner, not a persisted status, decides whether this is a
+	// duplicate. An orphaned running/stopped row must not reject a reconnect;
+	// conversely an offline row must not let a second socket steal a session.
+	owner := manager.Clients[conn.ID]
+	if owner != nil && owner != conn.replacementFor && !owner.exited.Load() {
+		l.Infof("datakit connection already exists: owner_exited=%t incoming={%s} owner={%s}",
+			owner.exited.Load(), conn.logContext, owner.logContext)
+		return false
+	}
+
+	if err := datakitDB.ForceUpdate(conn.DataKit); err != nil { // update datakit
+		l.Errorf("failed to insert datakit: %s", err.Error())
+		return false
+	}
+
+	manager.Clients[conn.ID] = conn
+	if owner != nil {
+		owner.retired.Store(true)
+		owner.exited.Store(true)
+		owner.updateSessionCount(false)
+		// Do not call Exit under the manager lock: it queues an unregister.
+		// Closing the socket wakes its reader; late events are fenced by owner.
+		if owner.Socket != nil {
+			owner.Socket.Close() //nolint:errcheck,gosec
+		}
+		l.Infof("replaced unresponsive session: incoming={%s} previous={%s}", conn.logContext, owner.logContext)
+	}
+	conn.updateSessionCount(true)
+	l.Infof("new connection registered: %s, %s", conn.DataKit.HostName, conn.logContext)
+	return true
+}
+
+// unregisterClient only updates the row owned by this exact socket. Rejected
+// or replaced sockets must not touch it, even if the successor has since exited.
+// Rows without a session are reclaimed by registration, not by late unregisters.
+func (manager *ClientManager) unregisterClient(conn *Client) bool {
+	manager.Lock()
+	defer manager.Unlock()
+
+	live, ok := manager.Clients[conn.ID]
+	if !ok || live != conn {
+		return false
+	}
+
+	if err := datakitDB.DeleteByConnID(conn.ID, conn.DataKit.RunInContainer); err != nil {
+		l.Errorf("failed to delete datakit: %s", err.Error())
+	}
+
+	delete(manager.Clients, conn.ID)
+	conn.updateSessionCount(false)
+	l.Infof("connection unregistered: %s, %s", conn.DataKit.HostName, conn.logContext)
+
+	return true
+}
+
+// updateSessionCount is called while holding the manager lock. Keep the labels
+// from registration so a metadata update cannot leave a stale gauge behind.
+func (c *Client) updateSessionCount(active bool) {
+	if active && !c.counted {
+		c.metricLabels = [2]string{c.DataKit.HostName, c.DataKit.OS}
+		datakitTotalGauge.WithLabelValues(c.metricLabels[:]...).Inc()
+	} else if !active && c.counted {
+		datakitTotalGauge.WithLabelValues(c.metricLabels[:]...).Dec()
+	}
+	c.counted = active
+}
+
+// getClient returns the live session of a datakit.
+func (manager *ClientManager) getClient(connID string) (*Client, bool) {
+	manager.RLock()
+	defer manager.RUnlock()
+
+	client, ok := manager.Clients[connID]
+	return client, ok
 }
 
 func (manager *ClientManager) Action(action string, datakit *ws.DataKit, ctx *gin.Context) (*ws.DCAResponse, error) {
@@ -376,22 +519,23 @@ func (manager *ClientManager) Action(action string, datakit *ws.DataKit, ctx *gi
 		return nil, fmt.Errorf("datakit is required")
 	}
 
-	if client, ok := manager.Clients[datakit.ConnID]; !ok {
-		return nil, fmt.Errorf("datakit not available")
-	} else {
-		start := time.Now()
-		res, err := client.doAction(action, datakit, ctx)
-		if v, ok := res.(*ws.DCAResponse); ok {
-			websocketElapsedVec.WithLabelValues(
-				datakit.HostName,
-				action,
-				fmt.Sprintf("%d", v.Code),
-			).Observe(time.Since(start).Seconds())
-			return v, err
-		} else {
-			return nil, fmt.Errorf("operation failed: %w", err)
-		}
+	client, ok := manager.getClient(datakit.ConnID)
+	if !ok {
+		return nil, fmt.Errorf("%w: no live session, please refresh the datakit list", ErrDatakitOffline)
 	}
+
+	start := time.Now()
+	res, err := client.doAction(action, datakit, ctx)
+	if v, ok := res.(*ws.DCAResponse); ok {
+		websocketElapsedVec.WithLabelValues(
+			datakit.HostName,
+			action,
+			fmt.Sprintf("%d", v.Code),
+		).Observe(time.Since(start).Seconds())
+		return v, err
+	}
+
+	return nil, fmt.Errorf("operation failed: %w", err)
 }
 
 func dealNewWebsocketConnection(conn *websocket.Conn, websocketConnID string) error {
@@ -463,6 +607,7 @@ func websocketHandler(c *gin.Context) {
 		Close:             make(chan interface{}),
 		Timeout:           30 * time.Second,
 		HeartbeatInterval: time.Second * 30,
+		ReadTimeout:       sessionReadTimeout,
 		messageNumber:     1,
 	}
 
@@ -470,15 +615,29 @@ func websocketHandler(c *gin.Context) {
 
 	client.ID = datakit.ConnID
 	client.DataKit = datakit
+	client.logContext = fmt.Sprintf("host=%q conn_id=%s runtime_id=%s workspace=%s peer=%s",
+		datakit.HostName, client.ID, datakit.RunTimeID, datakit.WorkspaceUUID, conn.RemoteAddr())
 	client.Socket.SetPingHandler(func(appData string) error {
-		if err := datakitDB.Heartbeat(client.ID); err != nil {
-			l.Warnf("failed to heartbeat(%s): %s", datakit.HostName, err.Error())
-		}
+		// A datakit that has nothing to report only sends keepalives: they must
+		// extend the read deadline, otherwise an idle (but healthy) session is
+		// dropped on every timeout.
+		client.extendReadDeadline()
 
+		// A busy SQLite writer must not delay the pong and make the peer
+		// consider this working connection dead before its heartbeat is saved.
+		if err := client.Socket.WriteControl(
+			websocket.PongMessage, []byte(appData), time.Now().Add(client.Timeout)); err != nil {
+			return err
+		}
+		Manager.heartbeatClient(client)
 		return nil
 	})
 
-	Manager.Register <- client
+	client.Socket.SetPongHandler(func(appData string) error {
+		client.receiveProbePong(appData)
+		client.extendReadDeadline()
+		return nil
+	})
 
 	g.Go(func(ctx context.Context) error {
 		client.Read()
@@ -488,4 +647,13 @@ func websocketHandler(c *gin.Context) {
 		client.Write()
 		return nil
 	})
+
+	// Probe in this request's goroutine, outside the global registration loop.
+	// Other hosts can register or unregister while a previous owner is checked.
+	if !Manager.prepareRegistration(client) {
+		client.registrationRejected.Store(true)
+		client.Socket.Close() //nolint:errcheck,gosec
+		return
+	}
+	Manager.Register <- client
 }

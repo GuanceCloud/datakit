@@ -46,7 +46,7 @@ java -javaagent:/<your-path>/dd-java-agent.jar \
     -XX:FlightRecorderOptions=stackdepth=256 \
     -Ddd.agent.host=127.0.0.1 \
     -Ddd.trace.agent.port=9529 \
-    -Ddd.service.name=profiling-demo \
+    -Ddd.service=profiling-demo \
     -Ddd.env=dev \
     -Ddd.version=1.2.3  \
     -Ddd.profiling.enabled=true  \

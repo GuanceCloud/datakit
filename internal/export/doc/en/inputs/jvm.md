@@ -24,7 +24,7 @@ Here, we provide two kinds of JVM metrics collection methods, one is Jolokia (de
 
 ## Config {#config}
 
-## Collect JVM Metrics Through Ddtrace {#jvm-ddtrace}
+## Collect JVM Metrics Through DDTrace {#jvm-ddtrace}
 
 DataKit has a built-in [statsd collector](statsd.md) for receiving statsd protocol data sent over the network. Here we use ddtrace to collect metrics from the JVM and send them to the DataKit via statsd protocol.
 
@@ -111,7 +111,7 @@ java -javaagent:dd-java-agent.jar \
     -Ddd.profiling.enabled=true \
     -Ddd.logs.injection=true \
     -Ddd.trace.sample.rate=1 \
-    -Ddd.service.name=my-app \
+    -Ddd.service=my-app \
     -Ddd.env=staging \
     -Ddd.agent.host=localhost \
     -Ddd.agent.port=9529 \

@@ -87,7 +87,7 @@ Program Performance Monitoring (APM): The ability to track programs in the marke
 
 [OpenTelemetry](https://opentelemetry.io/docs/){:target="_blank"}
 
-: OpenTelemetry (OTeL) is an open source program visualization framework developed based on third-party tracking protocols that detects, generates, collects, and pumps monitoring data such as tracking links, metrics, logs, etc. As an industry standard, it is natively supported by many service providers.
+: OpenTelemetry (OTel) is a vendor-neutral observability framework that provides APIs, SDKs, specifications, and tools for generating, collecting, and exporting telemetry such as traces, metrics, and logs. OpenTelemetry is not an observability backend; its data must be sent to a receiver such as DataKit for processing and storage.
 
 [SkyWalking](https://skywalking.apache.org/docs/){:target="_blank"}
 

@@ -129,11 +129,13 @@
     "offline": "离线状态",
     "restarting": "重启中",
     "upgrading": "升级中",
-    "unknown": "未知状态"
+    "unknown": "未知状态",
+    "session_lost": "会话已断开"
   },
   "datakit": {
     "operation_disabled": {
       "not_running": "DataKit 不在线，仅 running 状态支持管理操作。",
+      "no_session": "该主机与 DCA 的连接已断开，请刷新列表。",
       "container_reload": "该 DataKit 运行在容器中，暂不支持在 DCA 中重启。",
       "container_upgrade": "该 DataKit 运行在容器中，暂不支持在 DCA 中升级。",
       "version_unavailable": "无法获取该 DataKit 版本线的最新版本信息。",
@@ -188,6 +190,7 @@
   },
   "api": {
     "dir.mkdir.failed": "创建目录失败",
+    "save.file.failed": "保存文件失败",
     "unknown_error": "未知错误",
     "innerCorestone.auth.invalidEmailOrMobile": "用户名错误，请重新输入",
     "innerCorestone.auth.passwordIncorrect": "密码错误，请重新输入",
@@ -199,6 +202,7 @@
     "ft.Forbidden": "您无权限操作",
     "server.request.error": "连接异常，请稍后再试",
     "server.error": "操作失败，请稍后再试",
+    "datakit.offline": "该主机当前不在线，请刷新列表",
     "param.invalid": "参数错误",
     "params.invalid.dir_not_exist": "目录不存在",
     "params.invalid.path_invalid": "路径错误",

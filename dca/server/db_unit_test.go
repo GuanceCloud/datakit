@@ -73,10 +73,6 @@ func TestDBLifecycle(t *testing.T) {
 	require.Equal(t, dk.ConnID, found.ConnID)
 	require.Equal(t, ws.StatusRunning, found.Status)
 
-	duplicated, err := db.IsDuplicatedConn(dk)
-	require.NoError(t, err)
-	require.True(t, duplicated)
-
 	require.NoError(t, db.Heartbeat(dk.ConnID))
 	require.NoError(t, db.UpdateStatus(dk, ws.StatusRestarting))
 	require.Error(t, db.UpdateStatus(dk, ws.StatusUpgrading))
@@ -102,10 +98,6 @@ func TestDBLifecycle(t *testing.T) {
 	found, err = db.Find(dk)
 	require.NoError(t, err)
 	require.Equal(t, ws.StatusOffline, found.Status)
-
-	duplicated, err = db.IsDuplicatedConn(dk)
-	require.NoError(t, err)
-	require.False(t, duplicated)
 
 	require.NoError(t, db.Delete(dk, true))
 	found, err = db.Find(dk)
@@ -154,11 +146,7 @@ func TestDBNilAndErrorBranches(t *testing.T) {
 	require.NoError(t, db.UpdateStatus(nil, ws.StatusOffline))
 	require.NoError(t, db.Delete(nil, true))
 
-	duplicated, err := db.IsDuplicatedConn(nil)
-	require.NoError(t, err)
-	require.False(t, duplicated)
-
-	_, err = db.Find(newTestDataKit("missing"))
+	_, err := db.Find(newTestDataKit("missing"))
 	require.NoError(t, err)
 
 	require.Error(t, db.UpdateStatus(newTestDataKit("missing"), ws.StatusOffline))
@@ -170,4 +158,56 @@ func TestCheckStatus(t *testing.T) {
 	require.True(t, checkStatus(ws.StatusUpgrading, ws.StatusOffline))
 	require.True(t, checkStatus(ws.StatusUpgrading, ws.StatusRunning))
 	require.False(t, checkStatus(ws.StatusUpgrading, ws.StatusRestarting))
+}
+
+// The same datakit process reconnects with a new conn id when its IP (or the
+// websocket address / workspace) changes. The old row must be removed, otherwise
+// the host is listed twice and reported as offline.
+func TestDBForceUpdateSupersedesSameRuntime(t *testing.T) {
+	db := newTestDB(t)
+
+	old := newTestDataKit("conn-old")
+	old.RunTimeID = "runtime-1"
+	require.NoError(t, db.Insert(old))
+
+	reconnected := newTestDataKit("conn-new")
+	reconnected.RunTimeID = "runtime-1" // same datakit process, new conn id
+	reconnected.IP = "10.20.30.99"
+	require.NoError(t, db.ForceUpdate(reconnected))
+
+	rows := []*ws.DataKit{}
+	require.NoError(t, db.Select("select * from datakit", &rows))
+	require.Len(t, rows, 1)
+	require.Equal(t, "conn-new", rows[0].ConnID)
+	require.Equal(t, "10.20.30.99", rows[0].IP)
+
+	// a restarted datakit (new runtime id) keeps its own row
+	restarted := newTestDataKit("conn-restart")
+	restarted.RunTimeID = "runtime-2"
+	require.NoError(t, db.ForceUpdate(restarted))
+
+	rows = []*ws.DataKit{} // sqlx appends to the given slice
+	require.NoError(t, db.Select("select * from datakit", &rows))
+	require.Len(t, rows, 2)
+}
+
+// The periodic cleanup must not drop the row of a running container datakit: its
+// session stays alive for a long time, so the row would not come back until the
+// next reconnect. Container rows are removed at startup only.
+func TestDBDeleteExpiredKeepsContainerRows(t *testing.T) {
+	db := newTestDB(t)
+
+	container := newTestDataKit("conn-container")
+	container.RunInContainer = true
+	require.NoError(t, db.Insert(container))
+
+	require.NoError(t, db.DeleteExpired())
+	found, err := db.Find(container)
+	require.NoError(t, err)
+	require.NotNil(t, found)
+
+	require.NoError(t, db.DeleteContainerRows())
+	found, err = db.Find(container)
+	require.NoError(t, err)
+	require.Nil(t, found)
 }

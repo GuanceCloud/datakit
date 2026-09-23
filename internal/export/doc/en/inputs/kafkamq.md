@@ -151,7 +151,7 @@ Configuration:
 
 The `dk_endpoint` `trace_api` `metric_api` corresponds to the address of the DataKit and the API address of the OpenTelemetry collector.
 
-> Note: The messages subscribed to from Kafka are not directly parsed, but are directly sent to the `OpenTelemetry` collector, so it is necessary to open the [OpenTelemetry collector](openTelemetry. md). Currently, only the `x-protobuf` data stream format is supported.
+> Note: Messages consumed from Kafka are forwarded to the `OpenTelemetry` collector instead of being parsed directly. Therefore, enable the [OpenTelemetry collector](opentelemetry.md). Currently, only the `x-protobuf` data stream format is supported.
 
 ### Example {#example}
 

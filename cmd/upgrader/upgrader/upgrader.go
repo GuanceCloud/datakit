@@ -176,15 +176,35 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 	}
 
 	if err := u.doUpgrade(scriptFile, scriptBase); err != nil {
-		l.Errorf("doUpgrade: %s", err.Error())
+		// keep the script on failure: it is the first thing to look at when a
+		// customer reports a broken upgrade
+		l.Errorf("doUpgrade: %s, setup script kept at %s", err.Error(), scriptFile)
+
+		// doUpgrade stops datakit before running the installer: if the upgrade
+		// failed, bring the (old) datakit back instead of leaving the host
+		// offline until someone notices
+		u.tryStartService()
+
 		return uhttp.Errorf(httpapi.ErrUpgradeFailed, "doUpgrade: %s", err)
 	}
+
+	// the downloaded setup script is only needed for this upgrade: do not leave
+	// tmp-dk-upgrader-<ts>.(sh|ps1) behind in the install directory
+	removeUpgradeScript(scriptFile)
 
 	// If the backened upgrading procedure failed to start the service,
 	// we tried here to start it.
 	u.tryStartService()
 
 	return nil
+}
+
+// removeUpgradeScript deletes the downloaded setup script. A failure to remove
+// it must not change the outcome of the upgrade.
+func removeUpgradeScript(scriptFile string) {
+	if err := os.Remove(scriptFile); err != nil && !os.IsNotExist(err) {
+		l.Warnf("unable to remove upgrade script %s: %s", scriptFile, err.Error())
+	}
 }
 
 func (u *upgraderImpl) saveUpgradeScript(downloadURL, version string) (string, error) {

@@ -20,6 +20,7 @@ The fastest way is the Java Agent, which instruments libraries automatically.
 ```shell
 export JAVA_OPTS="-javaagent:/path/to/opentelemetry-javaagent.jar"
 export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 export OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:4317"
 export OTEL_SERVICE_NAME=service-name
 ```
@@ -29,6 +30,7 @@ export OTEL_SERVICE_NAME=service-name
 ```shell
 java -javaagent:/path/to/opentelemetry-javaagent.jar \
   -Dotel.traces.exporter=otlp \
+  -Dotel.exporter.otlp.protocol=grpc \
   -Dotel.exporter.otlp.endpoint=http://127.0.0.1:4317 \
   -Dotel.service.name=service-name \
   -jar your-server.jar
@@ -41,12 +43,10 @@ cd <tomcat-install-dir>/bin
 vim catalina.sh
 
 # add to CATALINA_OPTS
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/opentelemetry-javaagent.jar -Dotel.traces.exporter=otlp -Dotel.service.name=service-name"; export CATALINA_OPTS
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/opentelemetry-javaagent.jar -Dotel.traces.exporter=otlp -Dotel.exporter.otlp.protocol=grpc -Dotel.exporter.otlp.endpoint=http://127.0.0.1:4317 -Dotel.service.name=service-name"; export CATALINA_OPTS
 ```
 
-> If DataKit runs on the same host and default port, `OTEL_EXPORTER_OTLP_ENDPOINT` can be omitted (default `http://localhost:4317`).
-
-For OTEL Agent V2, if you keep HTTP transport, set `-Dotel.exporter.otlp.protocol=http/protobuf` and configure each exporter endpoint (`traces`/`logs`/`metrics`) as needed.
+Always set the OTLP protocol and endpoint explicitly to avoid SDK- or Agent-version defaults. The examples above use DataKit's OTLP/gRPC receiver on port `4317`. Java Agent 2.x defaults to `http/protobuf`; if you keep that protocol, set the traces, metrics, and logs endpoints to `/otel/v1/traces`, `/otel/v1/metrics`, and `/otel/v1/logs` on DataKit port `9529`.
 
 ## Code instrumentation {#with-code}
 

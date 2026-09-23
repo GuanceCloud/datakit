@@ -64,6 +64,7 @@ jest.mock('src/helper/helper', () => ({
   getLatestDatakitVersion: (version, latestVersions) => latestVersions[`v${version.split('.')[0]}`],
   isContainerMode: (dk) => !!dk?.run_in_container,
   isDatakitManagement: (dk) => dk?.status === 'running',
+  isDatakitSessionLost: (dk) => dk?.status === 'running' && dk?.alive === false,
   isDatakitUpgradeable: (dk, latestVersions) => dk?.status === 'running' && dk?.version !== latestVersions[`v${dk?.version.split('.')[0]}`] && !dk?.run_in_container,
   isLoadingStatus: (dk) => ['upgrading', 'restarting'].includes(dk?.status),
   isNewerDatakitVersionAvailable: (version, latestVersions) => version !== latestVersions[`v${version.split('.')[0]}`],
@@ -296,6 +297,20 @@ describe('DkList', () => {
       expect(mockAlertError).toHaveBeenCalledWith('load failed');
     });
     expect(mockUpdateDatakits).toHaveBeenCalledWith([]);
+  });
+
+  it('keeps the current list while a refresh is in flight', async () => {
+    // a lazy query has no currentData until the in-flight request resolves
+    mockDatakitListResponse = undefined;
+
+    render(<DkList updateDatakits={mockUpdateDatakits} />);
+
+    await waitFor(() => {
+      expect(mockQueryDatakitList).toHaveBeenCalled();
+    });
+
+    expect(mockUpdateDatakits).not.toHaveBeenCalledWith([]);
+    expect(mockAlertError).not.toHaveBeenCalled();
   });
 
   it('supports batch selection state and refresh actions', async () => {

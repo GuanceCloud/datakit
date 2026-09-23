@@ -10,10 +10,12 @@ import (
 	// nolint:gosec
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
@@ -27,9 +29,24 @@ import (
 )
 
 var (
+	workspaceMu   sync.RWMutex
 	workspaceUUID = ""
 	datakitToken  = ""
 )
+
+func getWorkspaceUUID() string {
+	workspaceMu.RLock()
+	defer workspaceMu.RUnlock()
+
+	return workspaceUUID
+}
+
+func setWorkspaceUUID(uuid string) {
+	workspaceMu.Lock()
+	defer workspaceMu.Unlock()
+
+	workspaceUUID = uuid
+}
 
 type WorkspaceQueryResponse struct {
 	Content []struct {
@@ -40,33 +57,50 @@ type WorkspaceQueryResponse struct {
 }
 
 func setWorkspace(hs *httpServerConf) error {
-	if arr := hs.dw.GetTokens(); len(arr) > 0 {
-		datakitToken = arr[0]
-		if resp, err := hs.dw.WorkspaceQuery(
-			[]byte(fmt.Sprintf(`{"token":["%s"]}`, datakitToken))); err != nil {
-			return fmt.Errorf("workspace query failed: %w", err)
-		} else {
-			defer resp.Body.Close() //nolint:errcheck
-			respBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Errorf("read response body %w", err)
-			}
-
-			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("workspace query failed: %s", string(respBytes))
-			}
-
-			var wqr WorkspaceQueryResponse
-
-			if err := json.Unmarshal(respBytes, &wqr); err != nil {
-				return fmt.Errorf("unmarshal response body %w", err)
-			}
-
-			if len(wqr.Content) > 0 {
-				workspaceUUID = wqr.Content[0].Token.WorkspaceUUID
-			}
-		}
+	if hs == nil || hs.dw == nil {
+		return errors.New("dataway is not initialized, cannot resolve the workspace uuid")
 	}
+
+	arr := hs.dw.GetTokens()
+	if len(arr) == 0 {
+		return errors.New("no dataway token configured, cannot resolve the workspace uuid")
+	}
+
+	datakitToken = arr[0]
+
+	resp, err := hs.dw.WorkspaceQuery([]byte(fmt.Sprintf(`{"token":["%s"]}`, datakitToken)))
+	if err != nil {
+		return fmt.Errorf("workspace query failed: %w", err)
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response body %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("workspace query failed: %s", string(respBytes))
+	}
+
+	var wqr WorkspaceQueryResponse
+
+	if err := json.Unmarshal(respBytes, &wqr); err != nil {
+		return fmt.Errorf("unmarshal response body %w", err)
+	}
+
+	if len(wqr.Content) == 0 {
+		return errors.New("workspace query returned empty content")
+	}
+
+	uuid := wqr.Content[0].Token.WorkspaceUUID
+	if uuid == "" {
+		return errors.New("workspace query returned an empty ws_uuid")
+	}
+
+	setWorkspaceUUID(uuid)
+
 	return nil
 }
 
@@ -99,13 +133,62 @@ func createDCARouter(router *gin.Engine, hs *httpServerConf) {
 
 func createGetDCAInfoHandler(hs *httpServerConf) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		if workspaceUUID == "" {
-			if err := setWorkspace(hs); err != nil {
-				l.Warnf("set workspace failed: %s", err.Error())
-			}
-		}
+		// The workspace uuid is resolved in the background: never block this API
+		// (and with it the dk_upgrader poll) on the dataway query.
+		startWorkspaceResolver(hs)
 		getDCAInfo(ctx)
 	}
+}
+
+var workspaceResolveOnce sync.Once
+
+const (
+	// workspaceRefreshInterval re-resolves the uuid so a re-tokenized datakit
+	// does not keep reporting the workspace it had at startup.
+	workspaceRefreshInterval = 30 * time.Minute
+	// workspaceRetryInterval retries a failed resolution (unreachable dataway,
+	// no token configured yet at startup).
+	workspaceRetryInterval = time.Minute
+)
+
+// startWorkspaceResolver keeps the datakit workspace uuid up to date without
+// blocking the DCA info API. Resolving it in the request path made every poll
+// wait for the dataway query (and its retries) while the uuid stayed empty, and
+// the result was never refreshed afterwards.
+func startWorkspaceResolver(hs *httpServerConf) {
+	workspaceResolveOnce.Do(func() {
+		g.Go(func(ctx context.Context) error {
+			var lastErr string
+
+			for {
+				next := workspaceRefreshInterval
+				old := getWorkspaceUUID()
+
+				err := setWorkspace(hs)
+				switch {
+				case err != nil:
+					// A datakit that cannot resolve its workspace would otherwise
+					// log the same failure every retry: keep it to state changes.
+					if msg := err.Error(); msg != lastErr {
+						l.Warnf("resolve workspace uuid failed: %s", msg)
+						lastErr = msg
+					}
+					next = workspaceRetryInterval
+				default:
+					lastErr = ""
+					if uuid := getWorkspaceUUID(); uuid != old {
+						l.Infof("datakit workspace uuid: %s", uuid)
+					}
+				}
+
+				select {
+				case <-datakit.Exit.Wait():
+					return nil
+				case <-time.After(next):
+				}
+			}
+		})
+	})
 }
 
 type DCAInfo struct {
@@ -246,7 +329,7 @@ func getDatakitData() *ws.DataKit {
 		StartTime:      metrics.Uptime.UnixMilli(),
 		RunInContainer: datakit.Docker,
 		Status:         ws.StatusRunning,
-		WorkspaceUUID:  workspaceUUID,
+		WorkspaceUUID:  getWorkspaceUUID(),
 		DataKitRuntimeInfo: ws.DataKitRuntimeInfo{
 			GlobalHostTags: datakit.GlobalHostTags(),
 			DataDir:        datakit.DataDir,
@@ -403,9 +486,9 @@ func startDCA(hs *httpServerConf) {
 
 		// init workspace uuid.
 		for {
-			if workspaceUUID == "" {
+			if getWorkspaceUUID() == "" {
 				if err := setWorkspace(hs); err != nil {
-					l.Warnf("set workspace failed: %s", err.Error())
+					l.Warnf("resolve workspace uuid failed: %s", err.Error())
 				}
 			} else {
 				break

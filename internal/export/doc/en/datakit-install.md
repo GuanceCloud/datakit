@@ -26,6 +26,8 @@ Minimum OS requirements for `2.x`:
 
 The install script automatically selects the matching version line based on the download path. Since the two paths are independently published, `datakit-v2` only installs/upgrades to the latest `2.x`, and `datakit` only installs/upgrades to the latest `1.x` — they do not share version information. To manually install a `1.x` version, use a versioned script (for example `install-1.93.0.sh`).
 
+Exception: With updated Linux and Windows scripts that support fallback, set `DK_ALLOW_V1_FALLBACK=1` to automatically use `1.x` for installation or upgrade when the OS does not support `2.x`.
+
 ## Register/log in to <<<custom_key.brand_name>>> {#regist-login}
 
 <<<% if custom_key.brand_key == 'guance' %>>>
@@ -498,6 +500,7 @@ In Kubernetes, you can inject APM through the [DataKit Operator](operator-ddtrac
 | `DK_INSTALL_ONLY`                | `on`                        | Install only, not run                                                                                                                                                                       |
 | `DK_HOSTNAME`                    | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
 | `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version                                                               |
+| `DK_ALLOW_V1_FALLBACK`           | `1`                         | Set to `1` to allow Linux/Windows installation or upgrade to fall back to `1.x` from the same source's `/datakit` directory when the OS does not support `2.x`. Disabled by default. Download or installation failures do not trigger fallback. |
 | `DK_UPGRADE_MANAGER`             | `on`                        | Whether to also install or upgrade the **DataKit upgrade management service** when upgrading DataKit. Used together with `DK_UPGRADE`, supported since [1.5.9](changelog.md#cl-1.5.9) |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2`                                                                           |
 | `DK_PROXY_TYPE`                  | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |

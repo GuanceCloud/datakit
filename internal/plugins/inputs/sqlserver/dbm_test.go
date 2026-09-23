@@ -8,13 +8,19 @@ package sqlserver
 import (
 	"context"
 	"database/sql"
+	"encoding/xml"
+	"io"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/DataDog/datadog-agent/pkg/obfuscate"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
@@ -118,6 +124,88 @@ func TestObfuscateXMLPlan(t *testing.T) {
 	}
 }
 
+func TestObfuscateXMLPlan_Namespaces(t *testing.T) {
+	const ns = "http://schemas.microsoft.com/sqlserver/2004/07/showplan"
+	tests := []struct {
+		name string
+		plan string
+	}{
+		{
+			name: "default namespace",
+			plan: `<ShowPlanXML xmlns="` + ns + `"><StmtSimple StatementText="SELECT 123"></StmtSimple></ShowPlanXML>`,
+		},
+		{
+			name: "prefixed elements and attributes",
+			plan: `<sp:ShowPlanXML xmlns:sp="` + ns + `" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="sp:Plan">` +
+				`<sp:StmtSimple StatementText="SELECT 123"></sp:StmtSimple></sp:ShowPlanXML>`,
+		},
+		{
+			name: "nested default namespace and reset",
+			plan: `<ShowPlanXML xmlns="` + ns + `"><Extension xmlns="urn:extension"><Local xmlns=""></Local></Extension>` +
+				`<StmtSimple StatementText="SELECT 123"></StmtSimple></ShowPlanXML>`,
+		},
+		{
+			name: "prefix rebinding",
+			plan: `<sp:ShowPlanXML xmlns:sp="` + ns + `"><sp:Extension xmlns:sp="urn:extension" sp:value="value"></sp:Extension>` +
+				`<sp:StmtSimple StatementText="SELECT 123"></sp:StmtSimple></sp:ShowPlanXML>`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := obfuscateXMLPlan(tt.plan)
+			require.NoError(t, err)
+			// Namespace declarations, prefixes (including QName attribute values),
+			// and scope must survive SQL literal obfuscation unchanged.
+			require.Equal(t, strings.ReplaceAll(tt.plan, "SELECT 123", "SELECT ?"), result)
+
+			decoder := xml.NewDecoder(strings.NewReader(result))
+			for {
+				token, err := decoder.Token()
+				if err == io.EOF {
+					break
+				}
+				require.NoError(t, err)
+				if start, ok := token.(xml.StartElement); ok {
+					// encoding/xml does not reject duplicate attributes itself.
+					seen := make(map[xml.Name]bool)
+					for _, attr := range start.Attr {
+						require.False(t, seen[attr.Name], "duplicate attribute %v", attr.Name)
+						seen[attr.Name] = true
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestProcessPlanWhitespaceAttributes(t *testing.T) {
+	const plan = `<ShowPlanXML><StmtSimple StatementText="SELECT 123"/>` +
+		`<StmtSimple StatementText="   "/><ScalarOperator ScalarString="&#x9;&#xA;" ` +
+		`ConstValue="&#xD;"/><ColumnReference ParameterCompiledValue=" "/></ShowPlanXML>`
+	result, err := processPlan(plan, false)
+	require.NoError(t, err)
+	require.NotContains(t, result, "123")
+
+	attrs := make(map[string][]string)
+	decoder := xml.NewDecoder(strings.NewReader(result))
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+		if start, ok := token.(xml.StartElement); ok {
+			for _, attr := range start.Attr {
+				attrs[attr.Name.Local] = append(attrs[attr.Name.Local], attr.Value)
+			}
+		}
+	}
+	require.Equal(t, []string{"SELECT ?", "   "}, attrs["StatementText"])
+	require.Equal(t, []string{"\t\n"}, attrs["ScalarString"])
+	require.Equal(t, []string{"\r"}, attrs["ConstValue"])
+	require.Equal(t, []string{" "}, attrs["ParameterCompiledValue"])
+}
+
 func TestProcessPlan(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -153,13 +241,36 @@ func TestProcessPlan(t *testing.T) {
 			isEncrypted: false,
 			wantError:   false,
 		},
+		{
+			name:      "mismatched XML must not return raw SQL",
+			plan:      `<ShowPlanXML><StmtSimple StatementText="SELECT 123"></ShowPlanXML>`,
+			wantError: true,
+		},
+		{
+			name:      "truncated XML must not return raw SQL",
+			plan:      `<ShowPlanXML><StmtSimple StatementText="SELECT 123">`,
+			wantError: true,
+		},
+		{
+			name:      "SQL obfuscation failure must not return raw SQL",
+			plan:      `<ShowPlanXML><StmtSimple StatementText="SELECT 'private_literal"></StmtSimple></ShowPlanXML>`,
+			wantError: true,
+		},
+		{
+			name:     "empty SQL attribute",
+			plan:     `<ShowPlanXML><StmtSimple StatementText=""></StmtSimple></ShowPlanXML>`,
+			wantPlan: `<ShowPlanXML><StmtSimple StatementText=""></StmtSimple></ShowPlanXML>`,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resultPlan, err := processPlan(tt.plan, tt.isEncrypted)
 			if tt.wantError {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Empty(t, resultPlan)
+				assert.NotContains(t, err.Error(), "private_literal")
+				return
 			} else {
 				assert.NoError(t, err)
 			}
@@ -169,6 +280,49 @@ func TestProcessPlan(t *testing.T) {
 				// For non-encrypted plans, the result should be obfuscated
 				assert.NotEmpty(t, resultPlan)
 			}
+		})
+	}
+}
+
+func TestCollectPlansSkipsObfuscationFailuresAndRetries(t *testing.T) {
+	for _, badPlan := range []string{
+		`<ShowPlanXML><StmtSimple StatementText="SELECT 123"></ShowPlanXML>`,
+		`<ShowPlanXML><StmtSimple StatementText="SELECT 'private_literal"></StmtSimple></ShowPlanXML>`,
+	} {
+		t.Run(badPlan, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer db.Close() //nolint:errcheck
+
+			ipt := defaultInput()
+			ipt.db = db
+			ipt.dbmPlanObjectCache = expirable.NewLRU[string, struct{}](10, nil, time.Hour)
+			rows := []*dbmStatementRow{
+				{planHandle: "0x01", querySignature: "failed", queryPlanHash: "plan1", statementEndOffset: -1},
+				{planHandle: "0x02", querySignature: "valid", queryPlanHash: "plan2", statementEndOffset: -1},
+			}
+			const validPlan = `<ShowPlanXML><StmtSimple StatementText="SELECT 123"></StmtSimple></ShowPlanXML>`
+			mock.ExpectQuery(`sys\.dm_exec_text_query_plan`).WithArgs("0x01", int64(0), int64(-1)).
+				WillReturnRows(sqlmock.NewRows([]string{"plan_text", "is_encrypted"}).AddRow(badPlan, false))
+			mock.ExpectQuery(`sys\.dm_exec_text_query_plan`).WithArgs("0x02", int64(0), int64(-1)).
+				WillReturnRows(sqlmock.NewRows([]string{"plan_text", "is_encrypted"}).AddRow(validPlan, false))
+
+			collected := ipt.collectPlansForStatements(context.Background(), rows, time.Now())
+			require.Len(t, collected, 1)
+			require.Equal(t, "valid", collected[0].querySignature)
+			require.NotContains(t, collected[0].planObfuscated, "123")
+			require.Len(t, ipt.buildAndFeedDatabasePlanObjects(collected, time.Now()), 1)
+			_, cached := ipt.dbmPlanObjectCache.Get(generatePlanCacheKey("failed", "plan1"))
+			require.False(t, cached)
+
+			// A later collection retries the failed plan, while the successful plan is cached.
+			mock.ExpectQuery(`sys\.dm_exec_text_query_plan`).WithArgs("0x01", int64(0), int64(-1)).
+				WillReturnRows(sqlmock.NewRows([]string{"plan_text", "is_encrypted"}).AddRow(validPlan, false))
+			collected = ipt.collectPlansForStatements(context.Background(), rows, time.Now())
+			require.Len(t, collected, 1)
+			require.Equal(t, "failed", collected[0].querySignature)
+			require.NotContains(t, collected[0].planObfuscated, "123")
+			require.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }
@@ -921,6 +1075,16 @@ func TestObfuscateXMLPlan_ErrorHandling(t *testing.T) {
 		{
 			name:    "invalid XML encoding",
 			rawPlan: string([]byte{0xFF, 0xFE, 0xFD}),
+			wantErr: true,
+		},
+		{
+			name:    "truncated XML",
+			rawPlan: `<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan"><StmtSimple/>`,
+			wantErr: true,
+		},
+		{
+			name:    "mismatched elements",
+			rawPlan: `<ShowPlanXML><StmtSimple></ShowPlanXML>`,
 			wantErr: true,
 		},
 	}

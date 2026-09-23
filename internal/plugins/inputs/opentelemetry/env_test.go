@@ -90,3 +90,14 @@ func TestReadEnv(t *testing.T) {
 		})
 	}
 }
+
+func TestCompatibleDDTraceEnvDocName(t *testing.T) {
+	ipt := &Input{}
+	for _, info := range ipt.GetENVDoc() {
+		if info.FieldName == "CompatibleDdTrace" {
+			assert.Equal(t, "ENV_INPUT_OTEL_COMPATIBLE_DDTRACE", info.ENVName)
+			return
+		}
+	}
+	t.Fatal("CompatibleDdTrace ENV documentation is missing")
+}

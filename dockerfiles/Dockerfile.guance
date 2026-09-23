@@ -21,7 +21,9 @@ RUN mkdir -p /usr/local/datakit \
   && mkdir -p /usr/local/datakit/pipeline \
   && mkdir -p /usr/local/datakit/externals \
   && mkdir -p /usr/local/datakit/recorder \
-  && mkdir -p /opt/oracle
+  && mkdir -p /opt/oracle \
+  && chown -R datakit:datakit /usr/local/datakit /opt/oracle \
+  && chmod -R 775 /usr/local/datakit /opt/oracle
 
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
   && apt-get update \
@@ -52,6 +54,8 @@ RUN \
   -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
   && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
   && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient \
+  && chown -R datakit:datakit /opt/oracle \
+  && chmod -R 775 /opt/oracle \
   && rm /usr/local/datakit/externals/instantclient-basiclite-linux.zip; \
   wget -q https://static.guance.com/otn_software/db2/linuxx64_odbc_cli.tar.gz \
   -O /usr/local/datakit/externals/linuxx64_odbc_cli.tar.gz \
@@ -76,6 +80,8 @@ RUN \
   -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
   && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
   && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient \
+  && chown -R datakit:datakit /opt/oracle \
+  && chmod -R 775 /opt/oracle \
   && rm /usr/local/datakit/externals/instantclient-basiclite-linux.zip; \
   wget -q https://static.guance.com/oceanbase/arm/libobclient-2.1.4.1-20230510140123.el7.alios7.aarch64.rpm \
   -O /usr/local/datakit/externals/libobclient-2.1.4.1-20230510140123.el7.alios7.aarch64.rpm \
@@ -90,21 +96,18 @@ RUN \
 
 # download data files required by datakit
 RUN wget -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \
-  && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
+  && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz \
+  && chown -R datakit:datakit /usr/local/datakit \
+  && chmod -R 775 /usr/local/datakit
 
-COPY --chown=datakit:datakit ${DIST_DIR}/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
+# Set final permissions while adding files, so later layers do not copy them again.
+COPY --chown=datakit:datakit --chmod=0775 ${DIST_DIR}/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
 
 ENV PATH /usr/local/datakit:$PATH
 
 RUN mkdir -p /var/log/datakit \
   && chown -R datakit:datakit /var/log/datakit \
   && chmod -R 775 /var/log/datakit
-
-RUN chown -R datakit:datakit /usr/local/datakit \
-  && chown -R datakit:datakit /opt/oracle
-
-RUN chmod -R 775 /usr/local/datakit \
-  && chmod -R 775 /opt/oracle
 
 USER root
 

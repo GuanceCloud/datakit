@@ -33,7 +33,7 @@ You can see that DataKit has integrated the [StatsD](https://github.com/statsd/s
     - [x] 3.0.24
     - [x] 2.1.22
 
-### DDtrace Configuration {#config-ddtrace}
+### DDTrace Configuration {#config-ddtrace}
 
 - Download `dd-java-agent.jar`, see [here](ddtrace.md){:target="_blank"};
 

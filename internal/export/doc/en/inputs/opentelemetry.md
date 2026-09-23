@@ -26,7 +26,11 @@ This document explains how to collect OTEL data on DataKit and what you should c
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Go to `conf.d/{{.Catalog}}` in the DataKit installation directory, copy `{{.InputName}}.conf.sample` to `{{.InputName}}.conf`, and edit it.
+    Copy the sample configuration to the `conf.d` root and edit it. With the default installation path, run:
+
+    ```shell
+    cp /usr/local/datakit/conf.d/samples/opentelemetry.conf.sample /usr/local/datakit/conf.d/opentelemetry.conf
+    ```
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -81,8 +85,8 @@ In OTEL Java Agent V2, default OTLP protocol is `http/protobuf`.
 To keep compatibility, you can still switch back to gRPC:
 
 ```shell
-java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
-  -Dotel.exporter=otlp \
+java -javaagent:/opt/opentelemetry/opentelemetry-javaagent.jar \
+  -Dotel.traces.exporter=otlp \
   -Dotel.exporter.otlp.protocol=grpc \
   -Dotel.exporter.otlp.endpoint=http://localhost:4317 \
   -Dotel.service.name=app \
@@ -92,8 +96,8 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
 For HTTP mode (DataKit default path), configure each exporter endpoint:
 
 ```shell
-java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
-  -Dotel.exporter=otlp \
+java -javaagent:/opt/opentelemetry/opentelemetry-javaagent.jar \
+  -Dotel.traces.exporter=otlp \
   -Dotel.exporter.otlp.protocol=http/protobuf \
   -Dotel.exporter.otlp.logs.endpoint=http://localhost:9529/otel/v1/logs \
   -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/traces \
@@ -121,7 +125,7 @@ The table below is a practical subset of configuration items used for DataKit in
 | `OTEL_PROPAGATORS(otel.propagators)` | Propagation format (`tracecontext,baggage` by default). |
 | `OTEL_TRACES_SAMPLER(otel.traces.sampler)` | Sampling strategy. |
 | `OTEL_TRACES_SAMPLER_ARG(otel.traces.sampler.arg)` | Sampler arguments, default `1.0` (`0~1.0`). |
-| `OTEL_EXPORTER_OTLP_PROTOCOL(otel.exporter.otlp.protocol)` | Transport protocol, default `grpc`; supported `grpc` and `http/protobuf`. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL(otel.exporter.otlp.protocol)` | Transport protocol; valid values include `grpc` and `http/protobuf`. The default depends on the SDK or distribution; Java Agent 2.x defaults to `http/protobuf`. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT(otel.exporter.otlp.endpoint)` | General OTLP endpoint, e.g. `http://datakit-host:4317` (gRPC) or `http://datakit-host:9529` (HTTP base). |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT(otel.exporter.otlp.traces.endpoint)` | Trace endpoint for HTTP mode, e.g. `http://datakit-host:9529/otel/v1/traces`. |
 | `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT(otel.exporter.otlp.metrics.endpoint)` | Metrics endpoint for HTTP mode, e.g. `http://datakit-host:9529/otel/v1/metrics`. |

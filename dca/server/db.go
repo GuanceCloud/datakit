@@ -18,6 +18,11 @@ const (
 	maxUpdatedAtInterval = 24 * time.Hour // list datakits which updated_at > now - maxUpdatedAtInterval
 )
 
+const (
+	// maxDatakitPageSize caps the page size of the datakit list API.
+	maxDatakitPageSize = 200
+)
+
 type (
 	DB struct {
 		db *sqlx.DB
@@ -48,6 +53,8 @@ create table if not exists datakit (
 );
 
 create unique index if not exists datakit_conn_id_index on datakit(conn_id,runtime_id);
+
+create index if not exists datakit_workspace_updated_index on datakit(workspace_uuid,updated_at);
 
 create table if not exists global_host_tags (
 	id integer primary key autoincrement not null,
@@ -81,7 +88,27 @@ func (db *DB) Init() error {
 		return fmt.Errorf("Init db error:%w ", err)
 	}
 
-	if _, err := db.Exec("delete from datakit where updated_at < ? or (run_in_container=true)",
+	if err := db.DeleteExpired(); err != nil {
+		return err
+	}
+
+	// container rows are re-created on the next registration, so they are only
+	// removed here (a running container datakit keeps its session for a long
+	// time and must not lose its row during the periodic cleanup).
+	if err := db.DeleteContainerRows(); err != nil {
+		return err
+	}
+
+	l.Info("init db success")
+
+	return nil
+}
+
+// DeleteExpired removes the datakits that have not been updated for
+// maxUpdatedAtInterval. It runs at startup and periodically afterwards, long
+// running DCA processes would otherwise never clean up.
+func (db *DB) DeleteExpired() error {
+	if _, err := db.Exec("delete from datakit where updated_at < ?",
 		time.Now().Add(-maxUpdatedAtInterval).UnixMilli()); err != nil {
 		return fmt.Errorf("delete old datakit error:%w ", err)
 	}
@@ -90,7 +117,20 @@ func (db *DB) Init() error {
 		return fmt.Errorf("delete global host tags error:%w ", err)
 	}
 
-	l.Info("init db success")
+	return nil
+}
+
+// DeleteContainerRows removes the datakits running in containers: their row is
+// re-created on the next registration, and after a DCA restart the row of a
+// container datakit is stale until it reconnects.
+func (db *DB) DeleteContainerRows() error {
+	if _, err := db.Exec("delete from datakit where run_in_container=true"); err != nil {
+		return fmt.Errorf("delete container datakit error:%w ", err)
+	}
+
+	if _, err := db.Exec("delete from global_host_tags where conn_id not in (select conn_id from datakit)"); err != nil {
+		return fmt.Errorf("delete global host tags error:%w ", err)
+	}
 
 	return nil
 }
@@ -114,7 +154,50 @@ func (db *DB) ForceUpdate(dk *ws.DataKit) error {
 		return fmt.Errorf("failed to delete datakit: %w", err)
 	}
 
+	if err := db.DeleteSuperseded(dk); err != nil {
+		return err
+	}
+
 	return db.Insert(dk)
+}
+
+// DeleteSuperseded removes the rows registered by the same datakit process
+// (same runtime id and workspace) with an older conn id.
+//
+// A datakit reconnects with a new conn id when its IP, the websocket server
+// address or the workspace changes; the runtime id stays the same as long as
+// the datakit process is alive. Keeping the old row would list the very same
+// host twice and report it as offline.
+func (db *DB) DeleteSuperseded(dk *ws.DataKit) error {
+	if dk == nil || dk.RunTimeID == "" || dk.WorkspaceUUID == "" {
+		return nil
+	}
+
+	old := []*ws.DataKit{}
+	query := "select * from datakit where runtime_id=? and workspace_uuid=? and conn_id<>?"
+	if err := db.Select(query, &old, dk.RunTimeID, dk.WorkspaceUUID, dk.ConnID); err != nil {
+		return fmt.Errorf("failed to query superseded datakit: %w", err)
+	}
+
+	if len(old) == 0 {
+		return nil
+	}
+
+	for _, o := range old {
+		if err := db.DeleteGlobalHostTags(o); err != nil {
+			return err
+		}
+	}
+
+	if _, err := db.Exec(
+		"delete from datakit where runtime_id=? and workspace_uuid=? and conn_id<>?",
+		dk.RunTimeID, dk.WorkspaceUUID, dk.ConnID,
+	); err != nil {
+		return fmt.Errorf("failed to delete superseded datakit: %w", err)
+	}
+
+	l.Infof("removed %d superseded datakit row(s) of runtime %s", len(old), dk.RunTimeID)
+	return nil
 }
 
 func (db *DB) Update(dk *ws.DataKit) error {
@@ -131,12 +214,15 @@ func (db *DB) Update(dk *ws.DataKit) error {
 
 	globalHostTags := dk.GetGlobalHostTagsString()
 
-	_, err := db.Exec(sql, dk.Arch, dk.HostName,
+	res, err := db.Exec(sql, dk.Arch, dk.HostName,
 		dk.OS, dk.Version, dk.IP, dk.StartTime, dk.RunInContainer,
 		dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID,
 		dk.Status.String(), dk.URL, globalHostTags, dk.Config, dk.ConnID)
 	if err != nil {
 		return fmt.Errorf("execute sql failed: %w", err)
+	}
+	if affected, err := res.RowsAffected(); err == nil && affected == 0 {
+		return fmt.Errorf("datakit not found: %s", dk.ConnID)
 	}
 
 	return db.UpdateGlobalHostTags(dk)
@@ -158,15 +244,17 @@ func (db *DB) UpdateByConnID(dk *ws.DataKit, connID string) error {
        set runtime_id=?,arch=?,host_name=?,os=?,version=?,ip=?,
 			     start_time=?,run_in_container=?,run_mode=?,usage_cores=?,
 					 updated_at=?,workspace_uuid=?,status=?,url=?,global_host_tags=?,config=?
-				 }
       where conn_id=?
 	`
-	_, err := db.Exec(sql,
+	res, err := db.Exec(sql,
 		dk.RunTimeID, dk.Arch, dk.HostName, dk.OS, dk.Version, dk.IP, dk.StartTime,
 		dk.RunInContainer, dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID,
 		dk.Status.String(), dk.URL, dk.GetGlobalHostTagsString(), dk.Config, connID)
 	if err != nil {
 		return fmt.Errorf("execute sql failed: %w", err)
+	}
+	if affected, err := res.RowsAffected(); err == nil && affected == 0 {
+		return fmt.Errorf("datakit not found: %s", connID)
 	}
 
 	return db.UpdateGlobalHostTags(dk)
@@ -311,19 +399,4 @@ func (db *DB) Find(dk *ws.DataKit) (*ws.DataKit, error) {
 	default:
 		return &rows[0], nil
 	}
-}
-
-// IsDuplicatedConn checks whether the connection id is duplicated.
-func (db *DB) IsDuplicatedConn(dk *ws.DataKit) (bool, error) {
-	if dk == nil {
-		return false, nil
-	}
-	connID := dk.ConnID
-
-	rows := []ws.DataKit{}
-	if err := db.Select("select * from datakit where conn_id=? and status<>?", &rows, connID, ws.StatusOffline); err != nil {
-		return false, fmt.Errorf("failed to query datakit: %w", err)
-	}
-
-	return len(rows) > 0, nil
 }

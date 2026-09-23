@@ -7,217 +7,103 @@ tags      :
 __int_icon: ''
 ---
 
-This article mainly introduces the products of multiple tracing stacks, and how to realize tracing information propagation them in distributed services.
+Distributed tracing uses propagators to inject and extract Trace IDs, Span IDs, sampling decisions, and baggage across process boundaries. HTTP instrumentation usually carries this information in request headers. Spans form one trace only when both ends of a call use compatible propagation formats.
 
-The transparent transmission protocol, also known as the propagation protocol, is implemented by adding specific header information (generally referring to HTTP headers) in service requests and responses. When a service requests another service, it carries specific request headers. When the next hop receives the request, it obtains the specific link information from the request header and inherits it, and continues to propagate backward until the end of the link. In this way, the entire call chain can be correlated.
+Propagation carries context only; it does not export span data to DataKit. Configure the DDTrace or OpenTelemetry destination, port, and transport separately in each application.
 
-## Common propagation protocols {#propagators}
+## Common Propagation Formats {#propagators}
 
-The following is a brief introduction to the differences between these transparent transmission protocols in the HTTP header:
+| Format | Primary HTTP headers | Notes |
+| --- | --- | --- |
+| W3C Trace Context | `traceparent`, `tracestate` | Vendor-neutral standard; recommended for mixed DDTrace and OpenTelemetry traces. |
+| W3C Baggage | `baggage` | Carries application-defined key-value pairs. Do not propagate sensitive data across untrusted boundaries. |
+| B3 Single | `b3` | Zipkin B3 single-header format. |
+| B3 Multi | `X-B3-TraceId`, `X-B3-SpanId`, `X-B3-Sampled`, and others | Zipkin B3 multi-header format. |
+| Jaeger | `uber-trace-id` | Legacy Jaeger format; prefer W3C Trace Context for new integrations. |
+| Datadog | `x-datadog-trace-id`, `x-datadog-parent-id`, and others | Datadog native format. |
 
-### Trace Context {#propagators-w3c}
+OpenTracing is an archived API and specification, not an OpenTelemetry propagation protocol. Some legacy implementations use the OT Trace format, such as `ot-tracer-*` headers, but new integrations should not treat `opentracing` as a portable `OTEL_PROPAGATORS` value.
 
-Trace Context is a trace protocol standardized by [W3C](https://www.w3.org/TR/trace-context/){:target="_blank"}, which defines two HTTP header fields: `traceparent` and `tracestate`:
+## OpenTelemetry Configuration {#use-otel}
 
-- `traceparent` contains basic information about the current trace, such as SpanID and ParentSpanID, etc., for example: `traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01`
-- `tracestate` is used to pass metadata related to the trace. For example: `tracestate: congo=t61rcWkgMzE`
-
-### B3/B3Multi {#propagators-b3}
-
-B3 is a popular tracking protocol that defines several HTTP header fields to identify tracking information. The B3Multi transparent transmission protocol is an extension of the B3 protocol. The commonly used fields are: `X-B3-TraceId`, `X-B3-SpanId`, `X-B3-ParentSpanId`, `X-B3-Sampled`, `X -B3-Flags` etc.
-
-### Jaeger {#propagators-jaeger}
-
-Jaeger is a distributed tracing system that defines several HTTP header fields for passing trace information. Commonly used fields are: `uber-trace-id`, `jaeger-baggage`, etc.
-
-### OpenTracing {#propagators-ot}
-
-OpenTracing is a transparent transmission protocol of OpenTelemetry, which defines multiple HTTP header fields for transmitting link information:
-
-- `ot-tracer-traceid`: used to pass the link ID, indicating a complete request link
-- `ot-tracer-spanid`: used to pass the ID of the current span, representing a single operation or event
-- `ot-tracer-sampled`: used to indicate whether to sample the request to decide whether to record the trace information of the request
-
-### Datadog {#propagators-datadog}
-
-Datadog is a distributed tracing system that defines several HTTP header fields for passing trace information. Commonly used fields are: `x-datadog-trace-id`, `x-datadog-parent-id`, etc.
-
-### Baggage {#propagators-baggage}
-
-Baggage is a concept introduced by the Jaeger tracking system, which is used to transfer business-related context information. Baggage is passed through the HTTP header field `x-b3-baggage-<key>`, where `key` is the key of the business context.
-
-The real meaning of Baggage is to propagate key-value pairs of the `key:value` nature, which is often used to propagate AppID, Host-Name, Host-IP, etc.
-
-<!-- markdownlint-disable MD046 -->
-???+ warning
-
-    It should be noted that the specific implementation and usage of these transparent transmission protocols may be slightly different, but they all aim to pass tracking information and context information between different services through HTTP header fields to achieve distributed tracking and continuous sex.
-<!-- markdownlint-enable MD046 -->
-
-## Link manufacturers and product introduction {#tracing-info}
-
-Products and manufacturers:
-
-| Products      | Manufacturers     | Supported Languages                                                            |
-| :---          | :---              | :---                                                                           |
-| OpenTelemetry | CNCF              | Java, Python, Go, JavaScript, .NET, Ruby, PHP, Erlang, Swift, Rust, C++, etc.  |
-| DDTrace       | Datadog           | Java, Python, Go, Ruby, JavaScript, PHP, .NET, Scala, Objective-C, Swift, etc. |
-| SkyWalking    | Apache SkyWalking | Java, .NET, Node.js, PHP, Python, Go, Ruby, Lua, OAP, etc.                     |
-| Zipkin        | OpenZipkin        | Java, Node.js, Ruby, Go, Scala, Python, etc.                                   |
-| Jaeger        | CNCF              | Java, Python, Go, C++, C#, Node.js, etc.                                       |
-
-The open source address of the product:
-
-- [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} is a product under CNCF.
-- [Jaeger](https://github.com/jaegertracing/jaeger){:target="_blank"} also belongs to CNCF
-- [Datadog](https://github.com/DataDog){:target="_blank"} is a multilingual link tool.
-- [SkyWalking](https://github.com/apache?q=skywalking&type=all&language=&sort=){:target="_blank"} is an open source product under the Apache Foundation
-- [Zipkin](https://github.com/OpenZipkin){:target="_blank"} There are link tools in multiple languages.
-
-## Product transparent transmission protocol {#use-propagators}
-
-### OpenTelemetry {#use-otel}
-
-List of tracing transparent transmission protocols supported by OTEL:
-
-| Propagator List | Reference                                                                                                                      |
-| ---             | ---                                                                                                                            |
-| `tracecontext`  | [W3C Trace Context](https://www.w3.org/TR/trace-context/){:target="_blank"}                                                    |
-| `baggage`       | [W3C Baggage](https://www.w3.org/TR/baggage/){:target="_blank"}                                                                |
-| `b3`            | [B3](https://github.com/openzipkin/b3-propagation#single-header){:target="_blank"}                                             |
-| `b3multi`       | [B3Multi](https://github.com/openzipkin/b3-propagation#multiple-headers){:target="_blank"}                                     |
-| `jaeger`        | [Jaeger](https://www.jaegertracing.io/docs/1.21/client-libraries/#propagation-format){:target="_blank"}                        |
-| `xray`          | [AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader){:target="_blank"} |
-| `opentracing`   | [OpenTracing](https://github.com/opentracing?q=basic&type=&language=){:target="_blank"}                                        |
-
-Example format of distributed link header information in transparent transmission:
+The usual OpenTelemetry default is a composite of W3C Trace Context and W3C Baggage:
 
 ```shell
-# Example of command line injection (multiple communication protocols are separated by commas)
--Dotel.propagators="tracecontext,baggage"
-
-# Environment variable injection example (Linux)
-export OTEL_PROPAGATORS="tracecontext, baggage"
-
-# Environment variable injection example (Windows)
-$env:OTEL_PROPAGATORS="tracecontext,baggage"
+export OTEL_PROPAGATORS=tracecontext,baggage
 ```
 
-### Datadog {#use-datadog}
-
-| Supported languages | Transparent protocol support           | Commands                                                      |
-| :---                | :---                                   | :---                                                          |
-| Node.js             | `datadog/b3multi/tracecontext/b3/none` | `DD_TRACE_PROPAGATION_STYLE` (default `datadog`)              |
-| C++                 | `datadog/b3multi/b3/none`              | `DD_TRACE_PROPAGATION_STYLE` (default `datadog`)              |
-| .NET                | `datadog/b3multi/tracecontext/none`    | `DD_TRACE_PROPAGATION_STYLE` (default `datadog`)              |
-| Java                | `datadog/b3multi/tracecontext/none`    | `DD_TRACE_PROPAGATION_STYLE` (default `tracecontext,datadog`) |
-
-> Here `none` means that tracing protocol transparent transmission is not set.
-
-#### DD_TRACE_PROPAGATION_STYLE {#dd-pg-style}
-
-Datadog tracing can make inbound settings on the behavior of protocol transparent transmission, that is, whether to inherit the upstream protocol and whether to transparently transmit its own protocol to the downstream. It is controlled separately by the following two environment variables:
-
-- Inbound control: `export DD_TRACE_PROPAGATION_STYLE_EXTRACT=<XXX>`
-- Outbound control: `export DD_TRACE_PROPAGATION_STYLE_INJECT=<YYY>`
-- It is also possible to control both inbound and outbound via a single ENV: `export DD_TRACE_PROPAGATION_STYLE="tracecontext,datadog"`
-
-Example:
+Java system-property form:
 
 ```shell
-# Inbound will inherit X-Datadog-* and X-B3-* headers (if any),
-# X-Datadog-* and X-B3-* request headers will be carried when outbound
-$ export DD_TRACE_PROPAGATION_STYLE="datadog,b3" ...
+-Dotel.propagators=tracecontext,baggage
 ```
 
-<!-- markdownlint-disable MD046 -->
-???+ note
+`tracecontext` and `baggage` are core OpenTelemetry propagators. Availability of B3, Jaeger, AWS X-Ray, and other formats depends on the language SDK, Agent version, and installed extensions. Check the documentation for the distribution you use. Do not add spaces after commas because some implementations may treat the space as part of the value.
 
-    After version V1.7.0, the default support protocol is changed to `DD_TRACE_PROPAGATION_STYLE="tracecontext,datadog"`, B3 has been deprecated, please use B3multi.
-<!-- markdownlint-enable MD046 -->
+References:
 
-For more language examples, see [here](https://github.com/DataDog/documentation/blob/4ff75ed0bcaa1269bf98e9d185935cfda675b08c/content/en/tracing/trace_collection/trace_context_propagation/_index.md){:target="_blank"}.
+- [OpenTelemetry Propagators API](https://opentelemetry.io/docs/specs/otel/context/api-propagators/){:target="_blank"}
+- [OpenTelemetry SDK configuration](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_propagators){:target="_blank"}
 
-### SkyWalking {#use-sw8}
+## DDTrace Configuration {#use-datadog}
 
-SkyWalking's own [protocol (SW8)](https://skywalking.apache.org/docs/main/next/en/api/x-process-propagation-headers-v3/){:target="_blank"}
-
-### Zipkin {#use-zipkin}
-
-[see here](https://github.com/openzipkin/b3-propagation){:target="_blank"}
-
-### Jaeger {#use-jaeger}
-
-All supported protocols:
-
-- [Jaeger Propagation Format](https://www.jaegertracing.io/docs/1.21/client-libraries/#propagation-format){:target="_blank"}
-- [B3 propagation](https://github.com/openzipkin/b3-propagation){:target="_blank"}
--W3C Trace-Context
-
-## Multi-link series {#series}
-
-Request header and vendor support list:
-
-|               | W3C                       | b3multi                  | Jaeger                   | OpenTracing              | Datadog                  | sw8                      |
-| :----         | :---                      | :---                     | :---                     | :---                     | :---                     | :---                     |
-| HTTP Header   | `tracecontext/tracestate` | `X-B3-*`                 | `uber-trace-id`          | `ot-tracer-*`            | `x-datadog-*`            | `xxx-xxx-xxx-xxx`        |
-| OpenTelemetry | :heavy_check_mark:        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_multiplication_x: |
-| Datadog       | :heavy_check_mark:        | :heavy_check_mark:       | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark:       | :heavy_multiplication_x: |
-| SkyWalking    | :heavy_multiplication_x:  | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark:       |
-| Zipkin        | :heavy_multiplication_x:  | :heavy_check_mark:       | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Jaeger        | :heavy_check_mark:        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: |
-
-According to the specific manufacturer's tools used, the corresponding transparent transmission protocol can be used to realize link series connection and ensure link integrity.
-
-### Concatenation Example {#dd-otel-example}
-
-Here is an example to illustrate the concatenation of DDTrace and OpenTelemetry link data. It can be seen from the above table that both DDTrace and OpenTelemetry support the W3C Trace Context protocol, and link concatenation can be realized through this protocol.
-
-- TraceID in DDTrace is a 64-bit int string, and SpanID and ParentID are also 64-bit int
-- TraceID in OTEL is a 128-bit hexadecimal int string, and SpanID and ParentID are 64-bit int strings
-
-If the two want to associate TraceID, DDTrace needs to be upgraded to 128 bits.
-
-No matter which one is the initiator of the request, DDTrace needs to enable 128bit TraceID support (`dd.trace.128.bit.traceid.generation.enabled`):
+DDTrace uses `DD_TRACE_PROPAGATION_STYLE` for both extraction and injection. You can also configure them separately:
 
 ```shell
-# DDTrace start example
-$ java -javaagent:/usr/local/ddtrace/dd-java-agent.jar\
-  -Ddd.service.name=client \
+# Configure inbound extraction and outbound injection together
+export DD_TRACE_PROPAGATION_STYLE=tracecontext,datadog
+
+# Configure inbound and outbound behavior separately
+export DD_TRACE_PROPAGATION_STYLE_EXTRACT=tracecontext,datadog
+export DD_TRACE_PROPAGATION_STYLE_INJECT=tracecontext,datadog
+```
+
+Supported formats and defaults vary by language and version. For a mixed DDTrace and OpenTelemetry trace, explicitly select the mutually supported `tracecontext` format instead of relying on defaults. See [Datadog Trace Context Propagation](https://docs.datadoghq.com/tracing/trace_collection/trace_context_propagation/){:target="_blank"} for the current language matrix.
+
+## DDTrace-to-OpenTelemetry Example {#dd-otel-example}
+
+The following Java example uses W3C Trace Context across two services. The DDTrace application exports traces to DataKit's HTTP port `9529`; the OpenTelemetry application exports through OTLP/gRPC on port `4317`.
+
+DDTrace client:
+
+```shell
+java -javaagent:/opt/ddtrace/dd-java-agent.jar \
+  -Ddd.service=client \
+  -Ddd.agent.host=127.0.0.1 \
+  -Ddd.trace.agent.port=9529 \
   -Ddd.trace.128.bit.traceid.generation.enabled=true \
-  -Ddd.trace.propagation.style=tracecontext\
+  -Ddd.trace.propagation.style=tracecontext \
   -jar springboot-client.jar
+```
 
-# OTEL start example
-$ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent.jar\
-  -dotel.service.name=server\
+OpenTelemetry server:
+
+```shell
+java -javaagent:/opt/otel/opentelemetry-javaagent.jar \
+  -Dotel.service.name=server \
+  -Dotel.exporter.otlp.protocol=grpc \
+  -Dotel.exporter.otlp.endpoint=http://127.0.0.1:4317 \
+  -Dotel.propagators=tracecontext,baggage \
   -jar springboot-server.jar
 ```
 
-The client will send an HTTP request to the server, and DDTrace will pass the link information in the `tracecontext` request header to the server
+The example explicitly enables 128-bit Trace ID generation to avoid version-dependent DDTrace Agent defaults. W3C Trace Context uses a 128-bit hexadecimal Trace ID and a 64-bit hexadecimal Span ID.
 
-However, in the "service call relationship", the data from the two tools cannot be connected. This is because the SpanIDs of both parties are not uniform. DDTrace is a decimal string of numbers, while OpenTelemetry is a hexadecimal number character. string. To do this, you need to modify the configuration in the `ddtrace` collector and release `compatible_otel` in `ddtrace.conf`:
+Also enable OpenTelemetry-compatible output in the DataKit `ddtrace` configuration:
 
 ```toml
-  ## compatible otel: It is possible to compatible OTEL Trace with DDTrace trace.
-  ## make span_id and parent_id to hex encoding.
-  compatible_otel=true
+[[inputs.ddtrace]]
+  compatible_otel = true
+  trace_128_bit_id = true
 ```
 
-After `compatible_otel=true`, all DDTrace `span_id` and `parent_id` will become hexadecimal numeric strings.
+- `compatible_otel` outputs DDTrace `span_id` and `parent_id` values as hexadecimal strings.
+- `trace_128_bit_id` reconstructs a 128-bit Trace ID from the high 64 bits in `_dd.p.tid` and the low 64 bits in the payload. Its current default is `true`; it is explicit here for verification.
+
+The active configuration belongs at `/usr/local/datakit/conf.d/ddtrace.conf`; the sample is `/usr/local/datakit/conf.d/samples/ddtrace.conf.sample`. Restart DataKit after editing, then send one cross-service request and verify continuous Trace IDs and correct parent-child relationships.
 
 <!-- markdownlint-disable MD046 -->
-???+ tip "Convert `span_id` from digital to hexadecimal"
+???+ tip "DDTrace Span IDs in logs"
 
-    In the logging, the SpanId in DDTrace is still in decimal, you need to extract `span_id` in the Pipeline for collecting logs and convert it into a hexadecimal number string (the original logging text will not be modified):
-
-    ```python
-    # convert string to int64
-    fn parse_int(val: str, base: int) int64
-
-    # convert int64 to string
-    fn format_int(val: int64, base: int) str
-    ```
+    A DDTrace-injected log Span ID may remain decimal. To correlate it with a hexadecimal OpenTelemetry Span ID, convert the extracted field with `parse_int()` and `format_int()` in the log Pipeline. This does not change the original log text.
 <!-- markdownlint-enable MD046 -->
-
-So far, DDTrace and OTEL have been connected in series on the link, and the service call relationship and logs can also be connected in series.

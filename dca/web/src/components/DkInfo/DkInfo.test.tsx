@@ -44,6 +44,7 @@ jest.mock('src/helper/helper', () => ({
   getLatestDatakitVersion: jest.fn((version, latestVersions) => latestVersions[`v${version.split('.')[0]}`]),
   isContainerMode: jest.fn((dk) => !!dk?.run_in_container),
   isDatakitManagement: jest.fn((dk) => dk?.status === 'running'),
+  isDatakitSessionLost: jest.fn((dk) => dk?.status === 'running' && dk?.alive === false),
   isNewerDatakitVersionAvailable: jest.fn((version, latestVersions) => version !== latestVersions[`v${version.split('.')[0]}`]),
 }));
 

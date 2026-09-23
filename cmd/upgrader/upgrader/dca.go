@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -169,9 +170,29 @@ func (c *hostDatakitClient) Init() error {
 	if Cfg.DatakitAPIHTTPS {
 		schema = "https"
 	}
-	c.url = fmt.Sprintf("%s://%s", schema, Cfg.DatakitAPIListen)
+	c.url = fmt.Sprintf("%s://%s", schema, dialableListenAddr(Cfg.DatakitAPIListen))
 
 	return nil
+}
+
+// dialableListenAddr turns datakit's listen address into an address the upgrader
+// can dial. A wildcard host (0.0.0.0/::) only means "listen on all interfaces"
+// and is not a valid connect target on every platform (on Windows the dial is
+// refused), so it is replaced by loopback.
+func dialableListenAddr(listen string) string {
+	host, port, err := net.SplitHostPort(strings.TrimSpace(listen))
+	if err != nil {
+		return listen
+	}
+
+	switch host {
+	case "::":
+		return net.JoinHostPort("::1", port)
+	case "", "0.0.0.0":
+		return net.JoinHostPort("127.0.0.1", port)
+	}
+
+	return listen
 }
 
 func (c *hostDatakitClient) SyncDataKit() {

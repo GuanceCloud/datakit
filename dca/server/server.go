@@ -40,11 +40,16 @@ type ServerOptions struct {
 
 // Manager define a ws server manager.
 var Manager = ClientManager{
-	Register:       make(chan *Client, 100),
-	Unregister:     make(chan *Client, 100),
+	// A DCA restart makes every datakit reconnect at once: keep enough room in
+	// the queue so a fleet does not get 429 (old clients treat it as a failure
+	// and back off, which made the list look like it recovered very slowly).
+	Register:       make(chan *Client, clientQueueSize),
+	Unregister:     make(chan *Client, clientQueueSize),
 	Clients:        make(map[string]*Client),
 	WebsocketConns: make(map[string]chan *websocket.Conn),
 }
+
+const clientQueueSize = 2048
 
 var (
 	dbPath                          = DefaultDBPath
@@ -53,6 +58,7 @@ var (
 	tlsKeyFile                      string
 	datakitDB                       = NewDB()
 	defaultUploadHostStatusInterval = 30 * time.Second
+	datakitCleanupInterval          = time.Hour
 	g                               = goroutine.NewGroup(goroutine.Option{Name: "dca-server"})
 	consoleClient                   = http.Client{
 		Timeout: 30 * time.Second,
@@ -143,6 +149,24 @@ func Start(opt *ServerOptions) error {
 			return nil
 		})
 	}
+
+	// Clean up the datakits that stopped reporting, a long running DCA process
+	// would otherwise keep them forever (it is done once at startup as well).
+	g.Go(func(ctx context.Context) error {
+		ticker := time.NewTicker(datakitCleanupInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-closeCh:
+				return nil
+			case <-ticker.C:
+				if err := datakitDB.DeleteExpired(); err != nil {
+					l.Warnf("failed to clean expired datakits: %s", err.Error())
+				}
+			}
+		}
+	})
 
 	if enableTLS {
 		l.Infof("enable TLS mode")

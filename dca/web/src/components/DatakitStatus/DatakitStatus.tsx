@@ -1,17 +1,22 @@
 import { Tooltip } from "antd";
-import { IDatakit } from "src/store/type";
+import { DCA_STATUS, IDatakit } from "src/store/type";
 import styles from './DatakitStatus.module.scss'
 import { useTranslation } from "react-i18next";
 
 export default function DatakitStatus({ datakit }: { datakit: IDatakit }) {
   const { t } = useTranslation()
-  let state = datakit.status ? datakit.status : "unknown"
+  // a row can look running while the DCA backend has no session for it: show
+  // that instead of a green "running" the operator cannot act on.
+  // NOTE: keep this check inline, importing the helper drags the api layer in.
+  const sessionLost = datakit.status === DCA_STATUS.RUNNING && datakit.alive === false
+  let state = sessionLost ? "session_lost" : (datakit.status ? datakit.status : "unknown")
   let textColor = {
     "running": "#6CBB87",
     "upgrading": "#CACACA",
     "offline": "#DE6357",
     "restarting": "#CACACA",
     "stopped": "#bfbfbf",
+    "session_lost": "#FA8C16",
   }[state]
 
   let statusText = {
@@ -20,7 +25,8 @@ export default function DatakitStatus({ datakit }: { datakit: IDatakit }) {
     "upgrading": t("status.upgrading"),
     "stopped": t("status.stopped"),
     "restarting": t("status.restarting"),
-    "unknown": t("status.unknown")
+    "unknown": t("status.unknown"),
+    "session_lost": t("status.session_lost")
   }[state]
 
   return (

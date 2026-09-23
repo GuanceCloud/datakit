@@ -176,6 +176,15 @@ WHERE resource_name IN ('sessions', 'processes')`
   (SELECT COUNT(*) FROM v$datafile) AS datafile_count,
   TO_NUMBER((SELECT value FROM v$parameter WHERE name = 'db_files')) AS datafile_limit
 FROM dual`
+
+	sqlPGAParameters = map[string]string{
+		"11": `SELECT name, TO_NUMBER(value) value
+FROM v$parameter
+WHERE name IN ('pga_aggregate_target', 'pga_aggregate_limit')`,
+		"default": `SELECT name, TO_NUMBER(value) value, SYS_CONTEXT('USERENV', 'CON_NAME') pdb_name
+FROM v$parameter
+WHERE name IN ('pga_aggregate_target', 'pga_aggregate_limit')`,
+	}
 )
 
 type sysmetricsRowDB struct {
@@ -198,6 +207,12 @@ type resourceLimitRowDB struct {
 type datafileLimitRowDB struct {
 	DatafileCount sql.NullInt64 `db:"DATAFILE_COUNT"`
 	DatafileLimit sql.NullInt64 `db:"DATAFILE_LIMIT"`
+}
+
+type pgaParameterRowDB struct {
+	Name    string         `db:"NAME"`
+	Value   sql.NullInt64  `db:"VALUE"`
+	PdbName sql.NullString `db:"PDB_NAME"`
 }
 
 func getSystemMetricFieldAndValue(row sysmetricsRowDB) (string, float64, bool) {
@@ -329,6 +344,35 @@ func (ipt *Input) collectDatafileLimitFields(metricName string) map[string]int64
 	return fields
 }
 
+func (ipt *Input) collectPGAParameters(metricName string) point.KVs {
+	query := sqlPGAParameters["11"]
+	if isDBVersionGreaterOrEqualThan(ipt.dbVersion, "12") {
+		query = sqlPGAParameters["default"]
+	}
+	rows := []pgaParameterRowDB{}
+	if err := selectWrapper(ipt, &rows, query, getMetricName(metricName, "pga_parameters")); err != nil {
+		l.Warnf("failed to collect PGA parameters: %s", err)
+		return nil
+	}
+
+	kvs := ipt.getKVs()
+	kvs = kvs.AddTag("version", ipt.fullVersion)
+	for _, row := range rows {
+		if !row.Value.Valid {
+			continue
+		}
+		// Missing parameters are omitted; a zero limit means unlimited.
+		kvs = kvs.Set(row.Name, row.Value.Int64)
+		if row.PdbName.Valid && row.PdbName.String != "" {
+			kvs = kvs.AddTag("pdb_name", row.PdbName.String)
+		}
+	}
+	if kvs.FieldCount() == 0 {
+		return nil
+	}
+	return kvs
+}
+
 func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 	var (
 		metricName = "oracle_system"
@@ -433,6 +477,11 @@ func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 
 	if hasGlobalMetric {
 		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
+	}
+
+	// Keep the connected container's PGA parameters separate from global fields.
+	if pgaKVs := ipt.collectPGAParameters(metricName); pgaKVs != nil {
+		pts = append(pts, point.NewPoint(metricName, pgaKVs, opts...))
 	}
 
 	l.Debugf("collect %d points from system(oracle version %s)", len(pts), ipt.mainVersion)

@@ -400,6 +400,18 @@ func (m *oracleMeasurement) getSystemFields() map[string]interface{} {
 		Unit:     inputs.Percent,
 		Desc:     "Memory sorts ratio",
 	}
+	fields["pga_aggregate_target"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.SizeByte,
+		Desc:     "Target aggregate PGA memory for the connected instance or container; not a hard limit",
+	}
+	fields["pga_aggregate_limit"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.SizeByte,
+		Desc:     "Aggregate PGA memory limit for the connected instance or container; 0 means unlimited",
+	}
 	fields["pga_over_allocation_count"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,

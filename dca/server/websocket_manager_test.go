@@ -6,6 +6,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,22 @@ import (
 	"github.com/stretchr/testify/require"
 	ws "gitlab.jiagouyun.com/cloudcare-tools/datakit/dca/websocket"
 )
+
+// Call after replacing global state and before registering peer cleanups.
+// Cleanup runs in reverse order: close peers, stop the manager, restore globals/DB.
+func startTestManager(t *testing.T) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		Manager.run(ctx)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+}
 
 func replaceManagerState(t *testing.T, register chan *Client, unregister chan *Client, clients map[string]*Client, websocketConns map[string]chan *websocket.Conn) {
 	t.Helper()
@@ -258,6 +275,9 @@ func TestClientReceiveMessageBranches(t *testing.T) {
 
 	client := newTestClientForRequest()
 	client.DataKit = dk
+	client.ID = dk.ConnID
+	replaceManagerState(t, Manager.Register, Manager.Unregister,
+		map[string]*Client{client.ID: client}, Manager.WebsocketConns)
 	client.receiveMessage([]byte("{bad-json"))
 
 	client.receiveMessage((&ws.WebsocketMessage{
@@ -280,7 +300,7 @@ func TestClientManagerStartRegisterAndUnregister(t *testing.T) {
 	db := withTestDatakitDB(t)
 	replaceManagerState(t, make(chan *Client, 10), make(chan *Client, 10), map[string]*Client{}, map[string]chan *websocket.Conn{})
 
-	go Manager.Start()
+	startTestManager(t)
 
 	serverConn, clientConn := newTestWebsocketPair(t)
 	defer clientConn.Close() //nolint:errcheck
@@ -288,7 +308,7 @@ func TestClientManagerStartRegisterAndUnregister(t *testing.T) {
 	client := &Client{ID: dk.ConnID, Socket: serverConn, DataKit: dk}
 	Manager.Register <- client
 	require.Eventually(t, func() bool {
-		_, ok := Manager.Clients[dk.ConnID]
+		_, ok := Manager.getClient(dk.ConnID)
 		return ok
 	}, time.Second, 10*time.Millisecond)
 	found, err := db.Find(dk)
@@ -304,9 +324,107 @@ func TestClientManagerStartRegisterAndUnregister(t *testing.T) {
 
 	Manager.Unregister <- client
 	require.Eventually(t, func() bool {
-		_, ok := Manager.Clients[dk.ConnID]
+		_, ok := Manager.getClient(dk.ConnID)
 		return !ok
 	}, time.Second, 10*time.Millisecond)
+}
+
+// A connection rejected as duplicated exits with the same conn id as the live
+// session it collided with: its unregistration must not take that session (and
+// its row) down, otherwise a live datakit loses its management session.
+func TestUnregisterKeepsLiveSessionOfRejectedDuplicate(t *testing.T) {
+	db := withTestDatakitDB(t)
+
+	dk := newTestDataKit("owned-session")
+	require.NoError(t, db.Insert(dk))
+
+	owner := newTestClientForRequest()
+	owner.ID = dk.ConnID
+	owner.DataKit = dk
+
+	duplicate := newTestClientForRequest()
+	duplicate.ID = dk.ConnID // a rejected duplicate shares the conn id
+	duplicate.DataKit = dk
+
+	manager := &ClientManager{Clients: map[string]*Client{dk.ConnID: owner}}
+
+	require.False(t, manager.unregisterClient(duplicate),
+		"a rejected duplicate does not own the session")
+	_, ok := manager.Clients[dk.ConnID]
+	require.True(t, ok, "the live session must survive the rejected duplicate")
+
+	found, err := db.Find(dk)
+	require.NoError(t, err)
+	require.NotNil(t, found)
+	require.Equal(t, ws.StatusRunning, found.Status,
+		"the row of the live session must stay running")
+
+	// the owner still ends its own session
+	require.True(t, manager.unregisterClient(owner))
+	_, ok = manager.Clients[dk.ConnID]
+	require.False(t, ok)
+
+	found, err = db.Find(dk)
+	require.NoError(t, err)
+	require.NotNil(t, found)
+	require.Equal(t, ws.StatusOffline, found.Status)
+}
+
+// Register and unregister are two independent channels, so the unregistration
+// may be processed first: a client that already exited must not be published as
+// a live session.
+func TestRegisterSkipsExitedClient(t *testing.T) {
+	db := withTestDatakitDB(t)
+
+	dk := newTestDataKit("exited-client")
+	client := newTestClientForRequest()
+	client.ID = dk.ConnID
+	client.DataKit = dk
+	// Exit() marks the session before it queues the unregistration
+	client.exited.Store(true)
+
+	manager := &ClientManager{Clients: map[string]*Client{}}
+
+	require.False(t, manager.registerClient(client), "an exited client must not be registered")
+	_, ok := manager.Clients[dk.ConnID]
+	require.False(t, ok)
+
+	found, err := db.Find(dk)
+	require.NoError(t, err)
+	require.Nil(t, found, "no row may be published for an exited client")
+
+	// a client without a datakit cannot become a session either
+	noDatakit := newTestClientForRequest()
+	noDatakit.DataKit = nil
+	require.False(t, manager.registerClient(noDatakit))
+}
+
+// Exit has to mark the session as exited (registerClient relies on it, the
+// unregistration may be processed first) and still queue the unregistration.
+func TestExitMarksSessionExited(t *testing.T) {
+	unregister := make(chan *Client, 1)
+	replaceManagerState(t, make(chan *Client, 4), unregister,
+		map[string]*Client{}, map[string]chan *websocket.Conn{})
+
+	serverConn, clientConn := newTestWebsocketPair(t)
+	defer clientConn.Close() //nolint:errcheck
+
+	client := &Client{
+		ID:      "exited-session",
+		Socket:  serverConn,
+		Close:   make(chan interface{}),
+		DataKit: newTestDataKit("exited-session"),
+	}
+	client.Exit()
+
+	require.True(t, client.exited.Load(), "Exit must mark the session as exited")
+
+	select {
+	case queued := <-unregister:
+		require.Same(t, client, queued)
+	default:
+		t.Fatal("the unregistration was not queued")
+	}
 }
 
 func TestWebsocketHandlerRejectsBadDatakitHeader(t *testing.T) {

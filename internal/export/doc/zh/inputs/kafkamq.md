@@ -150,7 +150,7 @@ kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profile
 
 配置文件中的 `dk_endpoint` `trace_api` `metric_api` 对应的是 DataKit 的地址和 OpenTelemetry 采集器的 API 地址。
 
-> 注意：从 Kafka 中订阅的消息并不会直接进行解析，而是 直接发送到 `OpenTelemetry` 采集器中，所以 必须打开 [OpenTelemetry 采集器](opentelemetry.md)，目前仅支持 `x-protobuf` 数据流格式。
+> 注意：从 Kafka 订阅的消息不会直接解析，而是发送到 `OpenTelemetry` 采集器，因此必须启用 [OpenTelemetry 采集器](opentelemetry.md)。目前仅支持 `x-protobuf` 数据流格式。
 
 ### 示例 {#example}
 

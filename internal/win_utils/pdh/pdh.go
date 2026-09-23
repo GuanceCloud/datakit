@@ -172,6 +172,15 @@ type (
 	PDH_HCOUNTER windows.Handle // counter handle
 )
 
+// PDH_RAW_COUNTER contains a counter provider's unformatted sample.
+type PDH_RAW_COUNTER struct {
+	CStatus     uint32
+	TimeStamp   windows.Filetime
+	FirstValue  int64
+	SecondValue int64
+	MultiCount  uint32
+}
+
 // Union specialization for double values.
 type PDH_FMT_COUNTERVALUE_DOUBLE struct {
 	CStatus     uint32 // Counter status
@@ -220,6 +229,7 @@ var (
 	pdh_CollectQueryData          *windows.LazyProc
 	pdh_EnumObjectItems           *windows.LazyProc
 	pdh_GetFormattedCounterValue  *windows.LazyProc
+	pdh_GetRawCounterValue        *windows.LazyProc
 	pdh_GetFormattedCounterArrayW *windows.LazyProc
 	pdh_OpenQuery                 *windows.LazyProc
 	pdh_ValidatePathW             *windows.LazyProc
@@ -236,6 +246,7 @@ func init() {
 	pdh_CollectQueryData = libpdhDll.NewProc("PdhCollectQueryData")
 	pdh_EnumObjectItems = libpdhDll.NewProc("PdhEnumObjectItemsW")
 	pdh_GetFormattedCounterValue = libpdhDll.NewProc("PdhGetFormattedCounterValue")
+	pdh_GetRawCounterValue = libpdhDll.NewProc("PdhGetRawCounterValue")
 	pdh_GetFormattedCounterArrayW = libpdhDll.NewProc("PdhGetFormattedCounterArrayW")
 	pdh_OpenQuery = libpdhDll.NewProc("PdhOpenQuery")
 	pdh_ValidatePathW = libpdhDll.NewProc("PdhValidatePathW")
@@ -541,5 +552,15 @@ func PdhGetFormattedCounterArrayLong(hCounter PDH_HCOUNTER, lpdwBufferSize *uint
 		uintptr(unsafe.Pointer(lpdwBufferCount)),
 		uintptr(unsafe.Pointer(itemBuffer)))
 
+	return uint32(ret)
+}
+
+// PdhGetRawCounterValue reads the current unformatted sample without calculating a rate.
+func PdhGetRawCounterValue(counter PDH_HCOUNTER, counterType *uint32, value *PDH_RAW_COUNTER) uint32 {
+	ret, _, _ := pdh_GetRawCounterValue.Call(
+		uintptr(counter),
+		uintptr(unsafe.Pointer(counterType)),
+		uintptr(unsafe.Pointer(value)),
+	)
 	return uint32(ret)
 }

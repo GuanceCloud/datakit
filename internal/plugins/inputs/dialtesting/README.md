@@ -14,6 +14,7 @@ http 模块暴露如下 metrics：
 | datakit_dialtesting_dataway_send_failed_number| gauge | The number of failed sending for each dataway | protocol,region,dataway |
 | datakit_dialtesting_task_run_cost_seconds | summary | The cost time of the running tasks | protocol,region |
 | datakit_dialtesting_pull_cost_seconds | summary | The cost time to the pull tasks | region,is_first |
+| datakit_dialtesting_task_pull_panic_total | count | Recovered task pull or dispatch panics; retries wait for the configured pull interval | region |
 | datakit_dialtesting_task_exec_time_interval_seconds | summary | The execution time interval |  protocol,region |
 | datakit_dialtesting_task_synchronized_total | count | The total number of the synchronized tasks| protocol,region |
 | datakit_dialtesting_one_shot_batch_total | count | The total number of one-shot dialtesting execution chunks | region,status |

@@ -6,10 +6,6 @@
 
 package snmputil
 
-// PayloadMetadataBatchSize is the number of resources per event payload
-// Resources are devices, interfaces, etc.
-const PayloadMetadataBatchSize = 100
-
 // DeviceStatus enum type.
 type DeviceStatus int32
 

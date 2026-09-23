@@ -116,7 +116,13 @@ This section configures the **DataKit receiver**. Configure the SDK's destinatio
 
 === "Host Installation"
 
-    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Copy the sample configuration to the `conf.d` root and edit it. With the default installation path, run:
+
+    ```shell
+    cp /usr/local/datakit/conf.d/samples/ddtrace.conf.sample /usr/local/datakit/conf.d/ddtrace.conf
+    ```
+
+    The configuration is as follows:
 
     ```toml
     {{ CodeBlock .InputSample 4 }}

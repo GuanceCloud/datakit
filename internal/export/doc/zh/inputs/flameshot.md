@@ -398,7 +398,7 @@ spec:
 
     ```yaml
     - name: ENV_HTTP_PUBLIC_APIS
-      value: /otel/v1/trace,/otel/v1/metric,/otel/v1/logs,/profiling/v1/input
+      value: /otel/v1/traces,/otel/v1/metrics,/otel/v1/logs,/profiling/v1/input
     ```
 
     如果该变量已经配置了其它接口，不要直接覆盖原值，应在原列表后追加 `/profiling/v1/input`。否则会出现：
@@ -544,7 +544,7 @@ Flameshot 提供了 HTTP 接口，允许用户或自动化运维脚本**主动�
 
         ```yaml
         - name: ENV_HTTP_PUBLIC_APIS
-          value: /otel/v1/trace,/otel/v1/metric,/otel/v1/logs,/profiling/v1/input
+          value: /otel/v1/traces,/otel/v1/metrics,/otel/v1/logs,/profiling/v1/input
         ```
 
     - 如果 DataKit 返回 `input "profile" is not enabled for API "/profiling/v1/input"`，说明 DataKit 没有开启 profile 采集器。请启用：

@@ -204,6 +204,30 @@ func TestSaveDatakitConfigActionRejectsPathOutsideConfdDir(t *testing.T) {
 	require.NoFileExists(t, filepath.Join(filepath.Dir(confdDir), "escaped.conf"))
 }
 
+// The DCA web UI shows this message to the operator, so the underlying error has
+// to survive: a permission error, an antivirus lock and a path that points at a
+// directory all fail here, and they can only be told apart by that message.
+func TestSaveDatakitConfigActionKeepsUnderlyingWriteError(t *testing.T) {
+	confdDir, _, _, datakit := setupDCAActionTestDirs(t)
+
+	dirTarget := filepath.Join(confdDir, "isdir.conf")
+	require.NoError(t, os.MkdirAll(dirTarget, 0o755))
+
+	body, err := json.Marshal(saveConfigParam{
+		Path:    dirTarget,
+		Config:  "title = 'isdir'\n",
+		IsForce: true,
+	})
+	require.NoError(t, err)
+
+	response := &ws.DCAResponse{}
+	saveDatakitConfigAction(nil, response, &ws.ActionData{Body: string(body)}, datakit)
+
+	require.False(t, response.Success)
+	require.Equal(t, "save.file.failed", response.ErrorCode)
+	require.Contains(t, response.Message, "save file failed:")
+}
+
 func TestDeleteDatakitConfigAction(t *testing.T) {
 	confdDir, _, _, datakit := setupDCAActionTestDirs(t)
 

@@ -19,6 +19,7 @@ var (
 	taskGauge                   *prometheus.GaugeVec
 	taskDatawaySendFailedGauge  *prometheus.GaugeVec
 	taskPullCostSummary         *prometheus.SummaryVec
+	taskPullPanicCounter        *prometheus.CounterVec
 	taskSynchronizedCounter     *prometheus.CounterVec
 	taskCheckCostSummary        *prometheus.SummaryVec
 	taskRunCostSummary          *prometheus.SummaryVec
@@ -68,17 +69,7 @@ func metricsSetup() {
 		[]string{"region", "protocol"},
 	)
 
-	taskPullCostSummary = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "dialtesting",
-			Name:      "pull_cost_seconds",
-			Help:      "Time cost to pull tasks",
-
-			Objectives: datakit.P8sStandardObjectives,
-		},
-		[]string{"region", "is_first"},
-	)
+	setupTaskPullMetrics()
 
 	taskSynchronizedCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -310,6 +301,7 @@ func init() {
 		taskDatawaySendFailedGauge,
 		taskSynchronizedCounter,
 		taskPullCostSummary,
+		taskPullPanicCounter,
 		taskCheckCostSummary,
 		taskRunCostSummary,
 		taskExecTimeIntervalSummary,
@@ -331,4 +323,27 @@ func init() {
 		taskMaxNetPathConcurrency,
 		taskNetPathConcurrency,
 	}...)
+}
+
+func setupTaskPullMetrics() {
+	taskPullPanicCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "task_pull_panic_total",
+			Help:      "The number of recovered task pull or dispatch panics",
+		},
+		[]string{"region"},
+	)
+	taskPullCostSummary = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "pull_cost_seconds",
+			Help:      "Time cost to pull tasks",
+
+			Objectives: datakit.P8sStandardObjectives,
+		},
+		[]string{"region", "is_first"},
+	)
 }

@@ -18,6 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
+	apminjUtils "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/dkrunc/utils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -32,8 +34,16 @@ func Test_trimFileName(t *T.T) {
 		src = ` .\abc.1,  .\def.1   `
 		arr = strings.Split(src, ",")
 
-		assert.Equal(t, `abc.1`, trimFileName(arr[0], `\.`))
-		assert.Equal(t, `def.1`, trimFileName(arr[1], `\.`))
+		assert.Equal(t, `abc.1`, trimFileName(arr[0], `.\`))
+		assert.Equal(t, `def.1`, trimFileName(arr[1], `.\`))
+
+		// absolute paths must be left untouched: the old implementation trimmed
+		// a *cutset*, so it also ate the leading "/" and the offline install
+		// could not open its packages any more
+		assert.Equal(t, `/tmp/x/.dk_upgrader-linux-amd64.tar.gz`,
+			trimFileName(`/tmp/x/.dk_upgrader-linux-amd64.tar.gz`, "./"))
+		assert.Equal(t, `C:\Users\Li\AppData\Local\Temp\Temp_dk_installer_files_x\.dk_upgrader-windows-amd64-1.93.0.tar.gz`,
+			trimFileName(`C:\Users\Li\AppData\Local\Temp\Temp_dk_installer_files_x\.dk_upgrader-windows-amd64-1.93.0.tar.gz`, `.\`))
 	})
 }
 
@@ -133,4 +143,37 @@ func TestEnsureDatakitCLIExecutable(t *T.T) {
 	binInfo, err := os.Stat(binaryPath)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o755), binInfo.Mode().Perm())
+}
+
+// TestOfflineExtractDestDir: the offline one-liner hands the packages over as
+// absolute paths from a temp dir, with a leading dot in the file name
+// (C:\Users\Li\AppData\Local\Temp\Temp_dk_installer_files_xxx\.dk_upgrader-windows-amd64-1.93.0.tar.gz).
+// The upgrader package must still land in the upgrader install dir, otherwise
+// its service cannot be installed ("The system cannot find the file specified").
+func TestOfflineExtractDestDir(t *T.T) {
+	upgraderDir := upgrader.InstallDir
+	datakitDir := datakit.InstallDir
+	injectDir := filepath.Join(datakit.InstallDir,
+		apminjUtils.DirInject, apminjUtils.DirInjectSubInject)
+
+	cases := map[string]string{
+		// the customer's offline install command
+		`C:\Users\Li\AppData\Local\Temp\Temp_dk_installer_files_20260918013158_8742\.dk_upgrader-windows-amd64-1.93.0.tar.gz`: upgraderDir,
+		`C:\Users\Li\AppData\Local\Temp\Temp_dk_installer_files_20260918013158_8742\.datakit-windows-amd64-1.93.0.tar.gz`:     datakitDir,
+		`C:\Users\Li\AppData\Local\Temp\Temp_dk_installer_files_20260918013158_8742\.data.tar.gz`:                             datakitDir,
+
+		// relative forms used by the docs
+		`./dk_upgrader-linux-amd64.tar.gz`:              upgraderDir,
+		`.\dk_upgrader-windows-amd64.tar.gz`:            upgraderDir,
+		`./.dk_upgrader-linux-amd64.tar.gz`:             upgraderDir,
+		`dk_upgrader-linux-amd64.tar.gz`:                upgraderDir,
+		`./datakit-linux-amd64.tar.gz`:                  datakitDir,
+		`./.data.tar.gz`:                                datakitDir,
+		`./datakit-apm-inject-linux-amd64.tar.gz`:       injectDir,
+		`/tmp/x/.datakit-apm-inject-linux-amd64.tar.gz`: injectDir,
+	}
+
+	for in, want := range cases {
+		assert.Equalf(t, want, offlineExtractDestDir(in), "offlineExtractDestDir(%q)", in)
+	}
 }
