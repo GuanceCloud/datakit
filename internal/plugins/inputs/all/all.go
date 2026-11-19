@@ -57,6 +57,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ibm_i"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/influxdb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ingestion_canary"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/iotdb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ipmi"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jenkins"
